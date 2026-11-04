@@ -55,6 +55,8 @@ struct Order {
     address payee;
     uint40 startsAt;
     uint40 deliveredAt;
+    uint40 settledAt;
+    bool paidOut;
     address token;
     uint40 agreedAt;
     uint40 deadline;

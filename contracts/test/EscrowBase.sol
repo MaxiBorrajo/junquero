@@ -26,6 +26,7 @@ import {
 import {MockPermitToken} from "./mocks/MockPermitToken.sol";
 import {MockToken} from "./mocks/MockToken.sol";
 import {MockPermit2} from "./mocks/MockPermit2.sol";
+import {ERC2771Forwarder} from "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 
 abstract contract EscrowBase is Test {
     uint256 internal constant USDC = 1e6;
@@ -270,5 +271,55 @@ abstract contract EscrowBase is Test {
 
     function _order(uint256 orderId) internal view returns (Order memory) {
         return escrow.getOrder(orderId);
+    }
+
+    function _forward(uint256 key, address from, address to, bytes memory data) internal {
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint256 gas = 2_000_000;
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256(
+                    "ForwardRequest(address from,address to,uint256 value,uint256 gas,uint256 nonce,uint48 deadline,bytes data)"
+                ),
+                from,
+                to,
+                uint256(0),
+                gas,
+                forwarder.nonces(from),
+                deadline,
+                keccak256(data)
+            )
+        );
+        bytes32 domain = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256("Forwarder"),
+                keccak256("1"),
+                block.chainid,
+                address(forwarder)
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 sv) = vm.sign(key, keccak256(abi.encodePacked("\x19\x01", domain, structHash)));
+        ERC2771Forwarder.ForwardRequestData memory request = ERC2771Forwarder.ForwardRequestData({
+            from: from,
+            to: to,
+            value: 0,
+            gas: gas,
+            deadline: deadline,
+            data: data,
+            signature: abi.encodePacked(r, sv, v)
+        });
+        vm.prank(relayer);
+        forwarder.execute(request);
+    }
+
+    function _settleFlow(uint256 amount) internal returns (uint256 orderId) {
+        orderId = _createUsdc(amount);
+        _agree(orderId, amount);
+        vm.prank(payee);
+        escrow.deliver(orderId, EVIDENCE);
+        (Release memory r, bytes memory sig) = _release(orderId, amount, 5);
+        vm.prank(payee);
+        escrow.release(r, sig);
     }
 }

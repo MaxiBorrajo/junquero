@@ -13,6 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IEscrow} from "./interfaces/IEscrow.sol";
 import {IParameterRegistry} from "./interfaces/IParameterRegistry.sol";
+import {IReputation, Role} from "./interfaces/IReputation.sol";
 import {EscrowHashes} from "./libraries/EscrowHashes.sol";
 import {ParameterKeys} from "./libraries/ParameterKeys.sol";
 import {
@@ -43,6 +44,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
     address public immutable treasury;
     ISignatureTransfer public immutable permit2;
 
+    IReputation public reputation;
     uint256 public lastOrderId;
 
     mapping(uint256 orderId => Order) private _orders;
@@ -202,7 +204,9 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         _verify(order.payer, _hashTypedDataV4(EscrowHashes.hash(releaseData)), payerSignature);
         if (order.mode == PaymentMode.Cash) {
             order.status = OrderStatus.Settled;
+            order.settledAt = uint40(block.timestamp);
             emit OrderSettled(releaseData.orderId, caller, 0, 0, 0, releaseData.rating, false);
+            _recordCash(releaseData.orderId, order, releaseData.rating);
             return;
         }
         _settle(releaseData.orderId, order, releaseData.amount, releaseData.rating, false);
@@ -235,6 +239,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         } else if (status == OrderStatus.Agreed) {
             if (caller == order.payee) {
                 _finishCancel(orderId, order, caller, CancelReason.PayeeCancelled, caller, 0, 0);
+                _recordFailure(orderId, caller, Role.Provider);
             } else if (caller == order.payer) {
                 (uint128 toPayee, uint128 toTreasury) = _lateCancelShares(order);
                 _finishCancel(orderId, order, caller, CancelReason.PayerCancelled, order.payee, toPayee, toTreasury);
@@ -250,6 +255,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         Order storage order = _requireStatus(orderId, OrderStatus.Agreed);
         if (order.deadline == 0 || block.timestamp <= order.deadline) revert DeadlineNotReached(order.deadline);
         _finishCancel(orderId, order, _msgSender(), CancelReason.Expired, address(0), 0, 0);
+        _recordFailure(orderId, order.payee, Role.Provider);
     }
 
     function checkIn(uint256 orderId) external {
@@ -285,6 +291,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         uint256 total = (uint256(order.price) * registry.get(ParameterKeys.NO_SHOW_COMPENSATION_BPS)) / BPS;
         (uint128 toPayee, uint128 toTreasury) = _shares(total);
         _finishCancel(orderId, order, caller, CancelReason.NoShow, caller, toPayee, toTreasury);
+        _recordFailure(orderId, order.payer, Role.Requester);
     }
 
     function extendReview(uint256 orderId) external {
@@ -333,6 +340,11 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         emit Claimed(token, account, amount);
     }
 
+    function setReputation(IReputation reputation_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        reputation = reputation_;
+        emit ReputationUpdated(address(reputation_));
+    }
+
     function configureToken(address token, TokenConfig calldata config) external onlyRole(TOKEN_ADMIN_ROLE) {
         if (token == address(0)) revert ZeroAddress();
         if (config.smallMax > config.mediumMax) revert InvalidThresholds();
@@ -360,6 +372,34 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
 
     function domainSeparator() external view returns (bytes32) {
         return _domainSeparatorV4();
+    }
+
+    function _recordSettled(uint256 orderId, Order storage order, uint8 rating, bool automatic) private {
+        IReputation target = reputation;
+        if (address(target) == address(0)) return;
+        bool qualifies = order.price > _tokenConfigs[order.token].reputationMin;
+        try target.recordSettled(order.payer, order.payee, rating, automatic, false, qualifies) {}
+        catch {
+            emit HookFailed(orderId, IReputation.recordSettled.selector);
+        }
+    }
+
+    function _recordCash(uint256 orderId, Order storage order, uint8 rating) private {
+        IReputation target = reputation;
+        if (address(target) == address(0)) return;
+        try target.recordCash(order.payer, order.payee, rating) {}
+        catch {
+            emit HookFailed(orderId, IReputation.recordCash.selector);
+        }
+    }
+
+    function _recordFailure(uint256 orderId, address account, Role role) private {
+        IReputation target = reputation;
+        if (address(target) == address(0)) return;
+        try target.recordFailure(account, role) {}
+        catch {
+            emit HookFailed(orderId, IReputation.recordFailure.selector);
+        }
     }
 
     function _emitCreated(uint256 orderId, address payer, CreateParams calldata params, uint128 fee) private {
@@ -395,12 +435,15 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         address token = order.token;
 
         order.status = OrderStatus.Settled;
+        order.settledAt = uint40(block.timestamp);
+        order.paidOut = amount > 0;
         order.deposited = 0;
 
         _payout(token, payee, paid);
         _payout(token, treasury, fee);
         _payout(token, payer, refunded);
         emit OrderSettled(orderId, payee, paid, refunded, fee, rating, automatic);
+        _recordSettled(orderId, order, rating, automatic);
     }
 
     function _finishCancel(

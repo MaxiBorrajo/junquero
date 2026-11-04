@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {IReputation} from "./IReputation.sol";
 import {
     Order,
     OrderStatus,
@@ -56,6 +57,8 @@ interface IEscrow {
     event ChangesRequested(uint256 indexed orderId, bytes32 reasonHash, uint8 count);
     event PayoutDeferred(address indexed token, address indexed to, uint256 amount);
     event Claimed(address indexed token, address indexed account, uint256 amount);
+    event ReputationUpdated(address indexed reputation);
+    event HookFailed(uint256 indexed orderId, bytes4 selector);
 
     error TokenNotAllowed(address token);
     error InvalidAmount();
@@ -107,6 +110,7 @@ interface IEscrow {
     function requestChanges(uint256 orderId, bytes32 reasonHash) external;
     function moderate(uint256 orderId, bytes32 reasonHash) external;
     function claim(address token, address account) external;
+    function setReputation(IReputation reputation) external;
     function claimable(address token, address account) external view returns (uint256);
 
     function configureToken(address token, TokenConfig calldata config) external;

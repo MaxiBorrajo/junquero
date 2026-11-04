@@ -25,6 +25,14 @@ contract DeployTest is Test {
         assertTrue(deployment.escrow.isTrustedForwarder(address(deployment.forwarder)));
     }
 
+    function test_reputationAndReceiptAreWired() public view {
+        assertEq(address(deployment.escrow.reputation()), address(deployment.reputation));
+        assertTrue(deployment.reputation.hasRole(deployment.reputation.RECORDER_ROLE(), address(deployment.escrow)));
+        assertEq(address(deployment.receipt.escrow()), address(deployment.escrow));
+        assertTrue(deployment.receipt.isTrustedForwarder(address(deployment.forwarder)));
+        assertEq(deployment.registry.get(ParameterKeys.REPUTATION_PAIR_CAP), 2);
+    }
+
     function test_definesEveryParameterTheEscrowReads() public view {
         assertEq(deployment.registry.get(ParameterKeys.FEE_BPS), 0);
         assertEq(deployment.registry.get(ParameterKeys.REQUEST_CHANGES_MAX), 2);
@@ -53,6 +61,9 @@ contract DeployTest is Test {
         assertTrue(deployment.escrow.hasRole(adminRole, nextAdmin));
         assertTrue(deployment.escrow.hasRole(tokenAdminRole, nextAdmin));
         assertTrue(deployment.escrow.hasRole(moderatorRole, nextAdmin));
+        assertTrue(deployment.credentials.hasRole(adminRole, nextAdmin));
+        assertTrue(deployment.credentials.hasRole(deployment.credentials.ISSUER_ROLE(), nextAdmin));
+        assertTrue(deployment.reputation.hasRole(adminRole, nextAdmin));
 
         assertFalse(deployment.registry.hasRole(adminRole, admin));
         assertFalse(deployment.registry.hasRole(deployment.registry.DEFINER_ROLE(), admin));
@@ -60,5 +71,8 @@ contract DeployTest is Test {
         assertFalse(deployment.escrow.hasRole(adminRole, admin));
         assertFalse(deployment.escrow.hasRole(tokenAdminRole, admin));
         assertFalse(deployment.escrow.hasRole(moderatorRole, admin));
+        assertFalse(deployment.credentials.hasRole(adminRole, admin));
+        assertFalse(deployment.credentials.hasRole(deployment.credentials.ISSUER_ROLE(), admin));
+        assertFalse(deployment.reputation.hasRole(adminRole, admin));
     }
 }

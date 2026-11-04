@@ -5,6 +5,10 @@ import {Script, console} from "forge-std/Script.sol";
 import {Escrow} from "../src/Escrow.sol";
 import {Forwarder} from "../src/Forwarder.sol";
 import {Treasury} from "../src/Treasury.sol";
+import {Credentials} from "../src/Credentials.sol";
+import {Reputation} from "../src/Reputation.sol";
+import {Receipt as JunqueroReceipt} from "../src/Receipt.sol";
+import {IEscrow} from "../src/interfaces/IEscrow.sol";
 import {ParameterRegistry} from "../src/ParameterRegistry.sol";
 import {IParameterRegistry} from "../src/interfaces/IParameterRegistry.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
@@ -20,6 +24,9 @@ contract Deploy is Script {
         ParameterRegistry registry;
         Treasury treasury;
         Escrow escrow;
+        Credentials credentials;
+        Reputation reputation;
+        JunqueroReceipt receipt;
     }
 
     function run() external returns (Deployment memory deployment) {
@@ -39,6 +46,9 @@ contract Deploy is Script {
         console.log("ParameterRegistry", address(deployment.registry));
         console.log("Treasury", address(deployment.treasury));
         console.log("Escrow", address(deployment.escrow));
+        console.log("Credentials", address(deployment.credentials));
+        console.log("Reputation", address(deployment.reputation));
+        console.log("Receipt", address(deployment.receipt));
     }
 
     function deploy(address admin, ISignatureTransfer permit2) public returns (Deployment memory deployment) {
@@ -53,6 +63,11 @@ contract Deploy is Script {
             address(deployment.forwarder)
         );
         _defineParameters(deployment.registry);
+        deployment.credentials = new Credentials(admin);
+        deployment.reputation = new Reputation(admin, IParameterRegistry(address(deployment.registry)));
+        deployment.receipt = new JunqueroReceipt(IEscrow(address(deployment.escrow)), address(deployment.forwarder));
+        deployment.reputation.grantRole(deployment.reputation.RECORDER_ROLE(), address(deployment.escrow));
+        deployment.escrow.setReputation(deployment.reputation);
     }
 
     function handOver(Deployment memory deployment, address newAdmin, address previousAdmin) public {
@@ -60,6 +75,7 @@ contract Deploy is Script {
         bytes32 definerRole = deployment.registry.DEFINER_ROLE();
         bytes32 tokenAdminRole = deployment.escrow.TOKEN_ADMIN_ROLE();
         bytes32 moderatorRole = deployment.escrow.MODERATOR_ROLE();
+        bytes32 issuerRole = deployment.credentials.ISSUER_ROLE();
 
         deployment.registry.grantRole(adminRole, newAdmin);
         deployment.registry.grantRole(definerRole, newAdmin);
@@ -67,18 +83,25 @@ contract Deploy is Script {
         deployment.escrow.grantRole(adminRole, newAdmin);
         deployment.escrow.grantRole(tokenAdminRole, newAdmin);
         deployment.escrow.grantRole(moderatorRole, newAdmin);
+        deployment.credentials.grantRole(adminRole, newAdmin);
+        deployment.credentials.grantRole(issuerRole, newAdmin);
+        deployment.reputation.grantRole(adminRole, newAdmin);
 
         deployment.registry.renounceRole(definerRole, previousAdmin);
         deployment.registry.renounceRole(adminRole, previousAdmin);
         deployment.treasury.renounceRole(adminRole, previousAdmin);
         deployment.escrow.renounceRole(tokenAdminRole, previousAdmin);
         deployment.escrow.renounceRole(moderatorRole, previousAdmin);
+        deployment.credentials.renounceRole(issuerRole, previousAdmin);
+        deployment.credentials.renounceRole(adminRole, previousAdmin);
+        deployment.reputation.renounceRole(adminRole, previousAdmin);
         deployment.escrow.renounceRole(adminRole, previousAdmin);
     }
 
     function _defineParameters(ParameterRegistry registry) private {
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
         registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
+        registry.defineParameter(ParameterKeys.REPUTATION_PAIR_CAP, 1, 10, 2);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_GRACE, 0, 7 days, 12 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_RAMP, 1 hours, 30 days, 3 days);

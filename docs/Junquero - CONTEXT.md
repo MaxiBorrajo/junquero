@@ -51,15 +51,15 @@ Diez contratos; el dinero de los usuarios vive solo en el escrow.
 
 | Contrato | Función |
 | --- | --- |
-| ChangaEscrow | Custodia el dinero, guarda el estado de cada changa como registro interno (no es un NFT), libera con QR firmado EIP-712, cobra cancelaciones escalonadas, multimoneda con lista blanca de tokens (una moneda por changa) |
-| Comprobante | ERC-721 intransferible (ERC-5192), se emite al cerrar una changa completada, con categoría y mes y sin datos personales; opcional para el prestador |
+| Escrow | Custodia el dinero, guarda el estado de cada changa como registro interno (no es un NFT), libera con QR firmado EIP-712, cobra cancelaciones escalonadas, multimoneda con lista blanca de tokens (una moneda por changa) |
+| Receipt | ERC-721 intransferible (ERC-5192), se emite al cerrar una changa completada, con categoría y mes y sin datos personales; opcional para el prestador |
 | Treasury | Recibe comisiones; contrato aparte del escrow |
-| Params | Parámetros con mínimo y máximo; solo el Timelock los cambia |
+| ParameterRegistry | Parámetros con mínimo y máximo; solo el Timelock los cambia |
 | Credentials | Niveles de cuenta como credenciales intransferibles |
 | Reputation | Historial por persona y por rol (prestador, solicitante, testigo, jurado); lo actualizan eventos del escrow |
-| DisputeCourt | Jurados, votos cifrados (commit-reveal), apelación, stake; sorteo por compromiso y revelación; quien no revela pierde el stake |
-| VoteWeight | Peso de voto por actividad (IVotes), no se compra ni se transfiere |
-| Governor y TimelockController | Votación con espera obligatoria; multisig del equipo al inicio |
+| Arbitration | Jurados, votos cifrados (commit-reveal), apelación, stake; sorteo por compromiso y revelación; quien no revela pierde el stake |
+| VotingWeight | Peso de voto por actividad (IVotes), no se compra ni se transfiere |
+| ProtocolGovernor y TimelockController | Votación con espera obligatoria; multisig del equipo al inicio |
 | Forwarder | ERC2771Forwarder; los contratos usan ERC2771Context para saber quién firmó |
 
 Transacciones por camino: 3 en changa individual con solicitante presente (publicar con depósito y permiso firmado, acordar con las dos firmas, liberar con QR que paga, califica y emite el comprobante); 4 con entrega diferida, changa grupal o disputa.
@@ -72,7 +72,7 @@ Estándares: EIP-712, EIP-2612 (permit), Permit2, ERC-20 con SafeERC20, Signatur
 - Comisión de pago por la plataforma: 0% al arranque, 1% en crecimiento (piso 0,25 USDC, tope 5 USDC por changa), luego fórmula por presupuesto; tasa máxima 2% fijada en el contrato.
 - Cargo de red al costo, se muestra antes de confirmar; en el arranque lo subsidia el tesoro con tope; en Sepolia es cero.
 - Pago en efectivo: tarifa al publicar de piso fijo 1 USDC más 2% del monto declarado, no se devuelve; sin garantía de cobro, solo reputación.
-- Cancelación: gratis sin chat abierto; 5% con chat abierto antes de acordar; 10% tras acordar (mayoría para el prestador); gratis con 24 horas de anticipación en changas con fecha fija, 2 por mes por cuenta y 1 por mes por pareja.
+- Cancelación: gratis sin prestador reservado; con prestador reservado, gratis dentro de un período de gracia y después una compensación lineal con máximo y tope por moneda; 10% tras acordar (mayoría para el prestador); gratis con 24 horas de anticipación en changas con fecha fija, 2 por mes por cuenta y 1 por mes por pareja.
 - Compensación por no presentarse: 10% del monto.
 - Tamaño de changa: chica hasta 20 USDC (disputa 50/50 automática), media 20 a 300, alta más de 300.
 - Hitos obligatorios: más de 5 días o más de 150 USDC. Anticipo para materiales: máximo 30%, con 5 changas cerradas sin disputa.
@@ -133,7 +133,7 @@ Los documentos de diseño se escribieron en etapas. Los cuatro primeros puntos q
 | 2 | Tamaño del jurado | Según el monto: chica 50/50 sin jurado, media 3 jurados, alta 5 | Resuelto |
 | 3 | Liberación automática | 24 horas en changas cortas y 72 horas por hito en las largas | Resuelto |
 | 4 | Poder del administrador | No mueve fondos ni cambia parámetros por su cuenta; sí resuelve reclamos de emergencia cuando no hay jurado, y el contrato aplica el reparto | Resuelto |
-| 5 | Plazo para responder un reclamo | 72 horas; es un parámetro de Params | Resuelto |
+| 5 | Plazo para responder un reclamo | 72 horas; es un parámetro de ParameterRegistry | Resuelto |
 | 6 | Gobernanza al inicio | Un solo administrador; la autoridad se implementa por roles de contrato (AccessControl), con Timelock y multisig como evolución | Resuelto |
 | 7 | Pantallas de changa grupal e hitos | Entran al TP; el documento de pantallas las describe en las secciones 11 (grupal, 11.1 a 11.13) y 12 (hitos, 12.1 a 12.12) | Resuelto |
 
@@ -141,10 +141,10 @@ Los documentos de diseño se escribieron en etapas. Los cuatro primeros puntos q
 
 Con 29 días y un desarrollador, el riesgo principal es el alcance. Orden sugerido, un camino completo por vez, con tests:
 
-1. ChangaEscrow con changa individual: publicar, acordar con dos firmas EIP-712, depositar, liberar con QR firmado, cancelación básica. Tests en Foundry o Hardhat.
+1. Escrow con changa individual: publicar, acordar con dos firmas EIP-712, depositar, liberar con QR firmado, cancelación básica. Tests en Foundry o Hardhat.
 2. Indexador de eventos a D1 y API mínima (Hono): changas, postulaciones, adjuntos en R2.
 3. App: registro con billetera, mapa, publicar, postularse, acordar, cerrar con QR.
-4. DisputeCourt mínimo: reclamo, jurado fijo, commit-reveal.
+4. Arbitration mínimo: reclamo, jurado fijo, commit-reveal.
 5. Chat cifrado y push.
 6. Panel, gobernanza, grupal e hitos, si da el tiempo.
 

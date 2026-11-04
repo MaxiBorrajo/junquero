@@ -9,7 +9,7 @@ Este doc propone cómo se genera confianza entre desconocidos y cómo circula el
 | Tema | Acordado |
 | --- | --- |
 | Efectivo | Se permite con un piso fijo de 1 USDC más 2% del monto declarado, cobrado al publicar; el tope de la comisión del pago por la plataforma acota la tentación de irse a efectivo |
-| Pago por la plataforma y contacto | Publicar con pago por la plataforma exige depositar el monto; el chat y los contactos quedan dentro de la app; cancelar cuesta 5% con un chat abierto y 10% tras acordar, con cancelación gratis a 24 horas dentro de límites |
+| Pago por la plataforma y contacto | Publicar con pago por la plataforma exige depositar el monto; el chat y los contactos quedan dentro de la app; cancelar es gratis sin prestador reservado, tiene una compensación creciente con prestador reservado y cuesta 10% tras acordar, con cancelación gratis a 24 horas dentro de límites |
 | Comisión | Tres fases: 0% en el arranque, 1% en el crecimiento y luego una fórmula por presupuesto entre un piso y un tope de 2%, con rampa publicada y límite de variación |
 | Sostenibilidad | La comisión recupera costos; la reserva se mide en meses y define cuatro estados (normal, alerta, austeridad, crítico); el dinero de los usuarios queda en un contrato aparte para un cierre limpio |
 | Cargo de red y gas | Un relayer adelanta el gas y el usuario paga un cargo de red al costo; en el MVP es cero y con Arbitrum rondaría 0,24 a 0,27 USDC por changa |
@@ -31,12 +31,13 @@ Lo que pasa fuera de la app no se puede observar ni impedir. Lo que sí se puede
 
 Publicar con pago por la plataforma exige depositar el monto desde el inicio. Eso es lo que permite ocultar teléfonos y mails y dejar toda la conversación dentro de la app: sin dinero bloqueado, dos personas podrían chatear y arreglar por fuera sin perder nada.
 
-Queda un hueco que hay que cerrar: si cancelar es gratis hasta acordar, dos personas pueden chatear en la app, cancelar sin costo y pagar por fuera. La regla propuesta es escalonada:
+Queda un hueco que hay que cerrar: si cancelar es gratis hasta acordar, dos personas pueden chatear en la app, cancelar sin costo y pagar por fuera. El contrato no puede saber si hay un chat abierto, así que la regla se apoya en la reserva del prestador: el solicitante aparta a un postulante y ambos lo firman. La regla es escalonada:
 
 | Momento | Costo de cancelar | Adónde va |
 | --- | --- | --- |
-| Sin ningún chat abierto con un postulante | Gratis |  |
-| Con un chat abierto, antes de acordar | 5% del monto bloqueado | Tesoro |
+| Sin prestador reservado | Gratis |  |
+| Con prestador reservado, dentro del período de gracia | Gratis |  |
+| Con prestador reservado, pasado el período de gracia | Compensación que crece de forma lineal hasta un máximo (porcentaje del monto bloqueado, con tope por moneda) | Prestador reservado |
 | Después de acordar | 10% del monto bloqueado | Prestador y tesoro |
 
 El porcentaje funciona acá porque el monto está bloqueado en el contrato y no se puede declarar de menos. Quien se va por fuera termina pagando mucho más que la comisión que evitaba.
@@ -286,8 +287,8 @@ Ninguno sale de datos reales: son valores de partida que se cambian por votació
 | Variación máxima de la comisión | A definir por trimestre, con semanas de espera | Evita subas bruscas |
 | Cargo de red | Al costo; con Arbitrum, unos 0,24 a 0,27 USDC por changa (hipótesis; el cálculo anterior usaba Base) | Se muestra antes de confirmar; en el arranque lo subsidia el tesoro con tope; en Sepolia es cero |
 | Tarifa por changa en efectivo | Piso fijo de 1 USDC más 2% del monto declarado, al publicar | El piso no se evita declarando de menos; no se devuelve |
-| Cancelar sin ningún chat abierto | Gratis |  |
-| Cancelar con un chat abierto, antes de acordar | 5% del monto bloqueado | Va al tesoro |
+| Cancelar sin prestador reservado | Gratis |  |
+| Cancelar con prestador reservado, pasado el período de gracia | Compensación lineal hasta un máximo, con tope por moneda | Va al prestador reservado |
 | Cancelar tras acordar | 10% del monto bloqueado | Mayoría para el prestador, por ejemplo 80%, y el resto al tesoro |
 | Cancelar tras acordar con 24 horas de anticipación | Gratis, con límites | Solo en changas con fecha y hora fijadas al acordar; 2 por mes por cuenta y 1 por mes por pareja de solicitante y prestador; después cuesta 10% |
 | Compensación por no presentarse | 10% del monto | Igual que cancelar tarde |

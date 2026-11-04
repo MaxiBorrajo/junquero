@@ -4,14 +4,7 @@ pragma solidity ^0.8.24;
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
-import {
-    Order,
-    OrderStatus,
-    PaymentMode,
-    Modality,
-    CreateParams,
-    Agreement
-} from "../src/libraries/OrderTypes.sol";
+import {Order, OrderStatus, PaymentMode, Modality, CreateParams, Agreement} from "../src/libraries/OrderTypes.sol";
 
 contract EscrowLifecycleTest is EscrowBase {
     uint256 internal constant PRICE = 100 * USDC;
@@ -215,7 +208,9 @@ contract EscrowLifecycleTest is EscrowBase {
         escrow.checkIn(orderId);
         vm.warp(block.timestamp + 19 minutes);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NoShowNotReady.selector, uint40(block.timestamp - 19 minutes + 20 minutes)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IEscrow.NoShowNotReady.selector, uint40(block.timestamp - 19 minutes + 20 minutes))
+        );
         escrow.claimNoShow(orderId);
     }
 

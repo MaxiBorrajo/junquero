@@ -31,7 +31,9 @@ contract ParameterRegistryTest is Test {
 
     function test_defineRevertsWhenAlreadyDefined() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(IParameterRegistry.ParameterAlreadyDefined.selector, ParameterKeys.FEE_BPS));
+        vm.expectRevert(
+            abi.encodeWithSelector(IParameterRegistry.ParameterAlreadyDefined.selector, ParameterKeys.FEE_BPS)
+        );
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 100, 0);
     }
 

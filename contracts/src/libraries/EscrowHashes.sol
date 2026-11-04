@@ -24,8 +24,6 @@ library EscrowHashes {
     }
 
     function hash(Release calldata r) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry)
-        );
+        return keccak256(abi.encode(RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry));
     }
 }

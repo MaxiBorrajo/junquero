@@ -27,10 +27,13 @@ contract MockPermit2 is ISignatureTransfer {
         address owner,
         bytes calldata signature
     ) external {
-        if (block.timestamp > permit.deadline) revert SignatureExpired(permit.deadline);
+        if (block.timestamp > permit.deadline) {
+            revert SignatureExpired(permit.deadline);
+        }
         if (transferDetails.requestedAmount > permit.permitted.amount) revert InvalidAmount(permit.permitted.amount);
         if (used[owner][permit.nonce]) revert NonceUsed();
-        bytes32 digest = digestFor(permit.permitted.token, permit.permitted.amount, permit.nonce, permit.deadline, msg.sender);
+        bytes32 digest =
+            digestFor(permit.permitted.token, permit.permitted.amount, permit.nonce, permit.deadline, msg.sender);
         if (ECDSA.recover(digest, signature) != owner) revert InvalidSigner();
         used[owner][permit.nonce] = true;
         IERC20(permit.permitted.token).transferFrom(owner, transferDetails.to, transferDetails.requestedAmount);

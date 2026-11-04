@@ -59,7 +59,8 @@ abstract contract EscrowBase is Test {
         treasury = new Treasury(admin);
         forwarder = new Forwarder();
         permit2 = new MockPermit2();
-        escrow = new Escrow(admin, IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder));
+        escrow =
+            new Escrow(admin, IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder));
 
         bytes32 setterRole = registry.SETTER_ROLE();
         vm.startPrank(admin);
@@ -153,14 +154,19 @@ abstract contract EscrowBase is Test {
         );
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerKey, digest);
-        return DepositAuth({method: DepositMethod.Permit, nonce: 0, deadline: deadline, signature: abi.encodePacked(r, s, v)});
+        return
+            DepositAuth({
+                method: DepositMethod.Permit, nonce: 0, deadline: deadline, signature: abi.encodePacked(r, s, v)
+            });
     }
 
     function _permit2Auth(address token, uint256 amount, uint256 nonce) internal view returns (DepositAuth memory) {
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 digest = permit2.digestFor(token, amount, nonce, deadline, address(escrow));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerKey, digest);
-        return DepositAuth({method: DepositMethod.Permit2, nonce: nonce, deadline: deadline, signature: abi.encodePacked(r, s, v)});
+        return DepositAuth({
+            method: DepositMethod.Permit2, nonce: nonce, deadline: deadline, signature: abi.encodePacked(r, s, v)
+        });
     }
 
     function _createUsdc(uint256 amount) internal returns (uint256 orderId) {
@@ -184,8 +190,9 @@ abstract contract EscrowBase is Test {
         );
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(whoKey, digest);
-        DepositAuth memory auth =
-            DepositAuth({method: DepositMethod.Permit, nonce: 0, deadline: deadline, signature: abi.encodePacked(r, s, v)});
+        DepositAuth memory auth = DepositAuth({
+            method: DepositMethod.Permit, nonce: 0, deadline: deadline, signature: abi.encodePacked(r, s, v)
+        });
         vm.prank(who);
         orderId = escrow.createOrder(_params(address(usdc), amount), auth);
     }
@@ -198,7 +205,9 @@ abstract contract EscrowBase is Test {
 
     function _agreementHash(Agreement memory a) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(EscrowHashes.AGREEMENT_TYPEHASH, a.orderId, a.payer, a.payee, a.price, a.specHash, a.termsHash, a.expiry)
+            abi.encode(
+                EscrowHashes.AGREEMENT_TYPEHASH, a.orderId, a.payer, a.payee, a.price, a.specHash, a.termsHash, a.expiry
+            )
         );
     }
 
@@ -232,18 +241,18 @@ abstract contract EscrowBase is Test {
     }
 
     function _reserve(uint256 orderId) internal {
-        Reservation memory r = Reservation({
-            orderId: orderId,
-            payer: payer,
-            payee: payee,
-            expiry: uint40(block.timestamp + 24 hours)
-        });
+        Reservation memory r =
+            Reservation({orderId: orderId, payer: payer, payee: payee, expiry: uint40(block.timestamp + 24 hours)});
         bytes32 structHash = _reservationHash(r);
         vm.prank(relayer);
         escrow.reserve(r, _sign(payerKey, structHash), _sign(payeeKey, structHash));
     }
 
-    function _release(uint256 orderId, uint256 amount, uint8 rating) internal view returns (Release memory, bytes memory) {
+    function _release(uint256 orderId, uint256 amount, uint8 rating)
+        internal
+        view
+        returns (Release memory, bytes memory)
+    {
         Release memory r = Release({
             orderId: orderId,
             payee: payee,

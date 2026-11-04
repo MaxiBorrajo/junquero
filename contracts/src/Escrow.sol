@@ -49,10 +49,13 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
     mapping(address payer => mapping(uint256 month => uint8)) private _freeCancelsByAccount;
     mapping(bytes32 pair => mapping(uint256 month => uint8)) private _freeCancelsByPair;
 
-    constructor(address admin, IParameterRegistry registry_, address treasury_, ISignatureTransfer permit2_, address forwarder)
-        EIP712("Escrow", "1")
-        ERC2771Context(forwarder)
-    {
+    constructor(
+        address admin,
+        IParameterRegistry registry_,
+        address treasury_,
+        ISignatureTransfer permit2_,
+        address forwarder
+    ) EIP712("Escrow", "1") ERC2771Context(forwarder) {
         if (admin == address(0) || treasury_ == address(0) || address(registry_) == address(0)) revert ZeroAddress();
         registry = registry_;
         treasury = treasury_;
@@ -93,7 +96,14 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         if (fee > 0) IERC20(params.token).safeTransfer(treasury, fee);
 
         emit OrderCreated(
-            orderId, payer, params.token, params.amount, params.specHash, uint8(params.mode), uint8(params.modality), fee
+            orderId,
+            payer,
+            params.token,
+            params.amount,
+            params.specHash,
+            uint8(params.mode),
+            uint8(params.modality),
+            fee
         );
     }
 
@@ -143,7 +153,9 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         if (agreement.price == 0) revert InvalidAmount();
 
         bool escrowed = order.mode == PaymentMode.Escrowed;
-        if (escrowed && agreement.price > order.deposited) revert PriceExceedsDeposit(agreement.price, order.deposited);
+        if (escrowed && agreement.price > order.deposited) {
+            revert PriceExceedsDeposit(agreement.price, order.deposited);
+        }
 
         bytes32 digest = _hashTypedDataV4(EscrowHashes.hash(agreement));
         _verify(agreement.payer, digest, payerSignature);
@@ -217,7 +229,13 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         if (status == OrderStatus.Open || status == OrderStatus.Reserved) {
             if (caller != order.payer) revert NotPayer(caller);
             _finishCancel(
-                orderId, order, caller, CancelReason.PayerCancelled, order.reservedPayee, _reservationCompensation(order), 0
+                orderId,
+                order,
+                caller,
+                CancelReason.PayerCancelled,
+                order.reservedPayee,
+                _reservationCompensation(order),
+                0
             );
         } else if (status == OrderStatus.Agreed) {
             if (caller == order.payee) {

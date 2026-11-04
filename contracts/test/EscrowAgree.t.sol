@@ -4,7 +4,15 @@ pragma solidity ^0.8.24;
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
-import {Order, OrderStatus, SizeClass, PaymentMode, CreateParams, Reservation, Agreement} from "../src/libraries/OrderTypes.sol";
+import {
+    Order,
+    OrderStatus,
+    SizeClass,
+    PaymentMode,
+    CreateParams,
+    Reservation,
+    Agreement
+} from "../src/libraries/OrderTypes.sol";
 
 contract EscrowAgreeTest is EscrowBase {
     function test_agreeFixesPayeeAndRefundsSurplus() public {

@@ -86,8 +86,7 @@ interface IEscrow {
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)
         external;
     function withdrawReservation(uint256 orderId) external;
-    function agree(Agreement calldata agreement, bytes calldata payerSignature, bytes calldata payeeSignature)
-        external;
+    function agree(Agreement calldata agreement, bytes calldata payerSignature, bytes calldata payeeSignature) external;
     function deliver(uint256 orderId, bytes32 evidenceHash) external;
     function release(Release calldata release, bytes calldata payerSignature) external;
     function autoRelease(uint256 orderId) external;

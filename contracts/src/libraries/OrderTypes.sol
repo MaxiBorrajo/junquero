@@ -38,7 +38,8 @@ enum CancelReason {
     PayerCancelled,
     PayeeCancelled,
     NoShow,
-    Expired
+    Expired,
+    Moderated
 }
 
 struct Order {
@@ -48,6 +49,8 @@ struct Order {
     Modality modality;
     SizeClass sizeClass;
     bool extended;
+    uint8 category;
+    uint8 changeRequests;
     uint40 createdAt;
     address payee;
     uint40 startsAt;
@@ -74,6 +77,7 @@ struct CreateParams {
     Modality modality;
     uint40 startsAt;
     uint40 deadline;
+    uint8 category;
 }
 
 struct DepositAuth {

@@ -59,22 +59,26 @@ contract Deploy is Script {
         bytes32 adminRole = deployment.registry.DEFAULT_ADMIN_ROLE();
         bytes32 definerRole = deployment.registry.DEFINER_ROLE();
         bytes32 tokenAdminRole = deployment.escrow.TOKEN_ADMIN_ROLE();
+        bytes32 moderatorRole = deployment.escrow.MODERATOR_ROLE();
 
         deployment.registry.grantRole(adminRole, newAdmin);
         deployment.registry.grantRole(definerRole, newAdmin);
         deployment.treasury.grantRole(adminRole, newAdmin);
         deployment.escrow.grantRole(adminRole, newAdmin);
         deployment.escrow.grantRole(tokenAdminRole, newAdmin);
+        deployment.escrow.grantRole(moderatorRole, newAdmin);
 
         deployment.registry.renounceRole(definerRole, previousAdmin);
         deployment.registry.renounceRole(adminRole, previousAdmin);
         deployment.treasury.renounceRole(adminRole, previousAdmin);
         deployment.escrow.renounceRole(tokenAdminRole, previousAdmin);
+        deployment.escrow.renounceRole(moderatorRole, previousAdmin);
         deployment.escrow.renounceRole(adminRole, previousAdmin);
     }
 
     function _defineParameters(ParameterRegistry registry) private {
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
+        registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_GRACE, 0, 7 days, 12 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_RAMP, 1 hours, 30 days, 3 days);

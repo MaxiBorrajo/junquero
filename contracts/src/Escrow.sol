@@ -35,6 +35,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
     using SafeERC20 for IERC20;
 
     bytes32 public constant TOKEN_ADMIN_ROLE = keccak256("TOKEN_ADMIN_ROLE");
+    bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
     uint256 private constant BPS = 10_000;
     uint256 private constant MONTH = 30 days;
 
@@ -46,6 +47,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
 
     mapping(uint256 orderId => Order) private _orders;
     mapping(address token => TokenConfig) private _tokenConfigs;
+    mapping(address token => mapping(address account => uint256)) public claimable;
     mapping(address payer => mapping(uint256 month => uint8)) private _freeCancelsByAccount;
     mapping(bytes32 pair => mapping(uint256 month => uint8)) private _freeCancelsByPair;
 
@@ -62,6 +64,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         permit2 = permit2_;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(TOKEN_ADMIN_ROLE, admin);
+        _grantRole(MODERATOR_ROLE, admin);
     }
 
     function createOrder(CreateParams calldata params, DepositAuth calldata auth)
@@ -89,22 +92,14 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         order.deadline = params.deadline;
         order.token = params.token;
         order.specHash = params.specHash;
+        order.category = params.category;
         if (escrowed) order.deposited = params.amount;
         else order.price = params.amount;
 
         _collect(params.token, payer, escrowed ? params.amount : fee, auth);
-        if (fee > 0) IERC20(params.token).safeTransfer(treasury, fee);
+        _payout(params.token, treasury, fee);
 
-        emit OrderCreated(
-            orderId,
-            payer,
-            params.token,
-            params.amount,
-            params.specHash,
-            uint8(params.mode),
-            uint8(params.modality),
-            fee
-        );
+        _emitCreated(orderId, payer, params, fee);
     }
 
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)
@@ -174,7 +169,7 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         order.reservedAt = 0;
         if (escrowed) order.deposited = agreement.price;
 
-        if (refund > 0) IERC20(order.token).safeTransfer(order.payer, refund);
+        _payout(order.token, order.payer, refund);
         emit OrderAgreed(agreement.orderId, agreement.payee, agreement.price, agreement.termsHash, uint8(sizeClass));
     }
 
@@ -304,6 +299,40 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         emit ReviewExtended(orderId, newReadyAt);
     }
 
+    function requestChanges(uint256 orderId, bytes32 reasonHash) external {
+        Order storage order = _requireStatus(orderId, OrderStatus.Delivered);
+        address caller = _msgSender();
+        if (caller != order.payer) revert NotPayer(caller);
+        if (order.modality != Modality.Remote || order.mode != PaymentMode.Escrowed) revert ChangesNotAllowed();
+        uint64 max = registry.get(ParameterKeys.REQUEST_CHANGES_MAX);
+        if (order.changeRequests >= max) revert ChangeRequestsExhausted(uint8(max));
+        uint40 readyAt = _reviewDeadline(order);
+        if (block.timestamp >= readyAt) revert ReviewWindowClosed(readyAt);
+        order.changeRequests += 1;
+        order.status = OrderStatus.Agreed;
+        order.deliveredAt = 0;
+        order.evidenceHash = bytes32(0);
+        emit ChangesRequested(orderId, reasonHash, order.changeRequests);
+    }
+
+    function moderate(uint256 orderId, bytes32 reasonHash) external nonReentrant onlyRole(MODERATOR_ROLE) {
+        Order storage order = _orders[orderId];
+        OrderStatus status = order.status;
+        if (status == OrderStatus.None) revert UnknownOrder(orderId);
+        if (status != OrderStatus.Open && status != OrderStatus.Reserved) revert InvalidStatus(orderId, status);
+        address moderator = _msgSender();
+        emit OrderModerated(orderId, moderator, reasonHash);
+        _finishCancel(orderId, order, moderator, CancelReason.Moderated, address(0), 0, 0);
+    }
+
+    function claim(address token, address account) external nonReentrant {
+        uint256 amount = claimable[token][account];
+        if (amount == 0) revert NothingToClaim();
+        claimable[token][account] = 0;
+        IERC20(token).safeTransfer(account, amount);
+        emit Claimed(token, account, amount);
+    }
+
     function configureToken(address token, TokenConfig calldata config) external onlyRole(TOKEN_ADMIN_ROLE) {
         if (token == address(0)) revert ZeroAddress();
         if (config.smallMax > config.mediumMax) revert InvalidThresholds();
@@ -333,6 +362,29 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         return _domainSeparatorV4();
     }
 
+    function _emitCreated(uint256 orderId, address payer, CreateParams calldata params, uint128 fee) private {
+        emit OrderCreated(
+            orderId,
+            payer,
+            params.token,
+            params.amount,
+            params.specHash,
+            uint8(params.mode),
+            uint8(params.modality),
+            fee,
+            params.category
+        );
+    }
+
+    function _payout(address token, address to, uint256 amount) private {
+        if (amount == 0) return;
+        (bool ok, bytes memory data) = token.call(abi.encodeCall(IERC20.transfer, (to, amount)));
+        bool delivered = ok && (data.length == 0 ? token.code.length > 0 : abi.decode(data, (bool)));
+        if (delivered) return;
+        claimable[token][to] += amount;
+        emit PayoutDeferred(token, to, amount);
+    }
+
     function _settle(uint256 orderId, Order storage order, uint128 amount, uint8 rating, bool automatic) private {
         TokenConfig storage config = _tokenConfigs[order.token];
         uint128 fee = _protocolFee(config, amount);
@@ -345,9 +397,9 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         order.status = OrderStatus.Settled;
         order.deposited = 0;
 
-        if (paid > 0) IERC20(token).safeTransfer(payee, paid);
-        if (fee > 0) IERC20(token).safeTransfer(treasury, fee);
-        if (refunded > 0) IERC20(token).safeTransfer(payer, refunded);
+        _payout(token, payee, paid);
+        _payout(token, treasury, fee);
+        _payout(token, payer, refunded);
         emit OrderSettled(orderId, payee, paid, refunded, fee, rating, automatic);
     }
 
@@ -369,9 +421,9 @@ contract Escrow is IEscrow, EIP712, ERC2771Context, AccessControl, ReentrancyGua
         order.reservedPayee = address(0);
         order.reservedAt = 0;
 
-        if (toRecipient > 0) IERC20(token).safeTransfer(recipient, toRecipient);
-        if (toTreasury > 0) IERC20(token).safeTransfer(treasury, toTreasury);
-        if (refund > 0) IERC20(token).safeTransfer(payer, refund);
+        _payout(token, recipient, toRecipient);
+        _payout(token, treasury, toTreasury);
+        _payout(token, payer, refund);
         emit OrderCancelled(orderId, by, uint8(reason), toRecipient, toTreasury, refund);
     }
 

@@ -27,6 +27,7 @@ contract DeployTest is Test {
 
     function test_definesEveryParameterTheEscrowReads() public view {
         assertEq(deployment.registry.get(ParameterKeys.FEE_BPS), 0);
+        assertEq(deployment.registry.get(ParameterKeys.REQUEST_CHANGES_MAX), 2);
         assertEq(deployment.registry.get(ParameterKeys.CASH_FEE_BPS), 200);
         assertEq(deployment.registry.get(ParameterKeys.AUTO_RELEASE_SHORT), 24 hours);
         assertEq(deployment.registry.get(ParameterKeys.CANCEL_FEE_AGREED_BPS), 1000);
@@ -45,16 +46,19 @@ contract DeployTest is Test {
 
         bytes32 adminRole = deployment.registry.DEFAULT_ADMIN_ROLE();
         bytes32 tokenAdminRole = deployment.escrow.TOKEN_ADMIN_ROLE();
+        bytes32 moderatorRole = deployment.escrow.MODERATOR_ROLE();
         assertTrue(deployment.registry.hasRole(adminRole, nextAdmin));
         assertTrue(deployment.registry.hasRole(deployment.registry.DEFINER_ROLE(), nextAdmin));
         assertTrue(deployment.treasury.hasRole(adminRole, nextAdmin));
         assertTrue(deployment.escrow.hasRole(adminRole, nextAdmin));
         assertTrue(deployment.escrow.hasRole(tokenAdminRole, nextAdmin));
+        assertTrue(deployment.escrow.hasRole(moderatorRole, nextAdmin));
 
         assertFalse(deployment.registry.hasRole(adminRole, admin));
         assertFalse(deployment.registry.hasRole(deployment.registry.DEFINER_ROLE(), admin));
         assertFalse(deployment.treasury.hasRole(adminRole, admin));
         assertFalse(deployment.escrow.hasRole(adminRole, admin));
         assertFalse(deployment.escrow.hasRole(tokenAdminRole, admin));
+        assertFalse(deployment.escrow.hasRole(moderatorRole, admin));
     }
 }

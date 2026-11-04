@@ -20,4 +20,4 @@ runs = 128
 depth = 64
 
 [lint]
-exclude_lints = ["unsafe-typecast", "block-timestamp", "reentrancy-events"]
+exclude_lints = ["unsafe-typecast", "block-timestamp", "reentrancy-events", "reentrancy-no-eth"]

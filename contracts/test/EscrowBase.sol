@@ -43,6 +43,7 @@ abstract contract EscrowBase is Test {
 
     address internal admin = makeAddr("admin");
     address internal relayer = makeAddr("relayer");
+    address internal moderator = makeAddr("moderator");
     uint256 internal payerKey;
     uint256 internal payeeKey;
     uint256 internal otherKey;
@@ -64,8 +65,10 @@ abstract contract EscrowBase is Test {
 
         bytes32 setterRole = registry.SETTER_ROLE();
         vm.startPrank(admin);
+        escrow.grantRole(escrow.MODERATOR_ROLE(), moderator);
         registry.grantRole(setterRole, admin);
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
+        registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_GRACE, 0, 7 days, 12 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_RAMP, 1 hours, 30 days, 3 days);
@@ -132,7 +135,8 @@ abstract contract EscrowBase is Test {
             mode: PaymentMode.Escrowed,
             modality: Modality.OnSite,
             startsAt: 0,
-            deadline: 0
+            deadline: 0,
+            category: 0
         });
     }
 

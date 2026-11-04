@@ -35,7 +35,7 @@ contract EscrowCreateTest is EscrowBase {
     function test_createEmitsEvent() public {
         DepositAuth memory auth = _permitAuth(50 * USDC);
         vm.expectEmit(true, true, true, true);
-        emit IEscrow.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0);
+        emit IEscrow.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0, 0);
         vm.prank(payer);
         escrow.createOrder(_params(address(usdc), 50 * USDC), auth);
     }
@@ -194,5 +194,18 @@ contract EscrowCreateTest is EscrowBase {
             s := mload(add(sig, 64))
             v := byte(0, mload(add(sig, 96)))
         }
+    }
+
+    function test_createStoresCategoryAndEmitsIt() public {
+        CreateParams memory params = _params(address(usdc), 50 * USDC);
+        params.category = 7;
+        DepositAuth memory auth = _permitAuth(50 * USDC);
+
+        vm.expectEmit(true, true, true, true);
+        emit IEscrow.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0, 7);
+        vm.prank(payer);
+        uint256 orderId = escrow.createOrder(params, auth);
+
+        assertEq(_order(orderId).category, 7);
     }
 }

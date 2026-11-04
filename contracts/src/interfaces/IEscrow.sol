@@ -22,7 +22,8 @@ interface IEscrow {
         bytes32 specHash,
         uint8 mode,
         uint8 modality,
-        uint128 fee
+        uint128 fee,
+        uint8 category
     );
     event OrderReserved(uint256 indexed orderId, address indexed payee);
     event ReservationWithdrawn(uint256 indexed orderId, address indexed payee);
@@ -51,6 +52,10 @@ interface IEscrow {
     event ArrivalConfirmed(uint256 indexed orderId, address indexed payer);
     event ReviewExtended(uint256 indexed orderId, uint40 readyAt);
     event TokenConfigured(address indexed token, TokenConfig config);
+    event OrderModerated(uint256 indexed orderId, address indexed moderator, bytes32 reasonHash);
+    event ChangesRequested(uint256 indexed orderId, bytes32 reasonHash, uint8 count);
+    event PayoutDeferred(address indexed token, address indexed to, uint256 amount);
+    event Claimed(address indexed token, address indexed account, uint256 amount);
 
     error TokenNotAllowed(address token);
     error InvalidAmount();
@@ -81,6 +86,9 @@ interface IEscrow {
     error DeadlineNotReached(uint40 deadline);
     error AlreadyExtended();
     error ReviewWindowClosed(uint40 readyAt);
+    error ChangesNotAllowed();
+    error ChangeRequestsExhausted(uint8 max);
+    error NothingToClaim();
 
     function createOrder(CreateParams calldata params, DepositAuth calldata auth) external returns (uint256 orderId);
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)
@@ -96,6 +104,10 @@ interface IEscrow {
     function confirmArrival(uint256 orderId) external;
     function claimNoShow(uint256 orderId) external;
     function extendReview(uint256 orderId) external;
+    function requestChanges(uint256 orderId, bytes32 reasonHash) external;
+    function moderate(uint256 orderId, bytes32 reasonHash) external;
+    function claim(address token, address account) external;
+    function claimable(address token, address account) external view returns (uint256);
 
     function configureToken(address token, TokenConfig calldata config) external;
     function getOrder(uint256 orderId) external view returns (Order memory);

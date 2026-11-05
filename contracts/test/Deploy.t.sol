@@ -95,6 +95,15 @@ contract DeployTest is Test {
         assertTrue(deployment.treasury.hasRole(deployment.treasury.SPENDER_ROLE(), address(deployment.escrow)));
     }
 
+    function test_governanceIsWiredAndAdministeredByNobodyElse() public view {
+        assertEq(address(deployment.governor.token()), address(deployment.votingWeight));
+        assertEq(deployment.governor.timelock(), address(deployment.timelock));
+        assertTrue(deployment.timelock.hasRole(deployment.timelock.PROPOSER_ROLE(), address(deployment.governor)));
+        assertFalse(deployment.timelock.hasRole(deployment.timelock.DEFAULT_ADMIN_ROLE(), admin));
+        assertEq(deployment.registry.get(ParameterKeys.VOTE_DEPOSIT), 5_000_000);
+        assertEq(deployment.registry.get(ParameterKeys.VOTE_WEIGHT_CAP), 20);
+    }
+
     function test_definesEveryParameterTheEscrowReads() public view {
         assertEq(deployment.registry.get(ParameterKeys.FEE_BPS), 0);
         assertEq(deployment.registry.get(ParameterKeys.REQUEST_CHANGES_MAX), 2);

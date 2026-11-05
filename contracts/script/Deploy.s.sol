@@ -10,6 +10,10 @@ import {Credentials} from "../src/Credentials.sol";
 import {Reputation} from "../src/Reputation.sol";
 import {Receipt as JunqueroReceipt} from "../src/Receipt.sol";
 import {Arbitration} from "../src/Arbitration.sol";
+import {VotingWeight} from "../src/VotingWeight.sol";
+import {ProtocolGovernor} from "../src/ProtocolGovernor.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IReputation} from "../src/interfaces/IReputation.sol";
 import {IArbitration} from "../src/interfaces/IArbitration.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -33,6 +37,9 @@ contract Deploy is Script {
         Reputation reputation;
         JunqueroReceipt receipt;
         Arbitration arbitration;
+        VotingWeight votingWeight;
+        TimelockController timelock;
+        ProtocolGovernor governor;
     }
 
     function run() external returns (Deployment memory deployment) {
@@ -41,13 +48,20 @@ contract Deploy is Script {
         bool demo = vm.envOr("DEMO", false);
         address usdt = vm.envOr("USDT", address(0));
         address finalAdmin = vm.envOr("FINAL_ADMIN", address(0));
+        bool governance = vm.envOr("GOVERNANCE", false);
 
         vm.startBroadcast();
         require(usdc != address(0), "USDC required as the juror stake token");
         deployment = deploy(msg.sender, ISignatureTransfer(permit2), IERC20(usdc), demo);
         if (usdc != address(0)) _configureToken(deployment.escrow, usdc, DepositMethod.Permit);
         if (usdt != address(0)) _configureToken(deployment.escrow, usdt, DepositMethod.Permit2);
-        if (finalAdmin != address(0) && finalAdmin != msg.sender) handOver(deployment, finalAdmin, msg.sender);
+        bool hasFinalAdmin = finalAdmin != address(0) && finalAdmin != msg.sender;
+        if (governance) {
+            if (hasFinalAdmin) handOverOperational(deployment, finalAdmin, msg.sender);
+            handOverToGovernance(deployment, msg.sender);
+        } else if (hasFinalAdmin) {
+            handOver(deployment, finalAdmin, msg.sender);
+        }
         vm.stopBroadcast();
 
         console.log("Forwarder", address(deployment.forwarder));
@@ -58,6 +72,9 @@ contract Deploy is Script {
         console.log("Reputation", address(deployment.reputation));
         console.log("Receipt", address(deployment.receipt));
         console.log("Arbitration", address(deployment.arbitration));
+        console.log("VotingWeight", address(deployment.votingWeight));
+        console.log("Timelock", address(deployment.timelock));
+        console.log("Governor", address(deployment.governor));
     }
 
     function deploy(address admin, ISignatureTransfer permit2, IERC20 stakeToken, bool demo)
@@ -93,6 +110,75 @@ contract Deploy is Script {
         );
         deployment.reputation.grantRole(deployment.reputation.RECORDER_ROLE(), address(deployment.arbitration));
         deployment.escrow.setArbitration(IArbitration(address(deployment.arbitration)));
+        _deployGovernance(deployment, admin, stakeToken, demo);
+    }
+
+    function _deployGovernance(Deployment memory deployment, address admin, IERC20 token, bool demo) private {
+        deployment.votingWeight = new VotingWeight(
+            IReputation(address(deployment.reputation)),
+            deployment.credentials,
+            IParameterRegistry(address(deployment.registry)),
+            token
+        );
+        deployment.timelock =
+            new TimelockController(demo ? 5 minutes : 2 days, new address[](0), new address[](0), admin);
+        deployment.governor = new ProtocolGovernor(
+            IVotes(address(deployment.votingWeight)),
+            deployment.timelock,
+            demo ? 1 minutes : 1 days,
+            demo ? uint32(10 minutes) : uint32(5 days),
+            1,
+            10,
+            address(deployment.forwarder)
+        );
+        deployment.timelock.grantRole(deployment.timelock.PROPOSER_ROLE(), address(deployment.governor));
+        deployment.timelock.grantRole(deployment.timelock.CANCELLER_ROLE(), address(deployment.governor));
+        deployment.timelock.grantRole(deployment.timelock.EXECUTOR_ROLE(), address(0));
+        deployment.timelock.renounceRole(deployment.timelock.DEFAULT_ADMIN_ROLE(), admin);
+    }
+
+    function handOverOperational(Deployment memory deployment, address newAdmin, address previousAdmin) public {
+        bytes32 moderatorRole = deployment.escrow.MODERATOR_ROLE();
+        bytes32 issuerRole = deployment.credentials.ISSUER_ROLE();
+        bytes32 seederRole = deployment.arbitration.SEEDER_ROLE();
+        bytes32 emergencyRole = deployment.arbitration.EMERGENCY_ROLE();
+
+        deployment.escrow.grantRole(moderatorRole, newAdmin);
+        deployment.credentials.grantRole(issuerRole, newAdmin);
+        deployment.arbitration.grantRole(seederRole, newAdmin);
+        deployment.arbitration.grantRole(emergencyRole, newAdmin);
+
+        deployment.escrow.renounceRole(moderatorRole, previousAdmin);
+        deployment.credentials.renounceRole(issuerRole, previousAdmin);
+        deployment.arbitration.renounceRole(seederRole, previousAdmin);
+        deployment.arbitration.renounceRole(emergencyRole, previousAdmin);
+    }
+
+    function handOverToGovernance(Deployment memory deployment, address previousAdmin) public {
+        address executor = address(deployment.timelock);
+        bytes32 adminRole = deployment.registry.DEFAULT_ADMIN_ROLE();
+        bytes32 definerRole = deployment.registry.DEFINER_ROLE();
+        bytes32 setterRole = deployment.registry.SETTER_ROLE();
+        bytes32 tokenAdminRole = deployment.escrow.TOKEN_ADMIN_ROLE();
+
+        deployment.registry.grantRole(adminRole, executor);
+        deployment.registry.grantRole(definerRole, executor);
+        deployment.registry.grantRole(setterRole, executor);
+        deployment.escrow.grantRole(adminRole, executor);
+        deployment.escrow.grantRole(tokenAdminRole, executor);
+        deployment.treasury.grantRole(adminRole, executor);
+        deployment.reputation.grantRole(adminRole, executor);
+        deployment.credentials.grantRole(adminRole, executor);
+        deployment.arbitration.grantRole(adminRole, executor);
+
+        deployment.registry.renounceRole(definerRole, previousAdmin);
+        deployment.registry.renounceRole(adminRole, previousAdmin);
+        deployment.escrow.renounceRole(tokenAdminRole, previousAdmin);
+        deployment.escrow.renounceRole(adminRole, previousAdmin);
+        deployment.treasury.renounceRole(adminRole, previousAdmin);
+        deployment.reputation.renounceRole(adminRole, previousAdmin);
+        deployment.credentials.renounceRole(adminRole, previousAdmin);
+        deployment.arbitration.renounceRole(adminRole, previousAdmin);
     }
 
     function handOver(Deployment memory deployment, address newAdmin, address previousAdmin) public {
@@ -131,6 +217,8 @@ contract Deploy is Script {
 
     function _defineParameters(ParameterRegistry registry, bool demo) private {
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
+        registry.defineParameter(ParameterKeys.VOTE_DEPOSIT, 0, uint64(1_000_000 * UNIT), uint64(5 * UNIT));
+        registry.defineParameter(ParameterKeys.VOTE_WEIGHT_CAP, 1, 1000, 20);
         registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
         registry.defineParameter(ParameterKeys.CONTRIBUTION_MIN_BPS, 0, 2000, 500);
         registry.defineParameter(ParameterKeys.CONTRIBUTION_MAX_BPS, 1000, 10_000, 5000);

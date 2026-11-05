@@ -6,7 +6,7 @@ Este documento fija qué se construye, en qué orden y cómo se sabe que está l
 
 ## 0. Avance (5 de noviembre de 2026, tarde)
 
-Terminados y con pruebas (652 en verde): pasos 1 a 7 del orden de construcción.
+Terminados y con pruebas (703 en verde): pasos 1 a 8 del orden de construcción.
 
 | Paso | Estado | Notas |
 | --- | --- | --- |
@@ -17,7 +17,8 @@ Terminados y con pruebas (652 en verde): pasos 1 a 7 del orden de construcción.
 | 5. Hitos | Hecho | Plan de hitos firmado, pago por QR por hito, liberación automática a las 72 h, anticipo como primer hito, término anticipado, abandono con reapertura, disputa por hito |
 | 6. Changa grupal | Hecho | Fondeo con plazo, aportes de 5% a 50%, retiro hasta el acuerdo, devolución automática proporcional, propuesta de prestador con veto, cambio de coordinador por mayoría de dinero y objeción |
 | 7. Testigo | Hecho | Asignación firmada por las dos partes, atestado firmado por el testigo, compuerta de cobro en changas de más de 300 USDC y tarifa pagada desde el tesoro |
-| 8 a 10 | Pendientes | Votación y gobernanza, apelación, pruebas finales y Sepolia |
+| 8. Votación y gobernanza | Hecho | `VotingWeight`, `ProtocolGovernor`, Timelock y traspaso del control de parámetros, monedas, roles y tesoro al Timelock |
+| 9 y 10 | Pendientes | Apelación, pruebas finales y Sepolia |
 
 **Cambios de diseño respecto de lo especificado**
 
@@ -27,6 +28,8 @@ Terminados y con pruebas (652 en verde): pasos 1 a 7 del orden de construcción.
 - **Grupal: quién firma y quién cobra.** El coordinador (por defecto quien publica) es el `payer` del Escrow: firma el acuerdo y el QR. Todo reembolso al solicitante se reparte entre los aportantes en proporción a lo que pusieron, y el resto del redondeo va al último.
 - **Grupal: veto y objeción.** El veto del prestador propuesto y la objeción usan el mismo umbral: 25% del dinero o 2 personas distintas. Al alcanzarse la objeción se abre la disputa y el costo del jurado lo adelanta quien la dispara (la última persona en objetar). Las reservas de prestador no existen en changas grupales; las reemplaza la propuesta con ventana de veto de 24 horas.
 - **Testigo: elección y pago.** Una parte lo propone y lo firman las dos partes (también sirve en changas chicas, de forma opcional). El testigo firma un atestado de la entrega (o de cada hito); sin un atestado aprobado no se puede cobrar con QR ni por liberación automática en changas de más de 300 USDC. La disputa con jurado no depende del testigo. La tarifa fija la paga el tesoro (el Escrow tiene permiso de retiro acotado a esto); si el tesoro no tiene fondos, queda como deuda que el testigo reclama después. Las changas que no exigen testigo no pagan tarifa.
+- **Votación: peso y reglas.** El peso de voto es la cantidad de changas cerradas sin disputa (como prestador, solicitante o jurado) con tope de 20 por cuenta, y solo cuenta con credencial y un depósito de 5 USDC. No se puede delegar a otra cuenta ni transferir. Cada cuenta se sincroniza (`sync`, la puede llamar cualquiera) para que el peso quede registrado antes de la votación; lo ganado después de la propuesta no cuenta. El reloj es por tiempo. Tiempos de producción: 1 día de espera, 5 días de votación, quórum del 10% y 2 días de Timelock; con `DEMO` son minutos.
+- **Traspaso a la gobernanza.** `handOverToGovernance` pasa al Timelock los roles que controlan parámetros, monedas (`configureToken`), conexiones entre contratos y tesoro, y el administrador los renuncia. El administrador conserva solo los roles operativos: moderar, emitir credenciales de nivel 0, sembrar jurados y resolver emergencias. Es un paso aparte del despliegue (variable `GOVERNANCE`), para operar con un solo administrador al principio.
 - **Apelación diferida:** la apelación única con costo adicional no está implementada. Su costo se cruza con quién paga a los jurados de la segunda ronda y con el reembolso al apelante si gana; conviene cerrarlo después de los pasos 5 a 8.
 - **Costo del arbitraje:** lo adelanta quien reclama. Si gana y la parte que pierde no tiene dinero en el Escrow (por ejemplo, el prestador cuando pierde todo), el reclamante termina pagando el costo. Es una limitación conocida del diseño, sin garantía del prestador.
 - **Quién se postula como jurado:** los jurados se anotan solos en cada caso (compromiso del sorteo), por lo que el backend tiene que avisarles cuando se abre un caso.

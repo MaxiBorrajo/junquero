@@ -74,6 +74,8 @@ abstract contract EscrowBase is Test {
         registry.grantRole(setterRole, admin);
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
         registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
+        registry.defineParameter(ParameterKeys.VOTE_DEPOSIT, 0, uint64(1_000_000 * USDC), uint64(5 * USDC));
+        registry.defineParameter(ParameterKeys.VOTE_WEIGHT_CAP, 1, 1000, 20);
         registry.defineParameter(ParameterKeys.CONTRIBUTION_MIN_BPS, 0, 2000, 500);
         registry.defineParameter(ParameterKeys.CONTRIBUTION_MAX_BPS, 1000, 10_000, 5000);
         registry.defineParameter(ParameterKeys.OBJECTION_MONEY_BPS, 100, 10_000, 2500);

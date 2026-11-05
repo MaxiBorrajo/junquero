@@ -17,6 +17,8 @@ interface IArbitrationEvents {
     event VoteRevealed(uint256 indexed caseId, address indexed juror, uint8 vote);
     event CaseDecided(uint256 indexed caseId, bool payeeWins, uint8 payeeVotes, uint8 payerVotes);
     event EmergencyResolved(uint256 indexed caseId, bool payeeWins, bytes32 reasonHash);
+    event VerdictReached(uint256 indexed caseId, bool payeeWins, uint40 appealEnd);
+    event Appealed(uint256 indexed caseId, address indexed appellant, uint128 fee, uint8 jurors);
     event JurorPaid(uint256 indexed caseId, address indexed juror, uint256 reward);
     event JurorSlashed(uint256 indexed caseId, address indexed juror, uint256 amount);
     event Staked(address indexed juror, uint256 amount);
@@ -45,4 +47,5 @@ interface IArbitrationEvents {
     error VotingNotOver(uint40 revealEnd);
     error InsufficientStake(uint256 available, uint256 requested);
     error NothingToWithdraw();
+    error NotLoser(address caller);
 }

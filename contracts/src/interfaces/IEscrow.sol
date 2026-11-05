@@ -86,7 +86,8 @@ interface IEscrow is IEscrowEvents {
     function contributionOf(uint256 orderId, address account) external view returns (uint128);
     function setArbitration(IArbitration arbitration) external;
     function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external;
-    function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost) external;
+    function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost, uint128 appealFee, address appellant)
+        external;
     function getDispute(uint256 orderId) external view returns (Dispute memory);
     function smallDisputesUsed(address account) external view returns (uint8);
     function claimable(address token, address account) external view returns (uint256);

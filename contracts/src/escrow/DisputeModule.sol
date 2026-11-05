@@ -81,12 +81,15 @@ contract DisputeModule is EscrowStorage {
         }
     }
 
-    function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost) external nonReentrant {
+    function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost, uint128 appealFee, address appellant)
+        external
+        nonReentrant
+    {
         address caller = _msgSender();
         if (caller != address(arbitration)) revert NotArbitration(caller);
         if (payeeShareBps > BPS) revert InvalidShare(payeeShareBps);
         Order storage order = _requireStatus(orderId, OrderStatus.Disputed);
-        _resolve(orderId, order, payeeShareBps, false, waiveCost);
+        _resolve(orderId, order, payeeShareBps, false, waiveCost, appealFee, appellant);
     }
 
     function getDispute(uint256 orderId) external view returns (Dispute memory) {
@@ -142,7 +145,7 @@ contract DisputeModule is EscrowStorage {
 
         _disputes[orderId] = Dispute(caller, 0, uint40(block.timestamp), 0, reasonHash);
         emit DisputeOpened(orderId, caller, reasonHash, 0, 0);
-        _resolve(orderId, order, HALF, true, false);
+        _resolve(orderId, order, HALF, true, false, 0, address(0));
     }
 
     function _openWithJury(
@@ -160,7 +163,10 @@ contract DisputeModule is EscrowStorage {
             registry.get(size == SizeClass.Medium ? ParameterKeys.JURY_SIZE_MEDIUM : ParameterKeys.JURY_SIZE_LARGE)
         );
         uint128 fee = _tokenConfigs[order.token].jurorFee * jurors;
-        if (fee > 0) _collect(order.token, caller, fee, auth);
+        if (fee > 0) {
+            _collect(order.token, caller, fee, auth);
+            IERC20(order.token).safeTransfer(address(court), fee);
+        }
 
         order.status = OrderStatus.Disputed;
         uint256 caseId = court.openCase(orderId, order.payer, order.payee, caller, fee, order.token, jurors, reasonHash);
@@ -174,14 +180,24 @@ contract DisputeModule is EscrowStorage {
         uint128 protocolFee;
         uint128 toPayee;
         uint128 toPayer;
+        address appellant;
         uint128 cost;
         uint128 claimantRefund;
+        uint128 appellantRefund;
     }
 
-    function _resolve(uint256 orderId, Order storage order, uint16 share, bool automatic, bool waiveCost) private {
+    function _resolve(
+        uint256 orderId,
+        Order storage order,
+        uint16 share,
+        bool automatic,
+        bool waiveCost,
+        uint128 appealFee,
+        address appellant
+    ) private {
         bool milestoned = order.hasMilestones;
         uint128 base = milestoned ? _milestones[orderId][_plans[orderId].disputedIndex].amount : order.price;
-        Split memory split = _computeSplit(order, _disputes[orderId], share, waiveCost, base);
+        Split memory split = _computeSplit(order, _disputes[orderId], share, waiveCost, base, appealFee, appellant);
 
         if (milestoned) {
             _applyMilestoneOutcome(orderId, order, split);
@@ -227,29 +243,36 @@ contract DisputeModule is EscrowStorage {
         else order.status = OrderStatus.Agreed;
     }
 
-    function _computeSplit(Order storage order, Dispute storage dispute, uint16 share, bool waiveCost, uint128 base)
-        private
-        view
-        returns (Split memory split)
-    {
+    function _computeSplit(
+        Order storage order,
+        Dispute storage dispute,
+        uint16 share,
+        bool waiveCost,
+        uint128 base,
+        uint128 appealFee,
+        address appellant
+    ) private view returns (Split memory split) {
         split.claimant = dispute.claimant;
         split.gross = uint128((uint256(base) * share) / BPS);
         split.protocolFee = _protocolFee(_tokenConfigs[order.token], split.gross);
         split.toPayee = split.gross - split.protocolFee;
         split.toPayer = base - split.gross;
-        if (waiveCost) {
-            split.claimantRefund = dispute.fee;
-            return split;
-        }
+        split.appellant = appellant;
         split.cost = dispute.fee;
+        if (waiveCost || share == HALF) return split;
 
+        bool loserIsPayer = share > HALF;
+        uint128 available = loserIsPayer ? split.toPayer : split.toPayee;
         if (split.cost > 0 && _claimantWins(split.claimant, order.payee, share)) {
-            bool respondentIsPayer = split.claimant == order.payee;
-            uint128 respondentAmount = respondentIsPayer ? split.toPayer : split.toPayee;
-            split.claimantRefund = split.cost < respondentAmount ? split.cost : respondentAmount;
-            if (respondentIsPayer) split.toPayer -= split.claimantRefund;
-            else split.toPayee -= split.claimantRefund;
+            split.claimantRefund = split.cost < available ? split.cost : available;
+            available -= split.claimantRefund;
         }
+        if (appealFee > 0 && appellant != address(0) && _claimantWins(appellant, order.payee, share)) {
+            split.appellantRefund = appealFee < available ? appealFee : available;
+        }
+        uint128 taken = split.claimantRefund + split.appellantRefund;
+        if (loserIsPayer) split.toPayer -= taken;
+        else split.toPayee -= taken;
     }
 
     function _pay(uint256 orderId, Order storage order, Split memory split) private {
@@ -258,7 +281,7 @@ contract DisputeModule is EscrowStorage {
         _refundPayer(orderId, order, split.toPayer);
         _payout(token, treasury, split.protocolFee);
         _payout(token, split.claimant, split.claimantRefund);
-        _payout(token, address(arbitration), split.cost);
+        _payout(token, split.appellant, split.appellantRefund);
     }
 
     function _claimantWins(address claimant, address payee, uint16 share) private pure returns (bool) {

@@ -265,6 +265,9 @@ contract Deploy is Script {
             ParameterKeys.JUROR_INVITE_WINDOW, floor, 7 days, demo ? uint64(5 minutes) : uint64(24 hours)
         );
         registry.defineParameter(
+            ParameterKeys.APPEAL_WINDOW, floor, 7 days, demo ? uint64(5 minutes) : uint64(24 hours)
+        );
+        registry.defineParameter(
             ParameterKeys.SEED_REVEAL_WINDOW, floor, 3 days, demo ? uint64(5 minutes) : uint64(6 hours)
         );
         registry.defineParameter(

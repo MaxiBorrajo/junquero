@@ -55,6 +55,7 @@ contract DeployTest is Test {
             deployment.reputation.hasRole(deployment.reputation.RECORDER_ROLE(), address(deployment.arbitration))
         );
         assertEq(deployment.registry.get(ParameterKeys.DISPUTE_RESPONSE_WINDOW), 72 hours);
+        assertEq(deployment.registry.get(ParameterKeys.APPEAL_WINDOW), 24 hours);
         assertEq(deployment.registry.get(ParameterKeys.JUROR_STAKE), 10_000_000);
     }
 
@@ -65,6 +66,7 @@ contract DeployTest is Test {
 
         assertEq(demo.registry.get(ParameterKeys.DISPUTE_RESPONSE_WINDOW), 5 minutes);
         assertEq(demo.registry.get(ParameterKeys.VOTE_COMMIT_WINDOW), 5 minutes);
+        assertEq(demo.registry.get(ParameterKeys.APPEAL_WINDOW), 5 minutes);
         (uint64 min,) = demo.registry.bounds(ParameterKeys.VOTE_COMMIT_WINDOW);
         assertEq(min, 1 minutes);
         (uint64 productionMin,) = deployment.registry.bounds(ParameterKeys.VOTE_COMMIT_WINDOW);

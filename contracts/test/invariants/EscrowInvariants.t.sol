@@ -68,7 +68,6 @@ contract EscrowInvariantsTest is StdInvariant, EscrowBase {
         for (uint256 id = 1; id <= escrow.lastOrderId(); id++) {
             Order memory order = escrow.getOrder(id);
             locked += order.deposited;
-            if (order.status == OrderStatus.Disputed) locked += escrow.getDispute(id).fee;
         }
         for (uint256 i = 0; i < handler.actorCount(); i++) {
             claimables += escrow.claimable(address(usdc), handler.actors(i));

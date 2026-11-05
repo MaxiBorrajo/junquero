@@ -17,6 +17,7 @@ library ParameterKeys {
     bytes32 internal constant VOTE_DEPOSIT = keccak256("VOTE_DEPOSIT");
     bytes32 internal constant VOTE_WEIGHT_CAP = keccak256("VOTE_WEIGHT_CAP");
     bytes32 internal constant TERMINATION_COMP_BPS = keccak256("TERMINATION_COMP_BPS");
+    bytes32 internal constant APPEAL_WINDOW = keccak256("APPEAL_WINDOW");
     bytes32 internal constant JURY_SIZE_MEDIUM = keccak256("JURY_SIZE_MEDIUM");
     bytes32 internal constant JURY_SIZE_LARGE = keccak256("JURY_SIZE_LARGE");
     bytes32 internal constant SMALL_DISPUTES_PER_ACCOUNT_MONTH = keccak256("SMALL_DISPUTES_PER_ACCOUNT_MONTH");

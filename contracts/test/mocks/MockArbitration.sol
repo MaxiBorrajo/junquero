@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IArbitration} from "../../src/interfaces/IArbitration.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IEscrow} from "../../src/interfaces/IEscrow.sol";
 
 contract MockArbitration is IArbitration {
@@ -39,10 +40,23 @@ contract MockArbitration is IArbitration {
     }
 
     function resolve(uint256 orderId, uint16 payeeShareBps) external {
-        escrow.resolveDispute(orderId, payeeShareBps, false);
+        escrow.resolveDispute(orderId, payeeShareBps, false, 0, address(0));
+    }
+
+    function resolveAppealed(uint256 orderId, uint16 payeeShareBps, uint128 appealFee, address appellant) external {
+        escrow.resolveDispute(orderId, payeeShareBps, false, appealFee, appellant);
     }
 
     function resolveWaived(uint256 orderId, uint16 payeeShareBps) external {
-        escrow.resolveDispute(orderId, payeeShareBps, true);
+        Case storage c = caseOf[caseIdOf(orderId)];
+        IERC20(c.token).transfer(c.claimant, c.fee);
+        escrow.resolveDispute(orderId, payeeShareBps, true, 0, address(0));
+    }
+
+    function caseIdOf(uint256 orderId) public view returns (uint256) {
+        for (uint256 i = cases; i > 0; i--) {
+            if (caseOf[i].orderId == orderId) return i;
+        }
+        return 0;
     }
 }

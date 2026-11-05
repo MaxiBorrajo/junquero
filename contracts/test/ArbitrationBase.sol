@@ -75,6 +75,7 @@ abstract contract ArbitrationBase is EscrowBase {
         registry.defineParameter(ParameterKeys.RECUSALS_PER_PARTY, 0, 5, 1);
         registry.defineParameter(ParameterKeys.SLASH_MINORITY_BPS, 0, 10_000, 2500);
         registry.defineParameter(ParameterKeys.JUROR_INVITE_WINDOW, 1 hours, 7 days, 24 hours);
+        registry.defineParameter(ParameterKeys.APPEAL_WINDOW, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.JUROR_REPLACEMENT_ROUNDS, 0, 5, 3);
         registry.defineParameter(ParameterKeys.JUROR_MAX_ACTIVE_CASES, 1, 10, 2);
         registry.defineParameter(ParameterKeys.DISPUTE_RESPONSE_WINDOW, 1 hours, 14 days, 72 hours);
@@ -220,9 +221,17 @@ abstract contract ArbitrationBase is EscrowBase {
         votes[2] = c;
     }
 
+    function _execute(uint256 caseId) internal {
+        Arbitration.Case memory c = court.getCase(caseId);
+        if (uint8(c.phase) != uint8(Arbitration.Phase.Decided)) return;
+        vm.warp(c.appealEnd + 1);
+        court.execute(caseId);
+    }
+
     function _decide(uint256 caseId, uint8[] memory votes) internal {
         _castVotes(caseId, votes, _allReveal(votes.length));
         court.finalize(caseId);
+        _execute(caseId);
     }
 
     function _totalMoney(address[] memory extra) internal view returns (uint256 total) {

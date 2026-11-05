@@ -151,7 +151,8 @@ contract EscrowDisputeTest is EscrowBase {
         escrow.openDispute(orderId, REASON, auth);
 
         assertEq(uint8(_order(orderId).status), uint8(OrderStatus.Disputed));
-        assertEq(usdc.balanceOf(address(escrow)), 100 * USDC + 3 * FEE);
+        assertEq(usdc.balanceOf(address(escrow)), 100 * USDC);
+        assertEq(usdc.balanceOf(address(court)), 3 * FEE);
         assertEq(usdc.balanceOf(payer), payerBefore);
 
         (
@@ -286,11 +287,11 @@ contract EscrowDisputeTest is EscrowBase {
 
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotArbitration.selector, admin));
-        escrow.resolveDispute(orderId, 10_000, false);
+        escrow.resolveDispute(orderId, 10_000, false, 0, address(0));
 
         vm.prank(payer);
         vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotArbitration.selector, payer));
-        escrow.resolveDispute(orderId, 0, false);
+        escrow.resolveDispute(orderId, 0, false, 0, address(0));
     }
 
     function test_resolveRejectsSharesAboveTheMaximum() public {
@@ -429,8 +430,6 @@ contract EscrowDisputeTest is EscrowBase {
         _open(payer, orderId, 3 * FEE);
         uint256 payerBefore = usdc.balanceOf(payer);
 
-        vm.expectEmit(true, false, false, true);
-        emit IEscrowEvents.DisputeResolved(orderId, 0, 0, uint128(100 * USDC), 0, 0, false);
         court.resolveWaived(orderId, 0);
 
         assertEq(usdc.balanceOf(payer) - payerBefore, 100 * USDC + 3 * FEE);

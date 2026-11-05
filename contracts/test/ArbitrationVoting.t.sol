@@ -188,7 +188,7 @@ contract ArbitrationVotingTest is ArbitrationBase {
 
         court.finalize(caseId);
 
-        assertEq(uint8(court.getCase(caseId).phase), uint8(Arbitration.Phase.Resolved));
+        assertEq(uint8(court.getCase(caseId).phase), uint8(Arbitration.Phase.Decided));
     }
 
     function test_finalizeWithoutAJuryReverts() public {
@@ -234,6 +234,7 @@ contract ArbitrationVotingTest is ArbitrationBase {
         vm.expectEmit(true, true, false, true);
         emit IArbitrationEvents.JurorSlashed(caseId, panel[2], STAKE * 2500 / 10_000);
         court.finalize(caseId);
+        _execute(caseId);
 
         assertEq(court.rewards(address(usdc), panel[0]), 1_500_000);
         assertEq(court.rewards(address(usdc), panel[1]), 1_500_000);
@@ -251,6 +252,7 @@ contract ArbitrationVotingTest is ArbitrationBase {
         _castVotes(caseId, _votes3(PAYEE, PAYEE, PAYEE), reveal);
         vm.warp(court.getCase(caseId).revealEnd + 1);
         court.finalize(caseId);
+        _execute(caseId);
 
         assertEq(court.account(panel[2]).staked, JUROR_DEPOSIT - STAKE);
         assertEq(usdc.balanceOf(address(treasury)) - treasuryBefore, STAKE);
@@ -265,6 +267,7 @@ contract ArbitrationVotingTest is ArbitrationBase {
         _castVotes(caseId, _votes3(PAYER, PAYER, 0), _allReveal(3));
         vm.warp(court.getCase(caseId).revealEnd + 1);
         court.finalize(caseId);
+        _execute(caseId);
 
         assertEq(court.account(panel[2]).staked, JUROR_DEPOSIT - STAKE);
         assertEq(_totalLocked(), 0);
@@ -465,6 +468,7 @@ contract ArbitrationVotingTest is ArbitrationBase {
         _castVotes(caseId, votes, reveal);
         vm.warp(court.getCase(caseId).revealEnd + 1);
         court.finalize(caseId);
+        _execute(caseId);
 
         if (uint8(court.getCase(caseId).phase) == uint8(Arbitration.Phase.NeedsEmergency)) {
             vm.prank(admin);

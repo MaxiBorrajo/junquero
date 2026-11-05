@@ -32,11 +32,12 @@ Cambios hechos por la revisión:
 ## Limitaciones conocidas
 
 1. **Azar del jurado.** El sorteo combina los secretos revelados por los candidatos y el hash del bloque anterior. Un candidato que revela último puede decidir no revelar para cambiar el resultado, a costa de no ser elegible. Se reduce con muchos candidatos y no se elimina. Un oráculo de azar (VRF) lo resolvería y queda para producción.
-2. **Costo del arbitraje.** Lo adelanta quien reclama. Si gana y la parte perdedora no tiene dinero en el Escrow, termina pagando el costo.
+2. **Costo del arbitraje y de la apelación.** Lo adelanta quien reclama (y quien apela). Si gana, se reintegra desde la parte de quien perdió, hasta donde alcance. Como los jurados deciden todo o nada, quien perdió todo no tiene nada de qué reintegrar, y el ganador termina pagando el costo.
 3. **Anticipo.** Es el primer hito. No hay recuperación on-chain si el prestador cobra y no entrega.
 4. **Administrador.** Mientras no se traspase el control, un solo administrador configura monedas, parámetros y conexiones. El traspaso al Timelock es un paso aparte (`GOVERNANCE`).
 5. **Tesoro y testigo.** El Escrow puede retirar del tesoro solo por el camino de la tarifa del testigo. Si el tesoro está vacío, la tarifa queda como deuda.
 6. **Monedas.** Solo las de la lista blanca. Las que cobran comisión por transferencia se rechazan. Una cuenta bloqueada por la moneda no traba un cierre: su parte queda como deuda reclamable.
 7. **Módulos.** Los módulos del Escrow se registran una vez y luego se bloquean; para cambiar la lógica hay que desplegar un Escrow nuevo.
-8. **Apelación.** No está implementada.
-9. **Valores iniciales.** Los parámetros no vienen de datos reales. Se calibran por votación dentro de los límites que fija el contrato.
+8. **Apelación.** Hay una sola, la hace quien perdió, con un jurado de 2N+1 que no incluye a los de la primera ronda, y su costo lo adelanta el apelante. Necesita al menos 2N+1 jurados elegibles distintos de los de la primera ronda; si no los hay, el caso termina en emergencia y se devuelve el costo de la apelación.
+9. **Tamaño de `Arbitration`.** Ocupa 23,0 KB de los 24,5 KB posibles. Cualquier función nueva obliga a partirlo.
+10. **Valores iniciales.** Los parámetros no vienen de datos reales. Se calibran por votación dentro de los límites que fija el contrato.

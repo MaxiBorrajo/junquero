@@ -25,7 +25,8 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
         Seed,
         Vote,
         NeedsEmergency,
-        Resolved
+        Resolved,
+        Decided
     }
 
     struct Case {
@@ -44,6 +45,14 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
         uint40 commitEnd;
         uint40 revealEnd;
         bytes32 reasonHash;
+        uint8 roundBase;
+        uint8 roundStart;
+        bool appealed;
+        bool round1Paid;
+        bool verdictPayee;
+        uint40 appealEnd;
+        address appellant;
+        uint128 appealFee;
     }
 
     struct JurorAccount {
@@ -182,7 +191,15 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
             payerVotes: 0,
             commitEnd: uint40(block.timestamp + registry.get(ParameterKeys.DISPUTE_RESPONSE_WINDOW)),
             revealEnd: 0,
-            reasonHash: reasonHash
+            reasonHash: reasonHash,
+            roundBase: 0,
+            roundStart: 0,
+            appealed: false,
+            round1Paid: false,
+            verdictPayee: false,
+            appealEnd: 0,
+            appellant: address(0),
+            appealFee: 0
         });
         emit CaseOpened(caseId, orderId, claimant, jurors, fee);
     }
@@ -205,7 +222,8 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
         c.phase = Phase.Resolved;
         bool payeeWins = c.claimant == c.payee;
         emit ResolvedByDefault(caseId, c.claimant);
-        escrow.resolveDispute(c.orderId, payeeWins ? uint16(BPS) : 0, true);
+        IERC20(c.token).safeTransfer(c.claimant, c.fee);
+        escrow.resolveDispute(c.orderId, payeeWins ? uint16(BPS) : 0, true, 0, address(0));
     }
 
     function recuse(uint256 caseId, address juror) external {
@@ -313,17 +331,79 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
         _requirePhase(caseId, c, Phase.Vote);
         if (block.timestamp <= c.revealEnd && c.revealedVotes < c.jurors) revert VotingNotOver(c.revealEnd);
 
+        uint128 pool = c.appealed ? c.appealFee : c.fee;
         if (c.payeeVotes == c.payerVotes) {
             c.phase = Phase.NeedsEmergency;
-            _settleJurors(caseId, c, 0);
+            _settleJurors(caseId, c, 0, pool);
             emit NeedsEmergencyResolution(caseId, 2);
             return;
         }
         bool payeeWins = c.payeeVotes > c.payerVotes;
-        c.phase = Phase.Resolved;
         emit CaseDecided(caseId, payeeWins, c.payeeVotes, c.payerVotes);
-        escrow.resolveDispute(c.orderId, payeeWins ? uint16(BPS) : 0, false);
-        _settleJurors(caseId, c, payeeWins ? VOTE_PAYEE : VOTE_PAYER);
+        _settleJurors(caseId, c, payeeWins ? VOTE_PAYEE : VOTE_PAYER, pool);
+        if (c.appealed) {
+            c.phase = Phase.Resolved;
+            escrow.resolveDispute(c.orderId, payeeWins ? uint16(BPS) : 0, false, c.appealFee, c.appellant);
+            return;
+        }
+        c.round1Paid = true;
+        c.verdictPayee = payeeWins;
+        c.phase = Phase.Decided;
+        c.appealEnd = uint40(block.timestamp + registry.get(ParameterKeys.APPEAL_WINDOW));
+        emit VerdictReached(caseId, payeeWins, c.appealEnd);
+    }
+
+    function execute(uint256 caseId) external nonReentrant {
+        Case storage c = _case(caseId);
+        _requirePhase(caseId, c, Phase.Decided);
+        if (block.timestamp <= c.appealEnd) revert WindowOpen(c.appealEnd);
+        c.phase = Phase.Resolved;
+        escrow.resolveDispute(c.orderId, c.verdictPayee ? uint16(BPS) : 0, false, 0, address(0));
+    }
+
+    function appeal(uint256 caseId) external nonReentrant {
+        _appeal(caseId, _msgSender());
+    }
+
+    function appealWithPermit(uint256 caseId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external nonReentrant {
+        address caller = _msgSender();
+        Case storage c = _case(caseId);
+        uint256 fee = _appealFee(c);
+        try IERC20Permit(c.token).permit(caller, address(this), fee, deadline, v, r, s) {} catch {}
+        _appeal(caseId, caller);
+    }
+
+    function _appealFee(Case storage c) private view returns (uint128) {
+        return escrow.tokenConfig(c.token).jurorFee * (2 * c.jurors + 1);
+    }
+
+    function _appeal(uint256 caseId, address caller) private {
+        Case storage c = _case(caseId);
+        _requirePhase(caseId, c, Phase.Decided);
+        if (block.timestamp > c.appealEnd) revert WindowClosed(c.appealEnd);
+        address loser = c.verdictPayee ? c.payer : c.payee;
+        if (caller != loser) revert NotLoser(caller);
+
+        uint128 fee = _appealFee(c);
+        if (fee > 0) IERC20(c.token).safeTransferFrom(caller, address(this), fee);
+
+        address[] storage panel = _selected[caseId];
+        for (uint256 i = 0; i < panel.length; i++) {
+            _recused[caseId][panel[i]] = true;
+            _jurorCases[caseId][panel[i]].selected = false;
+        }
+        c.appealed = true;
+        c.appellant = caller;
+        c.appealFee = fee;
+        c.jurors = 2 * c.jurors + 1;
+        c.revealedVotes = 0;
+        c.payeeVotes = 0;
+        c.payerVotes = 0;
+        c.roundStart = uint8(panel.length);
+        c.round += 1;
+        c.roundBase = c.round;
+        emit Appealed(caseId, caller, fee, c.jurors);
+        _startSeedRound(caseId, c);
     }
 
     function resolveEmergency(uint256 caseId, bool payeeWins, bytes32 reasonHash)
@@ -335,7 +415,9 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
         _requirePhase(caseId, c, Phase.NeedsEmergency);
         c.phase = Phase.Resolved;
         emit EmergencyResolved(caseId, payeeWins, reasonHash);
-        escrow.resolveDispute(c.orderId, payeeWins ? uint16(BPS) : 0, true);
+        if (!c.round1Paid) IERC20(c.token).safeTransfer(c.claimant, c.fee);
+        if (c.appealed) IERC20(c.token).safeTransfer(c.appellant, c.appealFee);
+        escrow.resolveDispute(c.orderId, payeeWins ? uint16(BPS) : 0, true, 0, address(0));
     }
 
     function getCase(uint256 caseId) external view returns (Case memory) {
@@ -392,7 +474,7 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
 
     function _nextRound(uint256 caseId, Case storage c) private {
         c.round += 1;
-        if (c.round > registry.get(ParameterKeys.JUROR_REPLACEMENT_ROUNDS)) {
+        if (c.round - c.roundBase > registry.get(ParameterKeys.JUROR_REPLACEMENT_ROUNDS)) {
             c.phase = Phase.NeedsEmergency;
             emit NeedsEmergencyResolution(caseId, 1);
             return;
@@ -433,20 +515,20 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
         uint256 slashedTotal;
     }
 
-    function _settleJurors(uint256 caseId, Case storage c, uint8 majorityVote) private {
+    function _settleJurors(uint256 caseId, Case storage c, uint8 majorityVote, uint128 pool) private {
         uint256 stakePerCase = registry.get(ParameterKeys.JUROR_STAKE);
         uint256 majority = majorityVote == VOTE_PAYEE ? c.payeeVotes : majorityVote == VOTE_PAYER ? c.payerVotes : 0;
         Settlement memory info = Settlement({
             majorityVote: majorityVote,
             stakePerCase: stakePerCase,
             minorityCut: (stakePerCase * registry.get(ParameterKeys.SLASH_MINORITY_BPS)) / BPS,
-            reward: majority == 0 ? 0 : c.fee / majority,
-            dust: majority == 0 ? 0 : c.fee % majority,
+            reward: majority == 0 ? 0 : pool / majority,
+            dust: majority == 0 ? 0 : pool % majority,
             slashedTotal: 0
         });
 
         address[] storage jurors = _selected[caseId];
-        for (uint256 i = 0; i < jurors.length; i++) {
+        for (uint256 i = c.roundStart; i < jurors.length; i++) {
             _settleOne(caseId, c.token, jurors[i], info);
         }
         if (info.slashedTotal > 0) stakeToken.safeTransfer(treasury, info.slashedTotal);

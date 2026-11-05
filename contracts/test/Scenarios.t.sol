@@ -327,6 +327,8 @@ contract ScenariosTest is Test {
             d.arbitration.revealVote(caseId, vote, bytes32(uint256(100 + i)));
         }
         d.arbitration.finalize(caseId);
+        vm.warp(d.arbitration.getCase(caseId).appealEnd + 1);
+        d.arbitration.execute(caseId);
 
         assertEq(usdc.balanceOf(provider), 200 * USDC);
         assertEq(usdc.balanceOf(address(d.escrow)), 0);

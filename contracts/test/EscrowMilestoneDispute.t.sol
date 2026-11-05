@@ -72,7 +72,8 @@ contract EscrowMilestoneDisputeTest is MilestoneBase {
         (,,,,, address token, uint8 jurors,) = court.caseOf(1);
         assertEq(token, address(usdc));
         assertEq(jurors, 3);
-        assertEq(usdc.balanceOf(address(escrow)), 300 * USDC + 3 * USDC);
+        assertEq(usdc.balanceOf(address(escrow)), 300 * USDC);
+        assertEq(usdc.balanceOf(address(court)), 3 * USDC);
     }
 
     function test_juryDecisionPaysTheMilestoneAndReturnsToAgreed() public {

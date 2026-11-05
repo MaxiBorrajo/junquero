@@ -6,7 +6,7 @@ Este documento fija qué se construye, en qué orden y cómo se sabe que está l
 
 ## 0. Avance (5 de noviembre de 2026, tarde)
 
-Terminados y con pruebas (715 en verde): pasos 1 a 9 salvo la bifurcación de Sepolia del orden de construcción.
+Terminados y con pruebas (754 en verde): pasos 1 a 9 y la apelación, salvo la bifurcación de Sepolia del orden de construcción.
 
 | Paso | Estado | Notas |
 | --- | --- | --- |
@@ -20,7 +20,7 @@ Terminados y con pruebas (715 en verde): pasos 1 a 9 salvo la bifurcación de Se
 | 8. Votación y gobernanza | Hecho | `VotingWeight`, `ProtocolGovernor`, Timelock y traspaso del control de parámetros, monedas, roles y tesoro al Timelock |
 | 9. Pruebas finales | Hecho, falta el fork | Invariantes con secuencias aleatorias (200 corridas de 120 acciones), escenarios A a F sobre el despliegue real, vectores de firma para la app (`contracts/vectors/`), cobertura de 98,8% de líneas y 91,9% de ramas, análisis estático con Slither (`contracts/SECURITY.md`) |
 | 10 | Pendiente | Pruebas con bifurcación de Sepolia, despliegue y publicación |
-| Apelación | Pendiente | Sigue diferida |
+| Apelación | Hecho | Una sola, por quien perdió, con 2N+1 jurados nuevos; el veredicto espera una ventana antes de mover el dinero |
 
 **Cambios de diseño respecto de lo especificado**
 
@@ -32,7 +32,7 @@ Terminados y con pruebas (715 en verde): pasos 1 a 9 salvo la bifurcación de Se
 - **Testigo: elección y pago.** Una parte lo propone y lo firman las dos partes (también sirve en changas chicas, de forma opcional). El testigo firma un atestado de la entrega (o de cada hito); sin un atestado aprobado no se puede cobrar con QR ni por liberación automática en changas de más de 300 USDC. La disputa con jurado no depende del testigo. La tarifa fija la paga el tesoro (el Escrow tiene permiso de retiro acotado a esto); si el tesoro no tiene fondos, queda como deuda que el testigo reclama después. Las changas que no exigen testigo no pagan tarifa.
 - **Votación: peso y reglas.** El peso de voto es la cantidad de changas cerradas sin disputa (como prestador, solicitante o jurado) con tope de 20 por cuenta, y solo cuenta con credencial y un depósito de 5 USDC. No se puede delegar a otra cuenta ni transferir. Cada cuenta se sincroniza (`sync`, la puede llamar cualquiera) para que el peso quede registrado antes de la votación; lo ganado después de la propuesta no cuenta. El reloj es por tiempo. Tiempos de producción: 1 día de espera, 5 días de votación, quórum del 10% y 2 días de Timelock; con `DEMO` son minutos.
 - **Traspaso a la gobernanza.** `handOverToGovernance` pasa al Timelock los roles que controlan parámetros, monedas (`configureToken`), conexiones entre contratos y tesoro, y el administrador los renuncia. El administrador conserva solo los roles operativos: moderar, emitir credenciales de nivel 0, sembrar jurados y resolver emergencias. Es un paso aparte del despliegue (variable `GOVERNANCE`), para operar con un solo administrador al principio.
-- **Apelación diferida:** la apelación única con costo adicional no está implementada. Su costo se cruza con quién paga a los jurados de la segunda ronda y con el reembolso al apelante si gana; conviene cerrarlo después de los pasos 5 a 8.
+- **Apelación.** El costo del jurado pasa al contrato de arbitraje apenas se abre la disputa. Con un veredicto claro de la primera ronda se paga a esos jurados y se abre una ventana de apelación (24 horas). Si nadie apela, se ejecuta el reparto. Si apela quien perdió, paga el costo de una segunda ronda con 2N+1 jurados distintos; los de la primera ronda no pueden volver a votar. La segunda ronda es definitiva. Quien gana en definitiva recupera lo que adelantó desde la parte del perdedor, hasta donde alcance. Un empate o falta de jurados lleva a emergencia y se devuelve lo adelantado que no se haya pagado a jurados.
 - **Costo del arbitraje:** lo adelanta quien reclama. Si gana y la parte que pierde no tiene dinero en el Escrow (por ejemplo, el prestador cuando pierde todo), el reclamante termina pagando el costo. Es una limitación conocida del diseño, sin garantía del prestador.
 - **Quién se postula como jurado:** los jurados se anotan solos en cada caso (compromiso del sorteo), por lo que el backend tiene que avisarles cuando se abre un caso.
 

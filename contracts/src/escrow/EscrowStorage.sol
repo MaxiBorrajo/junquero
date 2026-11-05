@@ -237,8 +237,9 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         uint256 ramp = registry.get(ParameterKeys.RESERVATION_RAMP);
         uint256 maxBps = registry.get(ParameterKeys.RESERVATION_MAX_BPS);
         uint256 over = elapsed - grace;
-        uint256 bps = over >= ramp ? maxBps : (maxBps * over) / ramp;
-        uint256 compensation = (uint256(order.deposited) * bps) / BPS;
+        uint256 compensation = over >= ramp
+            ? (uint256(order.deposited) * maxBps) / BPS
+            : (uint256(order.deposited) * maxBps * over) / (ramp * BPS);
         uint128 cap = _tokenConfigs[order.token].reservationCap;
         if (cap != 0 && compensation > cap) compensation = cap;
         return uint128(compensation);

@@ -12,12 +12,14 @@ remappings = [
     "forge-std/=lib/forge-std/src/",
 ]
 
+fs_permissions = [{ access = "read-write", path = "./vectors" }]
+
 [fuzz]
 runs = 512
 
 [invariant]
-runs = 128
-depth = 64
+runs = 200
+depth = 120
 
 [lint]
 exclude_lints = ["unsafe-typecast", "block-timestamp", "reentrancy-events", "reentrancy-no-eth", "unsafe-oz-erc721-mint"]

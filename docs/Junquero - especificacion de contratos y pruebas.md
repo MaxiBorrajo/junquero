@@ -6,7 +6,7 @@ Este documento fija qué se construye, en qué orden y cómo se sabe que está l
 
 ## 0. Avance (5 de noviembre de 2026, tarde)
 
-Terminados y con pruebas (703 en verde): pasos 1 a 8 del orden de construcción.
+Terminados y con pruebas (715 en verde): pasos 1 a 9 salvo la bifurcación de Sepolia del orden de construcción.
 
 | Paso | Estado | Notas |
 | --- | --- | --- |
@@ -18,7 +18,9 @@ Terminados y con pruebas (703 en verde): pasos 1 a 8 del orden de construcción.
 | 6. Changa grupal | Hecho | Fondeo con plazo, aportes de 5% a 50%, retiro hasta el acuerdo, devolución automática proporcional, propuesta de prestador con veto, cambio de coordinador por mayoría de dinero y objeción |
 | 7. Testigo | Hecho | Asignación firmada por las dos partes, atestado firmado por el testigo, compuerta de cobro en changas de más de 300 USDC y tarifa pagada desde el tesoro |
 | 8. Votación y gobernanza | Hecho | `VotingWeight`, `ProtocolGovernor`, Timelock y traspaso del control de parámetros, monedas, roles y tesoro al Timelock |
-| 9 y 10 | Pendientes | Apelación, pruebas finales y Sepolia |
+| 9. Pruebas finales | Hecho, falta el fork | Invariantes con secuencias aleatorias (200 corridas de 120 acciones), escenarios A a F sobre el despliegue real, vectores de firma para la app (`contracts/vectors/`), cobertura de 98,8% de líneas y 91,9% de ramas, análisis estático con Slither (`contracts/SECURITY.md`) |
+| 10 | Pendiente | Pruebas con bifurcación de Sepolia, despliegue y publicación |
+| Apelación | Pendiente | Sigue diferida |
 
 **Cambios de diseño respecto de lo especificado**
 

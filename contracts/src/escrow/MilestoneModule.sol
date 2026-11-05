@@ -54,8 +54,6 @@ contract MilestoneModule is EscrowStorage {
         if (order.mode != PaymentMode.Escrowed) revert UnsupportedForMode();
         _validateTerms(agreement, terms, agreement.payee);
 
-        _agree(agreement, payerSignature, payeeSignature, true);
-
         order.hasMilestones = true;
         MilestonePlan storage plan = _plans[agreement.orderId];
         plan.count = uint8(terms.amounts.length);
@@ -64,6 +62,8 @@ contract MilestoneModule is EscrowStorage {
         for (uint256 i = 0; i < terms.amounts.length; i++) {
             list.push(Milestone(terms.amounts[i], MilestoneStatus.Pending, 0, bytes32(0)));
         }
+
+        _agree(agreement, payerSignature, payeeSignature, true);
         emit MilestonesAgreed(agreement.orderId, plan.count, terms.firstIsAdvance);
     }
 

@@ -18,7 +18,9 @@ import {
     Milestone,
     MilestonePlan,
     MilestoneTerms,
-    MilestoneRelease
+    MilestoneRelease,
+    GroupParams,
+    GroupInfo
 } from "../libraries/OrderTypes.sol";
 
 interface IEscrow is IEscrowEvents {
@@ -56,6 +58,19 @@ interface IEscrow is IEscrowEvents {
     function declareAbandoned(uint256 orderId) external;
     function getMilestones(uint256 orderId) external view returns (Milestone[] memory);
     function getPlan(uint256 orderId) external view returns (MilestonePlan memory);
+    function createGroupOrder(CreateParams calldata params, GroupParams calldata group)
+        external
+        returns (uint256 orderId);
+    function contribute(uint256 orderId, uint128 amount, DepositAuth calldata auth) external;
+    function withdrawContribution(uint256 orderId) external;
+    function refundFunding(uint256 orderId) external;
+    function proposeProvider(uint256 orderId, address payee) external;
+    function vetoProvider(uint256 orderId) external;
+    function supportCoordinator(uint256 orderId, address candidate) external;
+    function object(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external;
+    function getGroup(uint256 orderId) external view returns (GroupInfo memory);
+    function contributorsOf(uint256 orderId) external view returns (address[] memory);
+    function contributionOf(uint256 orderId, address account) external view returns (uint128);
     function setArbitration(IArbitration arbitration) external;
     function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external;
     function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost) external;

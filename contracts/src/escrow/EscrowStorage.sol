@@ -34,7 +34,8 @@ import {
     Dispute,
     Milestone,
     MilestonePlan,
-    MilestoneStatus
+    MilestoneStatus,
+    GroupInfo
 } from "../libraries/OrderTypes.sol";
 
 abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, AccessControl, ReentrancyGuard {
@@ -62,6 +63,14 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     mapping(address account => mapping(uint256 month => uint8)) internal _smallDisputesByAccount;
     mapping(uint256 orderId => Milestone[]) internal _milestones;
     mapping(uint256 orderId => MilestonePlan) internal _plans;
+    mapping(uint256 orderId => GroupInfo) internal _groups;
+    mapping(uint256 orderId => address[]) internal _contributors;
+    mapping(uint256 orderId => mapping(address account => uint128)) internal _contributions;
+    mapping(uint256 orderId => mapping(uint32 epoch => mapping(address account => bool))) internal _vetoed;
+    mapping(uint256 orderId => mapping(uint32 epoch => mapping(address account => address))) internal _coordinatorVote;
+    mapping(uint256 orderId => mapping(uint32 epoch => mapping(address candidate => uint128))) internal
+        _coordinatorWeight;
+    mapping(uint256 orderId => mapping(address account => bytes32)) internal _objectedAt;
 
     constructor(IParameterRegistry registry_, address treasury_, ISignatureTransfer permit2_, address forwarder)
         EIP712("Escrow", "1")
@@ -122,7 +131,6 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         uint128 paid = amount - fee;
         uint128 refunded = order.deposited - amount;
         address payee = order.payee;
-        address payer = order.payer;
         address token = order.token;
 
         order.status = OrderStatus.Settled;
@@ -132,7 +140,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
 
         _payout(token, payee, paid);
         _payout(token, treasury, fee);
-        _payout(token, payer, refunded);
+        _refundPayer(orderId, order, refunded);
         emit OrderSettled(orderId, payee, paid, refunded, fee, rating, automatic);
         _recordSettled(orderId, order, rating, automatic, false);
     }
@@ -147,7 +155,6 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         uint128 toTreasury
     ) internal {
         address token = order.token;
-        address payer = order.payer;
         uint128 refund = order.deposited - toRecipient - toTreasury;
 
         order.status = OrderStatus.Cancelled;
@@ -157,7 +164,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
 
         _payout(token, recipient, toRecipient);
         _payout(token, treasury, toTreasury);
-        _payout(token, payer, refund);
+        _refundPayer(orderId, order, refund);
         emit OrderCancelled(orderId, by, uint8(reason), toRecipient, toTreasury, refund);
     }
 
@@ -249,6 +256,25 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         return keccak256(abi.encode(payer, payee));
     }
 
+    function _refundPayer(uint256 orderId, Order storage order, uint128 amount) internal {
+        if (amount == 0) return;
+        address token = order.token;
+        if (!order.isGroup) {
+            _payout(token, order.payer, amount);
+            return;
+        }
+        address[] storage list = _contributors[orderId];
+        uint256 total = _groups[orderId].totalContributed;
+        uint128 remaining = amount;
+        uint256 last = list.length - 1;
+        for (uint256 i = 0; i < list.length; i++) {
+            uint128 share =
+                i == last ? remaining : uint128((uint256(amount) * _contributions[orderId][list[i]]) / total);
+            remaining -= share;
+            _payout(token, list[i], share);
+        }
+    }
+
     function _classify(TokenConfig storage config, uint128 amount) internal view returns (SizeClass) {
         if (amount <= config.smallMax) return SizeClass.Small;
         if (amount <= config.mediumMax) return SizeClass.Medium;
@@ -288,6 +314,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
             revert PriceExceedsDeposit(agreement.price, order.deposited);
         }
         if (!milestoned && _requiresMilestones(order, agreement.price)) revert MilestonesRequired();
+        if (order.isGroup) _checkGroupProposal(agreement.orderId, agreement.payee);
 
         bytes32 digest = _hashTypedDataV4(EscrowHashes.hash(agreement));
         _verify(agreement.payer, digest, payerSignature);
@@ -306,7 +333,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         order.reservedAt = 0;
         if (escrowed) order.deposited = agreement.price;
 
-        _payout(order.token, order.payer, refund);
+        _refundPayer(agreement.orderId, order, refund);
         emit OrderAgreed(agreement.orderId, agreement.payee, agreement.price, agreement.termsHash, uint8(sizeClass));
     }
 
@@ -340,7 +367,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
 
         address token = order.token;
         _payout(token, order.payee, toPayee);
-        _payout(token, order.payer, refund);
+        _refundPayer(orderId, order, refund);
         _payout(token, treasury, fee);
         emit MilestonePaid(orderId, index, toPayee, refund, fee, rating, automatic);
         if (index + 1 == plan.count) _closeMilestoned(orderId, order, false);
@@ -355,5 +382,24 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         uint8 rating = automatic ? 0 : uint8(plan.ratingSum / plan.ratingCount);
         emit OrderSettled(orderId, order.payee, plan.paidTotal, plan.refundedTotal, plan.feeTotal, rating, automatic);
         _recordSettled(orderId, order, rating, automatic, disputed);
+    }
+
+    function _checkGroupProposal(uint256 orderId, address payee) internal view {
+        GroupInfo storage group = _groups[orderId];
+        if (group.proposedPayee == address(0) || group.proposedPayee != payee) revert GroupAgreementNeedsProposal();
+        uint40 readyAt = group.proposedAt + uint40(registry.get(ParameterKeys.GROUP_VETO_WINDOW));
+        if (block.timestamp < readyAt) revert VetoWindowOpen(readyAt);
+        if (_contributions[orderId][payee] > 0) revert ProviderIsContributor(payee);
+    }
+
+    function _checkSchedule(uint40 startsAt, uint40 deadline) internal view {
+        if (startsAt != 0 && startsAt <= block.timestamp) revert InvalidSchedule();
+        uint40 floor = startsAt != 0 ? startsAt : uint40(block.timestamp);
+        if (deadline != 0 && deadline <= floor) revert InvalidSchedule();
+    }
+
+    function _thresholdReached(uint128 total, uint128 money, uint8 count) internal view returns (bool) {
+        return uint256(money) * BPS >= uint256(total) * registry.get(ParameterKeys.OBJECTION_MONEY_BPS)
+            || count >= registry.get(ParameterKeys.OBJECTION_MIN_PEOPLE);
     }
 }

@@ -81,6 +81,19 @@ interface IEscrowEvents {
         uint256 indexed orderId, address indexed by, uint128 paidToPayee, uint128 toTreasury, uint128 refunded
     );
     event OrderAbandoned(uint256 indexed orderId, address indexed by, uint128 reopenedWith);
+    event GroupCreated(
+        uint256 indexed orderId, address indexed creator, address indexed coordinator, uint128 target, uint40 deadline
+    );
+    event Contributed(uint256 indexed orderId, address indexed contributor, uint128 amount, uint128 total);
+    event ContributionWithdrawn(uint256 indexed orderId, address indexed contributor, uint128 amount);
+    event FundingCompleted(uint256 indexed orderId);
+    event FundingRefunded(uint256 indexed orderId, uint128 total);
+    event ProviderProposed(uint256 indexed orderId, address indexed payee, uint40 readyAt);
+    event ProviderVetoed(uint256 indexed orderId, address indexed by, uint128 money, uint8 count);
+    event ProposalCleared(uint256 indexed orderId);
+    event CoordinatorSupported(uint256 indexed orderId, address indexed by, address indexed candidate);
+    event CoordinatorChanged(uint256 indexed orderId, address indexed previous, address indexed current);
+    event ObjectionRegistered(uint256 indexed orderId, address indexed by, uint128 money, uint8 count);
 
     error TokenNotAllowed(address token);
     error InvalidAmount();
@@ -127,4 +140,21 @@ interface IEscrowEvents {
     error MilestoneNotPending(uint8 index);
     error AdvanceNotAllowed();
     error InvalidProgress(uint16 progressBps);
+    error NotGroup();
+    error GroupOnly();
+    error NotContributor(address account);
+    error ContributionOutOfRange(uint128 min, uint128 max);
+    error ExceedsTarget(uint128 remaining);
+    error TooManyContributors();
+    error FundingClosed();
+    error FundingNotExpired(uint40 deadline);
+    error InvalidDeadline();
+    error NoProposal();
+    error VetoWindowOpen(uint40 readyAt);
+    error ProviderIsContributor(address payee);
+    error AlreadyVoted(address account);
+    error InvalidCoordinator(address candidate);
+    error GroupAgreementNeedsProposal();
+    error VetoWindowClosed(uint40 readyAt);
+    error NotAvailableForGroup();
 }

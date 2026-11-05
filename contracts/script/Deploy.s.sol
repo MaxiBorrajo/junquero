@@ -131,6 +131,11 @@ contract Deploy is Script {
     function _defineParameters(ParameterRegistry registry, bool demo) private {
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
         registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
+        registry.defineParameter(ParameterKeys.CONTRIBUTION_MIN_BPS, 0, 2000, 500);
+        registry.defineParameter(ParameterKeys.CONTRIBUTION_MAX_BPS, 1000, 10_000, 5000);
+        registry.defineParameter(ParameterKeys.OBJECTION_MONEY_BPS, 100, 10_000, 2500);
+        registry.defineParameter(ParameterKeys.OBJECTION_MIN_PEOPLE, 1, 10, 2);
+        registry.defineParameter(ParameterKeys.GROUP_VETO_WINDOW, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.MILESTONE_MIN_DURATION, 1 hours, 90 days, 5 days);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_MILESTONE, 1 hours, 14 days, 72 hours);
         registry.defineParameter(ParameterKeys.ADVANCE_MAX_BPS, 0, 5000, 3000);

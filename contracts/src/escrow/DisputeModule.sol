@@ -17,7 +17,8 @@ import {
     Dispute,
     Milestone,
     MilestonePlan,
-    MilestoneStatus
+    MilestoneStatus,
+    GroupInfo
 } from "../libraries/OrderTypes.sol";
 import {EscrowStorage} from "./EscrowStorage.sol";
 
@@ -31,12 +32,13 @@ contract DisputeModule is EscrowStorage {
     {}
 
     function selectors() external pure returns (bytes4[] memory selectors_) {
-        selectors_ = new bytes4[](5);
+        selectors_ = new bytes4[](6);
         selectors_[0] = DisputeModule.setArbitration.selector;
         selectors_[1] = DisputeModule.openDispute.selector;
         selectors_[2] = DisputeModule.resolveDispute.selector;
         selectors_[3] = DisputeModule.getDispute.selector;
         selectors_[4] = DisputeModule.smallDisputesUsed.selector;
+        selectors_[5] = DisputeModule.object.selector;
     }
 
     function setArbitration(IArbitration arbitration_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -46,27 +48,36 @@ contract DisputeModule is EscrowStorage {
 
     function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external nonReentrant {
         Order storage order = _orders[orderId];
-        bool milestoned = order.hasMilestones;
-        if (milestoned) {
-            if (order.status != OrderStatus.Agreed) revert InvalidStatus(orderId, order.status);
-        } else {
-            _requireStatus(orderId, OrderStatus.Delivered);
-        }
+        _requireReviewState(orderId, order);
         address caller = _msgSender();
         if (caller != order.payer && caller != order.payee) revert NotParty(caller);
+        _open(orderId, order, caller, reasonHash, auth);
+    }
 
-        SizeClass size = order.sizeClass;
-        if (milestoned) {
-            size = _openMilestoneScope(orderId, order);
-        } else {
-            uint40 readyAt = _reviewDeadline(order);
-            if (block.timestamp >= readyAt) revert ReviewWindowClosed(readyAt);
+    function object(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external nonReentrant {
+        Order storage order = _orders[orderId];
+        if (order.status == OrderStatus.None) revert UnknownOrder(orderId);
+        if (!order.isGroup) revert NotGroup();
+        _requireReviewState(orderId, order);
+        address caller = _msgSender();
+        uint128 weight = _contributions[orderId][caller];
+        if (weight == 0) revert NotContributor(caller);
+
+        GroupInfo storage info = _groups[orderId];
+        bytes32 key = _reviewKey(orderId, order);
+        if (info.reviewKey != key) {
+            info.reviewKey = key;
+            info.objectionMoney = 0;
+            info.objectionCount = 0;
         }
+        if (_objectedAt[orderId][caller] == key) revert AlreadyVoted(caller);
+        _objectedAt[orderId][caller] = key;
+        info.objectionMoney += weight;
+        info.objectionCount += 1;
+        emit ObjectionRegistered(orderId, caller, info.objectionMoney, info.objectionCount);
 
-        if (size == SizeClass.Small) {
-            _openSmall(orderId, order, caller, reasonHash);
-        } else {
-            _openWithJury(orderId, order, caller, reasonHash, auth, size);
+        if (_thresholdReached(info.totalContributed, info.objectionMoney, info.objectionCount)) {
+            _open(orderId, order, caller, reasonHash, auth);
         }
     }
 
@@ -84,6 +95,42 @@ contract DisputeModule is EscrowStorage {
 
     function smallDisputesUsed(address account) external view returns (uint8) {
         return _smallDisputesByAccount[account][block.timestamp / MONTH];
+    }
+
+    function _requireReviewState(uint256 orderId, Order storage order) private view {
+        if (order.hasMilestones) {
+            if (order.status != OrderStatus.Agreed) revert InvalidStatus(orderId, order.status);
+            uint8 index = _plans[orderId].next;
+            if (_milestones[orderId][index].status != MilestoneStatus.Delivered) revert MilestoneNotDelivered(index);
+        } else {
+            _requireStatus(orderId, OrderStatus.Delivered);
+        }
+    }
+
+    function _reviewKey(uint256 orderId, Order storage order) private view returns (bytes32) {
+        if (order.hasMilestones) {
+            uint8 index = _plans[orderId].next;
+            return keccak256(abi.encode(true, index, _milestones[orderId][index].deliveredAt));
+        }
+        return keccak256(abi.encode(false, order.deliveredAt));
+    }
+
+    function _open(uint256 orderId, Order storage order, address caller, bytes32 reasonHash, DepositAuth calldata auth)
+        private
+    {
+        SizeClass size = order.sizeClass;
+        if (order.hasMilestones) {
+            size = _openMilestoneScope(orderId, order);
+        } else {
+            uint40 readyAt = _reviewDeadline(order);
+            if (block.timestamp >= readyAt) revert ReviewWindowClosed(readyAt);
+        }
+
+        if (size == SizeClass.Small) {
+            _openSmall(orderId, order, caller, reasonHash);
+        } else {
+            _openWithJury(orderId, order, caller, reasonHash, auth, size);
+        }
     }
 
     function _openSmall(uint256 orderId, Order storage order, address caller, bytes32 reasonHash) private {
@@ -145,7 +192,7 @@ contract DisputeModule is EscrowStorage {
             order.deposited = 0;
         }
 
-        _pay(order, split);
+        _pay(orderId, order, split);
         emit DisputeResolved(orderId, share, split.toPayee, split.toPayer, split.protocolFee, split.cost, automatic);
         _recordOutcome(orderId, order, share, split.gross, !milestoned);
     }
@@ -205,10 +252,10 @@ contract DisputeModule is EscrowStorage {
         }
     }
 
-    function _pay(Order storage order, Split memory split) private {
+    function _pay(uint256 orderId, Order storage order, Split memory split) private {
         address token = order.token;
         _payout(token, order.payee, split.toPayee);
-        _payout(token, order.payer, split.toPayer);
+        _refundPayer(orderId, order, split.toPayer);
         _payout(token, treasury, split.protocolFee);
         _payout(token, split.claimant, split.claimantRefund);
         _payout(token, address(arbitration), split.cost);

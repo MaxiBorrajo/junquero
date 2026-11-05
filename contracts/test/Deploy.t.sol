@@ -80,6 +80,16 @@ contract DeployTest is Test {
         assertEq(deployment.registry.get(ParameterKeys.TERMINATION_COMP_BPS), 1000);
     }
 
+    function test_groupModuleIsRoutedAndItsParametersExist() public view {
+        assertTrue(deployment.escrow.moduleOf(IEscrow.createGroupOrder.selector) != address(0));
+        assertTrue(deployment.escrow.moduleOf(IEscrow.object.selector) != address(0));
+        assertEq(deployment.registry.get(ParameterKeys.CONTRIBUTION_MIN_BPS), 500);
+        assertEq(deployment.registry.get(ParameterKeys.CONTRIBUTION_MAX_BPS), 5000);
+        assertEq(deployment.registry.get(ParameterKeys.OBJECTION_MONEY_BPS), 2500);
+        assertEq(deployment.registry.get(ParameterKeys.OBJECTION_MIN_PEOPLE), 2);
+        assertEq(deployment.registry.get(ParameterKeys.GROUP_VETO_WINDOW), 24 hours);
+    }
+
     function test_definesEveryParameterTheEscrowReads() public view {
         assertEq(deployment.registry.get(ParameterKeys.FEE_BPS), 0);
         assertEq(deployment.registry.get(ParameterKeys.REQUEST_CHANGES_MAX), 2);

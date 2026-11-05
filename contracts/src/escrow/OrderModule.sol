@@ -90,6 +90,7 @@ contract OrderModule is EscrowStorage {
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)
         external
     {
+        if (_orders[reservation.orderId].isGroup) revert NotAvailableForGroup();
         Order storage order = _requireStatus(reservation.orderId, OrderStatus.Open);
         if (reservation.payer != order.payer) revert NotPayer(reservation.payer);
         if (reservation.payee == reservation.payer) revert PayeeIsPayer();
@@ -208,12 +209,6 @@ contract OrderModule is EscrowStorage {
             fee,
             params.category
         );
-    }
-
-    function _checkSchedule(uint40 startsAt, uint40 deadline) private view {
-        if (startsAt != 0 && startsAt <= block.timestamp) revert InvalidSchedule();
-        uint40 floor = startsAt != 0 ? startsAt : uint40(block.timestamp);
-        if (deadline != 0 && deadline <= floor) revert InvalidSchedule();
     }
 
     function _cashFee(TokenConfig storage config, uint128 declared) private view returns (uint128) {

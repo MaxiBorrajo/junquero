@@ -110,7 +110,7 @@ Foundry está instalado en `~/.foundry/bin`, que no está en el `PATH` de la she
 
 ## 7. Estado de los contratos (verificado)
 
-**Actualización del 5 de noviembre:** ya están hechos los pasos 1 a 5 (el 5 son los hitos, con 515 tests en verde). Antes, al 4 de noviembre, estaban los pasos 1 a 4 del plan de contratos (ver `docs/Junquero - especificacion de contratos y pruebas.md`, sección 0): el Escrow ahora es un router con módulos, y existen `Credentials`, `Reputation`, `Receipt` y `Arbitration`, con 413 tests en verde. Faltan hitos, grupal, testigo, votación (`VotingWeight`, Governor, Timelock), apelación, pruebas finales y el despliegue en Sepolia. La tabla de abajo describe el estado anterior y está desactualizada.
+**Actualización del 5 de noviembre (tarde):** ya están hechos los pasos 1 a 6 (el 6 es la changa grupal, con 603 tests en verde). Antes, al 4 de noviembre, estaban los pasos 1 a 4 del plan de contratos (ver `docs/Junquero - especificacion de contratos y pruebas.md`, sección 0): el Escrow ahora es un router con módulos, y existen `Credentials`, `Reputation`, `Receipt` y `Arbitration`, con 413 tests en verde. Faltan hitos, grupal, testigo, votación (`VotingWeight`, Governor, Timelock), apelación, pruebas finales y el despliegue en Sepolia. La tabla de abajo describe el estado anterior y está desactualizada.
 
 
 `forge test` el 4 de noviembre de 2026: 112 tests pasan, 0 fallan, en 8 suites (el 4 de noviembre, con el test de despliegue).

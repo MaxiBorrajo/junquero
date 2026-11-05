@@ -9,7 +9,8 @@ enum OrderStatus {
     Delivered,
     Disputed,
     Settled,
-    Cancelled
+    Cancelled,
+    Funding
 }
 
 enum PaymentMode {
@@ -52,6 +53,7 @@ struct Order {
     uint8 category;
     uint8 changeRequests;
     bool hasMilestones;
+    bool isGroup;
     uint40 createdAt;
     address payee;
     uint40 startsAt;
@@ -126,6 +128,26 @@ struct MilestoneRelease {
     uint8 rating;
     bytes32 evidenceHash;
     uint40 expiry;
+}
+
+struct GroupParams {
+    address coordinator;
+    uint40 fundingDeadline;
+}
+
+struct GroupInfo {
+    uint128 target;
+    uint128 totalContributed;
+    uint40 fundingDeadline;
+    address proposedPayee;
+    uint40 proposedAt;
+    uint32 proposalEpoch;
+    uint128 vetoMoney;
+    uint8 vetoCount;
+    uint32 coordinatorEpoch;
+    bytes32 reviewKey;
+    uint128 objectionMoney;
+    uint8 objectionCount;
 }
 
 struct DepositAuth {

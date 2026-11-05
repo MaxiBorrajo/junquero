@@ -154,7 +154,7 @@ contract MilestoneModule is EscrowStorage {
         address token = order.token;
         _payout(token, order.payee, toPayee);
         _payout(token, treasury, toTreasury);
-        _payout(token, order.payer, refund);
+        _refundPayer(orderId, order, refund);
         emit OrderTerminated(orderId, caller, toPayee, toTreasury, refund);
     }
 

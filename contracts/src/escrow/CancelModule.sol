@@ -55,7 +55,7 @@ contract CancelModule is EscrowStorage {
         if (status == OrderStatus.None) revert UnknownOrder(orderId);
         address caller = _msgSender();
 
-        if (status == OrderStatus.Open || status == OrderStatus.Reserved) {
+        if (status == OrderStatus.Open || status == OrderStatus.Reserved || status == OrderStatus.Funding) {
             if (caller != order.payer) revert NotPayer(caller);
             _finishCancel(
                 orderId,
@@ -130,7 +130,9 @@ contract CancelModule is EscrowStorage {
         Order storage order = _orders[orderId];
         OrderStatus status = order.status;
         if (status == OrderStatus.None) revert UnknownOrder(orderId);
-        if (status != OrderStatus.Open && status != OrderStatus.Reserved) revert InvalidStatus(orderId, status);
+        if (status != OrderStatus.Open && status != OrderStatus.Reserved && status != OrderStatus.Funding) {
+            revert InvalidStatus(orderId, status);
+        }
         address moderator = _msgSender();
         emit OrderModerated(orderId, moderator, reasonHash);
         _finishCancel(orderId, order, moderator, CancelReason.Moderated, address(0), 0, 0);

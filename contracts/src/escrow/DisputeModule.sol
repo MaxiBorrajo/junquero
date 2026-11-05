@@ -95,8 +95,7 @@ contract DisputeModule is EscrowStorage {
         if (fee > 0) _collect(order.token, caller, fee, auth);
 
         order.status = OrderStatus.Disputed;
-        uint256 caseId =
-            court.openCase(orderId, order.payer, order.payee, caller, order.price, order.token, jurors, reasonHash);
+        uint256 caseId = court.openCase(orderId, order.payer, order.payee, caller, fee, order.token, jurors, reasonHash);
         _disputes[orderId] = Dispute(caller, fee, uint40(block.timestamp), caseId, reasonHash);
         emit DisputeOpened(orderId, caller, reasonHash, caseId, fee);
     }

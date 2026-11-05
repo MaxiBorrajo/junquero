@@ -159,7 +159,7 @@ contract EscrowDisputeTest is EscrowBase {
             address casePayer,
             address casePayee,
             address caseClaimant,
-            uint128 caseAmount,
+            uint128 caseFee,
             address caseToken,
             uint8 jurors,
             bytes32 reason
@@ -168,7 +168,7 @@ contract EscrowDisputeTest is EscrowBase {
         assertEq(casePayer, payer);
         assertEq(casePayee, payee);
         assertEq(caseClaimant, payer);
-        assertEq(caseAmount, 100 * USDC);
+        assertEq(caseFee, 3 * FEE);
         assertEq(caseToken, address(usdc));
         assertEq(jurors, 3);
         assertEq(reason, REASON);

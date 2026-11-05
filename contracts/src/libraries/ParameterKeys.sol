@@ -5,6 +5,14 @@ library ParameterKeys {
     bytes32 internal constant FEE_BPS = keccak256("FEE_BPS");
     bytes32 internal constant REQUEST_CHANGES_MAX = keccak256("REQUEST_CHANGES_MAX");
     bytes32 internal constant REPUTATION_PAIR_CAP = keccak256("REPUTATION_PAIR_CAP");
+    bytes32 internal constant JUROR_STAKE = keccak256("JUROR_STAKE");
+    bytes32 internal constant JUROR_MIN_CLOSED = keccak256("JUROR_MIN_CLOSED");
+    bytes32 internal constant JUROR_MIN_LEVEL = keccak256("JUROR_MIN_LEVEL");
+    bytes32 internal constant SEED_REVEAL_WINDOW = keccak256("SEED_REVEAL_WINDOW");
+    bytes32 internal constant VOTE_COMMIT_WINDOW = keccak256("VOTE_COMMIT_WINDOW");
+    bytes32 internal constant VOTE_REVEAL_WINDOW = keccak256("VOTE_REVEAL_WINDOW");
+    bytes32 internal constant RECUSALS_PER_PARTY = keccak256("RECUSALS_PER_PARTY");
+    bytes32 internal constant SLASH_MINORITY_BPS = keccak256("SLASH_MINORITY_BPS");
     bytes32 internal constant JURY_SIZE_MEDIUM = keccak256("JURY_SIZE_MEDIUM");
     bytes32 internal constant JURY_SIZE_LARGE = keccak256("JURY_SIZE_LARGE");
     bytes32 internal constant SMALL_DISPUTES_PER_ACCOUNT_MONTH = keccak256("SMALL_DISPUTES_PER_ACCOUNT_MONTH");

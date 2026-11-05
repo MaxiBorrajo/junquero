@@ -7,7 +7,7 @@ interface IArbitration {
         address payer,
         address payee,
         address claimant,
-        uint128 amount,
+        uint128 fee,
         address token,
         uint8 jurors,
         bytes32 reasonHash

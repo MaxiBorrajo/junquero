@@ -10,7 +10,7 @@ contract MockArbitration is IArbitration {
         address payer;
         address payee;
         address claimant;
-        uint128 amount;
+        uint128 fee;
         address token;
         uint8 jurors;
         bytes32 reasonHash;
@@ -29,13 +29,13 @@ contract MockArbitration is IArbitration {
         address payer,
         address payee,
         address claimant,
-        uint128 amount,
+        uint128 fee,
         address token,
         uint8 jurors,
         bytes32 reasonHash
     ) external returns (uint256 caseId) {
         caseId = ++cases;
-        caseOf[caseId] = Case(orderId, payer, payee, claimant, amount, token, jurors, reasonHash);
+        caseOf[caseId] = Case(orderId, payer, payee, claimant, fee, token, jurors, reasonHash);
     }
 
     function resolve(uint256 orderId, uint16 payeeShareBps) external {

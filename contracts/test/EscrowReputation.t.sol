@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {Reputation} from "../src/Reputation.sol";
 import {IParameterRegistry} from "../src/interfaces/IParameterRegistry.sol";
 import {IReputation, Role, Stats} from "../src/interfaces/IReputation.sol";
@@ -37,7 +38,7 @@ contract EscrowReputationTest is EscrowBase {
 
     function test_setReputationEmitsEvent() public {
         vm.expectEmit(true, false, false, false);
-        emit IEscrow.ReputationUpdated(address(0));
+        emit IEscrowEvents.ReputationUpdated(address(0));
         vm.prank(admin);
         escrow.setReputation(IReputation(address(0)));
         assertEq(address(escrow.reputation()), address(0));
@@ -173,7 +174,7 @@ contract EscrowReputationTest is EscrowBase {
         (Release memory r, bytes memory sig) = _release(orderId, 100 * USDC, 5);
 
         vm.expectEmit(true, false, false, true);
-        emit IEscrow.HookFailed(orderId, IReputation.recordSettled.selector);
+        emit IEscrowEvents.HookFailed(orderId, IReputation.recordSettled.selector);
         vm.prank(payee);
         escrow.release(r, sig);
 
@@ -190,7 +191,7 @@ contract EscrowReputationTest is EscrowBase {
         _agree(orderId, 100 * USDC);
 
         vm.expectEmit(true, false, false, true);
-        emit IEscrow.HookFailed(orderId, IReputation.recordFailure.selector);
+        emit IEscrowEvents.HookFailed(orderId, IReputation.recordFailure.selector);
         vm.prank(payee);
         escrow.cancel(orderId);
 

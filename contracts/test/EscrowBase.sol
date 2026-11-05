@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {Escrow} from "../src/Escrow.sol";
+import {IEscrowFull} from "../src/interfaces/IEscrowFull.sol";
+import {EscrowAssembly} from "../script/lib/EscrowAssembly.sol";
 import {Forwarder} from "../src/Forwarder.sol";
 import {Treasury} from "../src/Treasury.sol";
 import {ParameterRegistry} from "../src/ParameterRegistry.sol";
@@ -34,7 +35,7 @@ abstract contract EscrowBase is Test {
     bytes32 internal constant TERMS = keccak256("terms");
     bytes32 internal constant EVIDENCE = keccak256("evidence");
 
-    Escrow internal escrow;
+    IEscrowFull internal escrow;
     Forwarder internal forwarder;
     Treasury internal treasury;
     ParameterRegistry internal registry;
@@ -61,8 +62,11 @@ abstract contract EscrowBase is Test {
         treasury = new Treasury(admin);
         forwarder = new Forwarder();
         permit2 = new MockPermit2();
-        escrow =
-            new Escrow(admin, IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder));
+        vm.startPrank(admin);
+        escrow = EscrowAssembly.deploy(
+            admin, IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder)
+        );
+        vm.stopPrank();
 
         bytes32 setterRole = registry.SETTER_ROLE();
         vm.startPrank(admin);

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
 import {Order, OrderStatus, PaymentMode, CreateParams, Release} from "../src/libraries/OrderTypes.sol";
 
@@ -17,7 +18,7 @@ contract EscrowSettleTest is EscrowBase {
         (Release memory r, bytes memory sig) = _release(orderId, 100 * USDC, 5);
 
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.OrderSettled(orderId, payee, uint128(100 * USDC), 0, 0, 5, false);
+        emit IEscrowEvents.OrderSettled(orderId, payee, uint128(100 * USDC), 0, 0, 5, false);
         vm.prank(payee);
         escrow.release(r, sig);
 
@@ -64,7 +65,7 @@ contract EscrowSettleTest is EscrowBase {
         uint256 orderId = _agreedOrder(100 * USDC);
         (Release memory r, bytes memory sig) = _release(orderId, 100 * USDC, 5);
         vm.prank(other);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayee.selector, other));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayee.selector, other));
         escrow.release(r, sig);
     }
 
@@ -73,7 +74,7 @@ contract EscrowSettleTest is EscrowBase {
         (Release memory r, bytes memory sig) = _release(orderId, 100 * USDC, 5);
         vm.startPrank(payee);
         escrow.release(r, sig);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Settled));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Settled));
         escrow.release(r, sig);
         vm.stopPrank();
     }
@@ -83,7 +84,7 @@ contract EscrowSettleTest is EscrowBase {
         (Release memory r, bytes memory sig) = _release(orderId, 100 * USDC, 5);
         vm.warp(r.expiry + 1);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.SignatureExpired.selector, r.expiry));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.SignatureExpired.selector, r.expiry));
         escrow.release(r, sig);
     }
 
@@ -92,7 +93,7 @@ contract EscrowSettleTest is EscrowBase {
         (Release memory r,) = _release(orderId, 100 * USDC, 5);
         bytes memory forged = _sign(payeeKey, _releaseHash(r));
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidSignature.selector, payer));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidSignature.selector, payer));
         escrow.release(r, forged);
     }
 
@@ -101,7 +102,7 @@ contract EscrowSettleTest is EscrowBase {
         (Release memory r, bytes memory sig) = _release(orderId, 50 * USDC, 5);
         r.amount = uint128(100 * USDC);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidSignature.selector, payer));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidSignature.selector, payer));
         escrow.release(r, sig);
     }
 
@@ -109,7 +110,9 @@ contract EscrowSettleTest is EscrowBase {
         uint256 orderId = _agreedOrder(100 * USDC);
         (Release memory r, bytes memory sig) = _release(orderId, 101 * USDC, 5);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.ReleaseAmountExceedsPrice.selector, 101 * USDC, 100 * USDC));
+        vm.expectRevert(
+            abi.encodeWithSelector(IEscrowEvents.ReleaseAmountExceedsPrice.selector, 101 * USDC, 100 * USDC)
+        );
         escrow.release(r, sig);
     }
 
@@ -117,12 +120,12 @@ contract EscrowSettleTest is EscrowBase {
         uint256 orderId = _agreedOrder(100 * USDC);
         (Release memory zero, bytes memory zeroSig) = _release(orderId, 100 * USDC, 0);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidRating.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidRating.selector, 0));
         escrow.release(zero, zeroSig);
 
         (Release memory six, bytes memory sixSig) = _release(orderId, 100 * USDC, 6);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidRating.selector, 6));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidRating.selector, 6));
         escrow.release(six, sixSig);
     }
 
@@ -130,7 +133,7 @@ contract EscrowSettleTest is EscrowBase {
         uint256 orderId = _createUsdc(100 * USDC);
         (Release memory r, bytes memory sig) = _release(orderId, 100 * USDC, 5);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Open));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Open));
         escrow.release(r, sig);
     }
 
@@ -154,7 +157,7 @@ contract EscrowSettleTest is EscrowBase {
         (Release memory r, bytes memory sig) = _release(orderId, 200 * USDC, 5);
 
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.OrderSettled(orderId, payee, 0, 0, 0, 5, false);
+        emit IEscrowEvents.OrderSettled(orderId, payee, 0, 0, 0, 5, false);
         vm.prank(payee);
         escrow.release(r, sig);
 
@@ -170,7 +173,7 @@ contract EscrowSettleTest is EscrowBase {
         uint256 orderId = escrow.createOrder(p, _noAuth());
         _agree(orderId, 200 * USDC);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.UnsupportedForMode.selector);
+        vm.expectRevert(IEscrowEvents.UnsupportedForMode.selector);
         escrow.deliver(orderId, EVIDENCE);
     }
 
@@ -187,14 +190,14 @@ contract EscrowSettleTest is EscrowBase {
     function test_deliverOnlyByPayee() public {
         uint256 orderId = _agreedOrder(100 * USDC);
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayee.selector, payer));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayee.selector, payer));
         escrow.deliver(orderId, EVIDENCE);
     }
 
     function test_deliverRequiresEvidence() public {
         uint256 orderId = _agreedOrder(100 * USDC);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.EvidenceRequired.selector);
+        vm.expectRevert(IEscrowEvents.EvidenceRequired.selector);
         escrow.deliver(orderId, bytes32(0));
     }
 
@@ -202,7 +205,7 @@ contract EscrowSettleTest is EscrowBase {
         uint256 orderId = _agreedOrder(100 * USDC);
         vm.startPrank(payee);
         escrow.deliver(orderId, EVIDENCE);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Delivered));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Delivered));
         escrow.deliver(orderId, EVIDENCE);
         vm.stopPrank();
     }
@@ -214,7 +217,7 @@ contract EscrowSettleTest is EscrowBase {
 
         vm.warp(block.timestamp + 24 hours);
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.OrderSettled(orderId, payee, uint128(100 * USDC), 0, 0, 0, true);
+        emit IEscrowEvents.OrderSettled(orderId, payee, uint128(100 * USDC), 0, 0, 0, true);
         vm.prank(relayer);
         escrow.autoRelease(orderId);
 
@@ -229,14 +232,14 @@ contract EscrowSettleTest is EscrowBase {
         uint40 readyAt = uint40(block.timestamp + 24 hours);
 
         vm.warp(block.timestamp + 24 hours - 1);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.AutoReleaseNotReady.selector, readyAt));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.AutoReleaseNotReady.selector, readyAt));
         escrow.autoRelease(orderId);
     }
 
     function test_autoReleaseRevertsWithoutDelivery() public {
         uint256 orderId = _agreedOrder(100 * USDC);
         vm.warp(block.timestamp + 30 days);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Agreed));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Agreed));
         escrow.autoRelease(orderId);
     }
 

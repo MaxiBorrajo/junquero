@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Escrow} from "../src/Escrow.sol";
+import {IEscrowFull} from "../src/interfaces/IEscrowFull.sol";
+import {EscrowAssembly} from "./lib/EscrowAssembly.sol";
 import {Forwarder} from "../src/Forwarder.sol";
 import {Treasury} from "../src/Treasury.sol";
 import {Credentials} from "../src/Credentials.sol";
@@ -23,7 +24,7 @@ contract Deploy is Script {
         Forwarder forwarder;
         ParameterRegistry registry;
         Treasury treasury;
-        Escrow escrow;
+        IEscrowFull escrow;
         Credentials credentials;
         Reputation reputation;
         JunqueroReceipt receipt;
@@ -55,7 +56,7 @@ contract Deploy is Script {
         deployment.forwarder = new Forwarder();
         deployment.registry = new ParameterRegistry(admin);
         deployment.treasury = new Treasury(admin);
-        deployment.escrow = new Escrow(
+        deployment.escrow = EscrowAssembly.deploy(
             admin,
             IParameterRegistry(address(deployment.registry)),
             address(deployment.treasury),
@@ -116,7 +117,7 @@ contract Deploy is Script {
         registry.defineParameter(ParameterKeys.FREE_CANCELS_PER_PAIR_MONTH, 0, 10, 1);
     }
 
-    function _configureToken(Escrow escrow, address token, DepositMethod method) private {
+    function _configureToken(IEscrowFull escrow, address token, DepositMethod method) private {
         escrow.configureToken(
             token,
             TokenConfig({

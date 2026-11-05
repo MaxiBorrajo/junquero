@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {MockBlockableToken} from "./mocks/MockBlockableToken.sol";
 import {
     Order,
@@ -50,7 +51,7 @@ contract EscrowClaimableTest is EscrowBase {
         blk.setBlocked(payee, true);
 
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.PayoutDeferred(address(blk), payee, 80 * USDC);
+        emit IEscrowEvents.PayoutDeferred(address(blk), payee, 80 * USDC);
         _releaseAsPayee(orderId, 80 * USDC);
 
         assertEq(uint8(_order(orderId).status), uint8(OrderStatus.Settled));
@@ -80,7 +81,7 @@ contract EscrowClaimableTest is EscrowBase {
         blk.setBlocked(payee, false);
 
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.Claimed(address(blk), payee, 100 * USDC);
+        emit IEscrowEvents.Claimed(address(blk), payee, 100 * USDC);
         vm.prank(other);
         escrow.claim(address(blk), payee);
 
@@ -104,7 +105,7 @@ contract EscrowClaimableTest is EscrowBase {
     }
 
     function test_claimRevertsWithNothingToClaim() public {
-        vm.expectRevert(IEscrow.NothingToClaim.selector);
+        vm.expectRevert(IEscrowEvents.NothingToClaim.selector);
         escrow.claim(address(blk), payee);
     }
 
@@ -116,7 +117,7 @@ contract EscrowClaimableTest is EscrowBase {
         blk.setBlocked(payee, false);
 
         escrow.claim(address(blk), payee);
-        vm.expectRevert(IEscrow.NothingToClaim.selector);
+        vm.expectRevert(IEscrowEvents.NothingToClaim.selector);
         escrow.claim(address(blk), payee);
     }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
 import {Order, OrderStatus, PaymentMode, Modality, CreateParams, Agreement} from "../src/libraries/OrderTypes.sol";
 
@@ -40,7 +41,7 @@ contract EscrowLifecycleTest is EscrowBase {
         uint256 payerBefore = usdt.balanceOf(payer);
 
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.OrderCancelled(orderId, payer, 0, uint128(8 * USDC), uint128(2 * USDC), uint128(90 * USDC));
+        emit IEscrowEvents.OrderCancelled(orderId, payer, 0, uint128(8 * USDC), uint128(2 * USDC), uint128(90 * USDC));
         vm.prank(payer);
         escrow.cancel(orderId);
 
@@ -64,7 +65,7 @@ contract EscrowLifecycleTest is EscrowBase {
     function test_cancelAfterAgreementRevertsForStrangers() public {
         uint256 orderId = _agreedScheduled(0, 0);
         vm.prank(other);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotParty.selector, other));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotParty.selector, other));
         escrow.cancel(orderId);
     }
 
@@ -163,14 +164,16 @@ contract EscrowLifecycleTest is EscrowBase {
 
     function test_reclaimRevertsBeforeDeadline() public {
         uint256 orderId = _agreedScheduled(0, 2 days);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.DeadlineNotReached.selector, uint40(block.timestamp + 2 days)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IEscrowEvents.DeadlineNotReached.selector, uint40(block.timestamp + 2 days))
+        );
         escrow.reclaim(orderId);
     }
 
     function test_reclaimRevertsWithoutDeadline() public {
         uint256 orderId = _agreedScheduled(0, 0);
         vm.warp(block.timestamp + 365 days);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.DeadlineNotReached.selector, uint40(0)));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.DeadlineNotReached.selector, uint40(0)));
         escrow.reclaim(orderId);
     }
 
@@ -179,7 +182,7 @@ contract EscrowLifecycleTest is EscrowBase {
         vm.prank(payee);
         escrow.deliver(orderId, EVIDENCE);
         vm.warp(block.timestamp + 3 days);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Delivered));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Delivered));
         escrow.reclaim(orderId);
     }
 
@@ -209,7 +212,9 @@ contract EscrowLifecycleTest is EscrowBase {
         vm.warp(block.timestamp + 19 minutes);
         vm.prank(payee);
         vm.expectRevert(
-            abi.encodeWithSelector(IEscrow.NoShowNotReady.selector, uint40(block.timestamp - 19 minutes + 20 minutes))
+            abi.encodeWithSelector(
+                IEscrowEvents.NoShowNotReady.selector, uint40(block.timestamp - 19 minutes + 20 minutes)
+            )
         );
         escrow.claimNoShow(orderId);
     }
@@ -223,7 +228,7 @@ contract EscrowLifecycleTest is EscrowBase {
         escrow.confirmArrival(orderId);
         vm.warp(block.timestamp + 1 hours);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.ArrivalAlreadyConfirmed.selector);
+        vm.expectRevert(IEscrowEvents.ArrivalAlreadyConfirmed.selector);
         escrow.claimNoShow(orderId);
     }
 
@@ -231,21 +236,21 @@ contract EscrowLifecycleTest is EscrowBase {
         uint256 orderId = _agreedScheduled(1 days, 0);
         vm.warp(block.timestamp + 2 days);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.NotCheckedIn.selector);
+        vm.expectRevert(IEscrowEvents.NotCheckedIn.selector);
         escrow.claimNoShow(orderId);
     }
 
     function test_checkInRevertsBeforeStart() public {
         uint256 orderId = _agreedScheduled(1 days, 0);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.CheckInNotAllowed.selector);
+        vm.expectRevert(IEscrowEvents.CheckInNotAllowed.selector);
         escrow.checkIn(orderId);
     }
 
     function test_checkInRevertsWithoutSchedule() public {
         uint256 orderId = _agreedScheduled(0, 0);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.CheckInNotAllowed.selector);
+        vm.expectRevert(IEscrowEvents.CheckInNotAllowed.selector);
         escrow.checkIn(orderId);
     }
 
@@ -254,7 +259,7 @@ contract EscrowLifecycleTest is EscrowBase {
         _agree(orderId, PRICE);
         vm.warp(block.timestamp + 1 days);
         vm.prank(payee);
-        vm.expectRevert(IEscrow.CheckInNotAllowed.selector);
+        vm.expectRevert(IEscrowEvents.CheckInNotAllowed.selector);
         escrow.checkIn(orderId);
     }
 
@@ -262,12 +267,12 @@ contract EscrowLifecycleTest is EscrowBase {
         uint256 orderId = _agreedScheduled(1 days, 0);
         vm.warp(block.timestamp + 1 days);
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayee.selector, payer));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayee.selector, payer));
         escrow.checkIn(orderId);
 
         vm.startPrank(payee);
         escrow.checkIn(orderId);
-        vm.expectRevert(IEscrow.AlreadyCheckedIn.selector);
+        vm.expectRevert(IEscrowEvents.AlreadyCheckedIn.selector);
         escrow.checkIn(orderId);
         vm.stopPrank();
     }
@@ -275,14 +280,14 @@ contract EscrowLifecycleTest is EscrowBase {
     function test_confirmArrivalRequiresCheckInAndPayer() public {
         uint256 orderId = _agreedScheduled(1 days, 0);
         vm.prank(payer);
-        vm.expectRevert(IEscrow.NotCheckedIn.selector);
+        vm.expectRevert(IEscrowEvents.NotCheckedIn.selector);
         escrow.confirmArrival(orderId);
 
         vm.warp(block.timestamp + 1 days);
         vm.prank(payee);
         escrow.checkIn(orderId);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayer.selector, payee));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayer.selector, payee));
         escrow.confirmArrival(orderId);
     }
 
@@ -309,7 +314,7 @@ contract EscrowLifecycleTest is EscrowBase {
         escrow.deliver(orderId, EVIDENCE);
         vm.startPrank(payer);
         escrow.extendReview(orderId);
-        vm.expectRevert(IEscrow.AlreadyExtended.selector);
+        vm.expectRevert(IEscrowEvents.AlreadyExtended.selector);
         escrow.extendReview(orderId);
         vm.stopPrank();
     }
@@ -329,7 +334,7 @@ contract EscrowLifecycleTest is EscrowBase {
         vm.prank(payee);
         escrow.deliver(orderId, EVIDENCE);
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayer.selector, payee));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayer.selector, payee));
         escrow.extendReview(orderId);
     }
 

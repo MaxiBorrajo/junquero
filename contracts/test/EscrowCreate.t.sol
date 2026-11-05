@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
-import {Escrow} from "../src/Escrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {MockFeeToken} from "./mocks/MockFeeToken.sol";
 import {ERC2771Forwarder} from "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 import {
@@ -35,7 +35,7 @@ contract EscrowCreateTest is EscrowBase {
     function test_createEmitsEvent() public {
         DepositAuth memory auth = _permitAuth(50 * USDC);
         vm.expectEmit(true, true, true, true);
-        emit IEscrow.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0, 0);
+        emit IEscrowEvents.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0, 0);
         vm.prank(payer);
         escrow.createOrder(_params(address(usdc), 50 * USDC), auth);
     }
@@ -76,13 +76,13 @@ contract EscrowCreateTest is EscrowBase {
     function test_createRevertsWhenTokenNotAllowed() public {
         MockFeeToken stranger = new MockFeeToken();
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.TokenNotAllowed.selector, address(stranger)));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.TokenNotAllowed.selector, address(stranger)));
         escrow.createOrder(_params(address(stranger), 10), _noAuth());
     }
 
     function test_createRevertsOnZeroAmount() public {
         vm.prank(payer);
-        vm.expectRevert(IEscrow.InvalidAmount.selector);
+        vm.expectRevert(IEscrowEvents.InvalidAmount.selector);
         escrow.createOrder(_params(address(usdt), 0), _noAuth());
     }
 
@@ -90,7 +90,7 @@ contract EscrowCreateTest is EscrowBase {
         CreateParams memory p = _params(address(usdt), 10 * USDC);
         p.startsAt = uint40(block.timestamp);
         vm.prank(payer);
-        vm.expectRevert(IEscrow.InvalidSchedule.selector);
+        vm.expectRevert(IEscrowEvents.InvalidSchedule.selector);
         escrow.createOrder(p, _noAuth());
     }
 
@@ -99,7 +99,7 @@ contract EscrowCreateTest is EscrowBase {
         p.startsAt = uint40(block.timestamp + 2 days);
         p.deadline = uint40(block.timestamp + 1 days);
         vm.prank(payer);
-        vm.expectRevert(IEscrow.InvalidSchedule.selector);
+        vm.expectRevert(IEscrowEvents.InvalidSchedule.selector);
         escrow.createOrder(p, _noAuth());
     }
 
@@ -109,7 +109,7 @@ contract EscrowCreateTest is EscrowBase {
         fee.mint(payer, 100 * USDC);
         vm.startPrank(payer);
         fee.approve(address(escrow), type(uint256).max);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.FeeOnTransferToken.selector, address(fee)));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.FeeOnTransferToken.selector, address(fee)));
         escrow.createOrder(_params(address(fee), 100 * USDC), _noAuth());
         vm.stopPrank();
     }
@@ -130,7 +130,7 @@ contract EscrowCreateTest is EscrowBase {
 
     function test_createThroughForwarderAttributesTheSigner() public {
         DepositAuth memory auth = _permitAuth(60 * USDC);
-        bytes memory data = abi.encodeCall(Escrow.createOrder, (_params(address(usdc), 60 * USDC), auth));
+        bytes memory data = abi.encodeCall(IEscrow.createOrder, (_params(address(usdc), 60 * USDC), auth));
         uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = keccak256(
             abi.encode(
@@ -184,7 +184,7 @@ contract EscrowCreateTest is EscrowBase {
         TokenConfig memory config = escrow.tokenConfig(address(usdc));
         config.smallMax = config.mediumMax + 1;
         vm.prank(admin);
-        vm.expectRevert(IEscrow.InvalidThresholds.selector);
+        vm.expectRevert(IEscrowEvents.InvalidThresholds.selector);
         escrow.configureToken(address(usdc), config);
     }
 
@@ -202,7 +202,7 @@ contract EscrowCreateTest is EscrowBase {
         DepositAuth memory auth = _permitAuth(50 * USDC);
 
         vm.expectEmit(true, true, true, true);
-        emit IEscrow.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0, 7);
+        emit IEscrowEvents.OrderCreated(1, payer, address(usdc), uint128(50 * USDC), SPEC, 0, 0, 0, 7);
         vm.prank(payer);
         uint256 orderId = escrow.createOrder(params, auth);
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
 import {
     Order,
@@ -63,7 +64,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _agreementHash(a);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory payeeSig = _sign(payeeKey, h);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.PriceExceedsDeposit.selector, 101 * USDC, 100 * USDC));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.PriceExceedsDeposit.selector, 101 * USDC, 100 * USDC));
         escrow.agree(a, payerSig, payeeSig);
     }
 
@@ -74,7 +75,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _agreementHash(a);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory payeeSig = _sign(payeeKey, h);
-        vm.expectRevert(IEscrow.AgreementMismatch.selector);
+        vm.expectRevert(IEscrowEvents.AgreementMismatch.selector);
         escrow.agree(a, payerSig, payeeSig);
     }
 
@@ -85,7 +86,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory payeeSig = _sign(payeeKey, h);
         vm.warp(a.expiry + 1);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.SignatureExpired.selector, a.expiry));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.SignatureExpired.selector, a.expiry));
         escrow.agree(a, payerSig, payeeSig);
     }
 
@@ -95,7 +96,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _agreementHash(a);
         bytes memory forged = _sign(otherKey, h);
         bytes memory payeeSig = _sign(payeeKey, h);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidSignature.selector, payer));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidSignature.selector, payer));
         escrow.agree(a, forged, payeeSig);
     }
 
@@ -105,7 +106,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _agreementHash(a);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory forged = _sign(otherKey, h);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidSignature.selector, payee));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidSignature.selector, payee));
         escrow.agree(a, payerSig, forged);
     }
 
@@ -116,7 +117,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory payeeSig = _sign(payeeKey, h);
         Agreement memory submitted = _agreement(orderId, 90 * USDC);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidSignature.selector, payer));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidSignature.selector, payer));
         escrow.agree(submitted, payerSig, payeeSig);
     }
 
@@ -126,7 +127,7 @@ contract EscrowAgreeTest is EscrowBase {
         a.payee = payer;
         bytes32 h = _agreementHash(a);
         bytes memory sig = _sign(payerKey, h);
-        vm.expectRevert(IEscrow.PayeeIsPayer.selector);
+        vm.expectRevert(IEscrowEvents.PayeeIsPayer.selector);
         escrow.agree(a, sig, sig);
     }
 
@@ -137,13 +138,13 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _agreementHash(a);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory payeeSig = _sign(payeeKey, h);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Agreed));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Agreed));
         escrow.agree(a, payerSig, payeeSig);
     }
 
     function test_agreeRevertsOnUnknownOrder() public {
         Agreement memory a = _agreement(99, 1);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.UnknownOrder.selector, 99));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.UnknownOrder.selector, 99));
         escrow.agree(a, "", "");
     }
 
@@ -173,7 +174,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _agreementHash(a);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory otherSig = _sign(otherKey, h);
-        vm.expectRevert(IEscrow.AgreementMismatch.selector);
+        vm.expectRevert(IEscrowEvents.AgreementMismatch.selector);
         escrow.agree(a, payerSig, otherSig);
 
         _agree(orderId, 100 * USDC);
@@ -188,7 +189,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _reservationHash(r);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory forged = _sign(otherKey, h);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidSignature.selector, payee));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidSignature.selector, payee));
         escrow.reserve(r, payerSig, forged);
     }
 
@@ -200,7 +201,7 @@ contract EscrowAgreeTest is EscrowBase {
         bytes32 h = _reservationHash(r);
         bytes memory payerSig = _sign(payerKey, h);
         bytes memory otherSig = _sign(otherKey, h);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Reserved));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Reserved));
         escrow.reserve(r, payerSig, otherSig);
     }
 
@@ -219,7 +220,7 @@ contract EscrowAgreeTest is EscrowBase {
         uint256 orderId = _createUsdc(100 * USDC);
         _reserve(orderId);
         vm.prank(other);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayee.selector, other));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayee.selector, other));
         escrow.withdrawReservation(orderId);
     }
 }

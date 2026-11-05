@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
 import {Order, OrderStatus, Modality, CreateParams, DepositAuth, Release} from "../src/libraries/OrderTypes.sol";
 
@@ -38,7 +39,7 @@ contract EscrowChangesTest is EscrowBase {
         uint256 orderId = _deliveredRemote();
 
         vm.expectEmit(true, false, false, true);
-        emit IEscrow.ChangesRequested(orderId, REASON, 1);
+        emit IEscrowEvents.ChangesRequested(orderId, REASON, 1);
         _requestChanges(orderId);
 
         Order memory order = _order(orderId);
@@ -65,7 +66,7 @@ contract EscrowChangesTest is EscrowBase {
         _redeliver(orderId);
 
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.ChangeRequestsExhausted.selector, 2));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.ChangeRequestsExhausted.selector, 2));
         escrow.requestChanges(orderId, REASON);
     }
 
@@ -74,7 +75,7 @@ contract EscrowChangesTest is EscrowBase {
         uint256 orderId = _deliveredRemote();
 
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.ChangeRequestsExhausted.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.ChangeRequestsExhausted.selector, 0));
         escrow.requestChanges(orderId, REASON);
     }
 
@@ -92,11 +93,11 @@ contract EscrowChangesTest is EscrowBase {
         uint256 orderId = _deliveredRemote();
 
         vm.prank(payee);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayer.selector, payee));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayer.selector, payee));
         escrow.requestChanges(orderId, REASON);
 
         vm.prank(other);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayer.selector, other));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayer.selector, other));
         escrow.requestChanges(orderId, REASON);
     }
 
@@ -107,7 +108,7 @@ contract EscrowChangesTest is EscrowBase {
         escrow.deliver(orderId, EVIDENCE);
 
         vm.prank(payer);
-        vm.expectRevert(IEscrow.ChangesNotAllowed.selector);
+        vm.expectRevert(IEscrowEvents.ChangesNotAllowed.selector);
         escrow.requestChanges(orderId, REASON);
     }
 
@@ -116,13 +117,13 @@ contract EscrowChangesTest is EscrowBase {
         _agree(orderId, 100 * USDC);
 
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Agreed));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Agreed));
         escrow.requestChanges(orderId, REASON);
     }
 
     function test_requestChangesRevertsOnUnknownOrder() public {
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.UnknownOrder.selector, 5));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.UnknownOrder.selector, 5));
         escrow.requestChanges(5, REASON);
     }
 
@@ -137,7 +138,7 @@ contract EscrowChangesTest is EscrowBase {
         uint40 newReadyAt = _order(orderId).deliveredAt + 24 hours;
         vm.warp(newReadyAt);
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.ReviewWindowClosed.selector, newReadyAt));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.ReviewWindowClosed.selector, newReadyAt));
         escrow.requestChanges(orderId, REASON);
     }
 
@@ -149,7 +150,7 @@ contract EscrowChangesTest is EscrowBase {
         _redeliver(orderId);
 
         uint40 readyAt = _order(orderId).deliveredAt + 24 hours;
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.AutoReleaseNotReady.selector, readyAt));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.AutoReleaseNotReady.selector, readyAt));
         escrow.autoRelease(orderId);
 
         vm.warp(readyAt);
@@ -162,7 +163,7 @@ contract EscrowChangesTest is EscrowBase {
         _requestChanges(orderId);
         vm.warp(block.timestamp + 30 days);
 
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Agreed));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Agreed));
         escrow.autoRelease(orderId);
     }
 
@@ -175,7 +176,7 @@ contract EscrowChangesTest is EscrowBase {
         escrow.extendReview(orderId);
         uint40 readyAt = _order(orderId).deliveredAt + 48 hours;
         vm.warp(readyAt - 1);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.AutoReleaseNotReady.selector, readyAt));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.AutoReleaseNotReady.selector, readyAt));
         escrow.autoRelease(orderId);
     }
 
@@ -197,7 +198,7 @@ contract EscrowChangesTest is EscrowBase {
         _requestChanges(orderId);
 
         vm.prank(payer);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Agreed));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Agreed));
         escrow.requestChanges(orderId, REASON);
     }
 }

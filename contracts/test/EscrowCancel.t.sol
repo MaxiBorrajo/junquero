@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {EscrowBase} from "./EscrowBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
+import {IEscrowEvents} from "../src/interfaces/IEscrowEvents.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
 import {Order, OrderStatus, PaymentMode, CreateParams} from "../src/libraries/OrderTypes.sol";
 
@@ -12,7 +13,7 @@ contract EscrowCancelTest is EscrowBase {
         uint256 before = usdc.balanceOf(payer);
 
         vm.expectEmit(true, true, false, true);
-        emit IEscrow.OrderCancelled(orderId, payer, 0, 0, 0, uint128(100 * USDC));
+        emit IEscrowEvents.OrderCancelled(orderId, payer, 0, 0, 0, uint128(100 * USDC));
         vm.prank(payer);
         escrow.cancel(orderId);
 
@@ -24,7 +25,7 @@ contract EscrowCancelTest is EscrowBase {
     function test_cancelOnlyByPayer() public {
         uint256 orderId = _createUsdc(100 * USDC);
         vm.prank(other);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.NotPayer.selector, other));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayer.selector, other));
         escrow.cancel(orderId);
     }
 
@@ -32,7 +33,7 @@ contract EscrowCancelTest is EscrowBase {
         uint256 orderId = _createUsdc(100 * USDC);
         vm.startPrank(payer);
         escrow.cancel(orderId);
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidStatus.selector, orderId, OrderStatus.Cancelled));
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Cancelled));
         escrow.cancel(orderId);
         vm.stopPrank();
     }

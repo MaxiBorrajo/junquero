@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Agreement, Release, Reservation} from "./OrderTypes.sol";
+import {Agreement, Release, Reservation, MilestoneRelease} from "./OrderTypes.sol";
 
 library EscrowHashes {
     bytes32 internal constant RESERVATION_TYPEHASH =
         keccak256("Reservation(uint256 orderId,address payer,address payee,uint40 expiry)");
     bytes32 internal constant AGREEMENT_TYPEHASH = keccak256(
         "Agreement(uint256 orderId,address payer,address payee,uint128 price,bytes32 specHash,bytes32 termsHash,uint40 expiry)"
+    );
+    bytes32 internal constant MILESTONE_RELEASE_TYPEHASH = keccak256(
+        "MilestoneRelease(uint256 orderId,uint8 index,uint128 amount,uint8 rating,bytes32 evidenceHash,uint40 expiry)"
     );
     bytes32 internal constant RELEASE_TYPEHASH = keccak256(
         "Release(uint256 orderId,address payee,uint128 amount,uint8 rating,bytes32 evidenceHash,uint40 expiry)"
@@ -25,5 +28,11 @@ library EscrowHashes {
 
     function hash(Release calldata r) internal pure returns (bytes32) {
         return keccak256(abi.encode(RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry));
+    }
+
+    function hash(MilestoneRelease memory r) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(MILESTONE_RELEASE_TYPEHASH, r.orderId, r.index, r.amount, r.rating, r.evidenceHash, r.expiry)
+        );
     }
 }

@@ -4,9 +4,9 @@ Escrito el 4 de noviembre de 2026. Objetivo: terminar todos los contratos, proba
 
 Este documento fija qué se construye, en qué orden y cómo se sabe que está listo. Las decisiones sin cerrar están en la sección 9, cada una con una recomendación.
 
-## 0. Avance (4 de noviembre de 2026)
+## 0. Avance (5 de noviembre de 2026)
 
-Terminados y con pruebas (413 en verde): pasos 1 a 4 del orden de construcción.
+Terminados y con pruebas (515 en verde): pasos 1 a 5 del orden de construcción.
 
 | Paso | Estado | Notas |
 | --- | --- | --- |
@@ -14,11 +14,14 @@ Terminados y con pruebas (413 en verde): pasos 1 a 4 del orden de construcción.
 | 2. Credentials, Reputation, Receipt | Hecho | El Escrow avisa a Reputation sin poder trabar un pago |
 | 3. Disputa en el Escrow | Hecho | 50/50 automático en changas chicas; jurado para medias y altas |
 | 4. Arbitration | Hecho sin apelación | Stake, sorteo por compromiso y revelación, recusaciones, votos cifrados, castigos, árbitro de emergencia, respuesta en 72 horas |
-| 5 a 10 | Pendientes | Hitos, grupal, testigo, votación, pruebas finales y Sepolia |
+| 5. Hitos | Hecho | Plan de hitos firmado, pago por QR por hito, liberación automática a las 72 h, anticipo como primer hito, término anticipado, abandono con reapertura, disputa por hito |
+| 6 a 10 | Pendientes | Grupal, testigo, votación, apelación, pruebas finales y Sepolia |
 
 **Cambios de diseño respecto de lo especificado**
 
 - **Escrow modular:** el Escrow superó el límite de 24 KB por contrato. Ahora es un router de 3,9 KB que delega en módulos (`OrderModule`, `CancelModule`, `AdminModule`, `DisputeModule`) con la misma dirección y la misma caja de datos. Quedan módulos libres para hitos, grupal y testigo.
+- **Hitos con anticipo simplificado:** el anticipo es el primer hito, pagado al reclamarlo (con tope de 30% y reputación mínima del prestador). No hay recuperación on-chain de lo no gastado; queda como riesgo del solicitante, pensado para anticipos chicos.
+- **Término anticipado y abandono:** el solicitante paga lo ya verificado, el avance reportado del hito en curso y una compensación sobre lo que queda; no puede terminar mientras hay un hito esperando revisión (debe aprobarlo o disputarlo). Si el prestador abandona, la changa vuelve a abierta con los fondos restantes.
 - **Apelación diferida:** la apelación única con costo adicional no está implementada. Su costo se cruza con quién paga a los jurados de la segunda ronda y con el reembolso al apelante si gana; conviene cerrarlo después de los pasos 5 a 8.
 - **Costo del arbitraje:** lo adelanta quien reclama. Si gana y la parte que pierde no tiene dinero en el Escrow (por ejemplo, el prestador cuando pierde todo), el reclamante termina pagando el costo. Es una limitación conocida del diseño, sin garantía del prestador.
 - **Quién se postula como jurado:** los jurados se anotan solos en cada caso (compromiso del sorteo), por lo que el backend tiene que avisarles cuando se abre un caso.

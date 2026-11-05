@@ -7,6 +7,7 @@ import {OrderModule} from "../../src/escrow/OrderModule.sol";
 import {CancelModule} from "../../src/escrow/CancelModule.sol";
 import {AdminModule} from "../../src/escrow/AdminModule.sol";
 import {DisputeModule} from "../../src/escrow/DisputeModule.sol";
+import {MilestoneModule} from "../../src/escrow/MilestoneModule.sol";
 import {IEscrowFull} from "../../src/interfaces/IEscrowFull.sol";
 import {IParameterRegistry} from "../../src/interfaces/IParameterRegistry.sol";
 
@@ -23,6 +24,7 @@ library EscrowAssembly {
         router.setModule(address(new CancelModule(registry, treasury, permit2, forwarder)));
         router.setModule(address(new AdminModule(registry, treasury, permit2, forwarder)));
         router.setModule(address(new DisputeModule(registry, treasury, permit2, forwarder)));
+        router.setModule(address(new MilestoneModule(registry, treasury, permit2, forwarder)));
         router.lockModules();
         return IEscrowFull(address(router));
     }

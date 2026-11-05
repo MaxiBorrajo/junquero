@@ -119,43 +119,7 @@ contract OrderModule is EscrowStorage {
         external
         nonReentrant
     {
-        Order storage order = _orders[agreement.orderId];
-        OrderStatus status = order.status;
-        if (status == OrderStatus.None) revert UnknownOrder(agreement.orderId);
-        if (status != OrderStatus.Open && status != OrderStatus.Reserved) {
-            revert InvalidStatus(agreement.orderId, status);
-        }
-        if (agreement.payer != order.payer) revert NotPayer(agreement.payer);
-        if (agreement.payee == agreement.payer) revert PayeeIsPayer();
-        if (status == OrderStatus.Reserved && agreement.payee != order.reservedPayee) revert AgreementMismatch();
-        if (agreement.specHash != order.specHash) revert AgreementMismatch();
-        if (block.timestamp > agreement.expiry) revert SignatureExpired(agreement.expiry);
-        if (agreement.price == 0) revert InvalidAmount();
-
-        bool escrowed = order.mode == PaymentMode.Escrowed;
-        if (escrowed && agreement.price > order.deposited) {
-            revert PriceExceedsDeposit(agreement.price, order.deposited);
-        }
-
-        bytes32 digest = _hashTypedDataV4(EscrowHashes.hash(agreement));
-        _verify(agreement.payer, digest, payerSignature);
-        _verify(agreement.payee, digest, payeeSignature);
-
-        uint128 refund = escrowed ? order.deposited - agreement.price : 0;
-        SizeClass sizeClass = _classify(_tokenConfigs[order.token], agreement.price);
-
-        order.status = OrderStatus.Agreed;
-        order.payee = agreement.payee;
-        order.price = agreement.price;
-        order.termsHash = agreement.termsHash;
-        order.agreedAt = uint40(block.timestamp);
-        order.sizeClass = sizeClass;
-        order.reservedPayee = address(0);
-        order.reservedAt = 0;
-        if (escrowed) order.deposited = agreement.price;
-
-        _payout(order.token, order.payer, refund);
-        emit OrderAgreed(agreement.orderId, agreement.payee, agreement.price, agreement.termsHash, uint8(sizeClass));
+        _agree(agreement, payerSignature, payeeSignature, false);
     }
 
     function deliver(uint256 orderId, bytes32 evidenceHash) external {
@@ -163,6 +127,7 @@ contract OrderModule is EscrowStorage {
         address caller = _msgSender();
         if (caller != order.payee) revert NotPayee(caller);
         if (order.mode != PaymentMode.Escrowed) revert UnsupportedForMode();
+        if (order.hasMilestones) revert UseMilestones();
         if (evidenceHash == bytes32(0)) revert EvidenceRequired();
         order.status = OrderStatus.Delivered;
         order.deliveredAt = uint40(block.timestamp);
@@ -179,6 +144,7 @@ contract OrderModule is EscrowStorage {
         }
         address caller = _msgSender();
         if (caller != order.payee) revert NotPayee(caller);
+        if (order.hasMilestones) revert UseMilestones();
         if (releaseData.payee != order.payee) revert NotPayee(releaseData.payee);
         if (block.timestamp > releaseData.expiry) revert SignatureExpired(releaseData.expiry);
         if (releaseData.rating == 0 || releaseData.rating > 5) revert InvalidRating(releaseData.rating);
@@ -248,12 +214,6 @@ contract OrderModule is EscrowStorage {
         if (startsAt != 0 && startsAt <= block.timestamp) revert InvalidSchedule();
         uint40 floor = startsAt != 0 ? startsAt : uint40(block.timestamp);
         if (deadline != 0 && deadline <= floor) revert InvalidSchedule();
-    }
-
-    function _classify(TokenConfig storage config, uint128 price) private view returns (SizeClass) {
-        if (price <= config.smallMax) return SizeClass.Small;
-        if (price <= config.mediumMax) return SizeClass.Medium;
-        return SizeClass.Large;
     }
 
     function _cashFee(TokenConfig storage config, uint128 declared) private view returns (uint128) {

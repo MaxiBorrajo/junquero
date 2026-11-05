@@ -71,6 +71,16 @@ interface IEscrowEvents {
         bool automatic
     );
     event ArbitrationUpdated(address indexed arbitration);
+    event MilestonesAgreed(uint256 indexed orderId, uint8 count, bool firstIsAdvance);
+    event MilestoneDelivered(uint256 indexed orderId, uint8 index, bytes32 evidenceHash);
+    event ProgressReported(uint256 indexed orderId, uint8 index, uint16 progressBps, bytes32 evidenceHash);
+    event MilestonePaid(
+        uint256 indexed orderId, uint8 index, uint128 paid, uint128 refunded, uint128 fee, uint8 rating, bool automatic
+    );
+    event OrderTerminated(
+        uint256 indexed orderId, address indexed by, uint128 paidToPayee, uint128 toTreasury, uint128 refunded
+    );
+    event OrderAbandoned(uint256 indexed orderId, address indexed by, uint128 reopenedWith);
 
     error TokenNotAllowed(address token);
     error InvalidAmount();
@@ -108,4 +118,13 @@ interface IEscrowEvents {
     error NotArbitration(address caller);
     error DisputeCapReached(uint64 max);
     error InvalidShare(uint16 share);
+    error MilestonesRequired();
+    error InvalidMilestones();
+    error UseMilestones();
+    error MilestonesInProgress();
+    error WrongMilestone(uint8 index, uint8 expected);
+    error MilestoneNotDelivered(uint8 index);
+    error MilestoneNotPending(uint8 index);
+    error AdvanceNotAllowed();
+    error InvalidProgress(uint16 progressBps);
 }

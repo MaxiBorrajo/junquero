@@ -51,6 +51,7 @@ struct Order {
     bool extended;
     uint8 category;
     uint8 changeRequests;
+    bool hasMilestones;
     uint40 createdAt;
     address payee;
     uint40 startsAt;
@@ -80,6 +81,51 @@ struct CreateParams {
     uint40 startsAt;
     uint40 deadline;
     uint8 category;
+}
+
+enum MilestoneStatus {
+    Pending,
+    Delivered,
+    Paid
+}
+
+struct Milestone {
+    uint128 amount;
+    MilestoneStatus status;
+    uint40 deliveredAt;
+    bytes32 evidenceHash;
+}
+
+struct MilestonePlan {
+    uint8 count;
+    uint8 next;
+    uint8 disputedIndex;
+    bool firstIsAdvance;
+    bool started;
+    bool disputing;
+    uint16 progressBps;
+    uint16 ratingSum;
+    uint16 ratingCount;
+    uint128 paidTotal;
+    uint128 refundedTotal;
+    uint128 feeTotal;
+    bytes32 progressEvidence;
+}
+
+struct MilestoneTerms {
+    bytes32 baseTerms;
+    uint128[] amounts;
+    bytes32[] criteria;
+    bool firstIsAdvance;
+}
+
+struct MilestoneRelease {
+    uint256 orderId;
+    uint8 index;
+    uint128 amount;
+    uint8 rating;
+    bytes32 evidenceHash;
+    uint40 expiry;
 }
 
 struct DepositAuth {

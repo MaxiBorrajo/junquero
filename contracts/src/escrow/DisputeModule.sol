@@ -8,7 +8,17 @@ import {IArbitration} from "../interfaces/IArbitration.sol";
 import {IParameterRegistry} from "../interfaces/IParameterRegistry.sol";
 import {IReputation, Role} from "../interfaces/IReputation.sol";
 import {ParameterKeys} from "../libraries/ParameterKeys.sol";
-import {Order, OrderStatus, SizeClass, DepositAuth, TokenConfig, Dispute} from "../libraries/OrderTypes.sol";
+import {
+    Order,
+    OrderStatus,
+    SizeClass,
+    DepositAuth,
+    TokenConfig,
+    Dispute,
+    Milestone,
+    MilestonePlan,
+    MilestoneStatus
+} from "../libraries/OrderTypes.sol";
 import {EscrowStorage} from "./EscrowStorage.sol";
 
 contract DisputeModule is EscrowStorage {
@@ -35,16 +45,28 @@ contract DisputeModule is EscrowStorage {
     }
 
     function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external nonReentrant {
-        Order storage order = _requireStatus(orderId, OrderStatus.Delivered);
+        Order storage order = _orders[orderId];
+        bool milestoned = order.hasMilestones;
+        if (milestoned) {
+            if (order.status != OrderStatus.Agreed) revert InvalidStatus(orderId, order.status);
+        } else {
+            _requireStatus(orderId, OrderStatus.Delivered);
+        }
         address caller = _msgSender();
         if (caller != order.payer && caller != order.payee) revert NotParty(caller);
-        uint40 readyAt = _reviewDeadline(order);
-        if (block.timestamp >= readyAt) revert ReviewWindowClosed(readyAt);
 
-        if (order.sizeClass == SizeClass.Small) {
+        SizeClass size = order.sizeClass;
+        if (milestoned) {
+            size = _openMilestoneScope(orderId, order);
+        } else {
+            uint40 readyAt = _reviewDeadline(order);
+            if (block.timestamp >= readyAt) revert ReviewWindowClosed(readyAt);
+        }
+
+        if (size == SizeClass.Small) {
             _openSmall(orderId, order, caller, reasonHash);
         } else {
-            _openWithJury(orderId, order, caller, reasonHash, auth);
+            _openWithJury(orderId, order, caller, reasonHash, auth, size);
         }
     }
 
@@ -81,15 +103,14 @@ contract DisputeModule is EscrowStorage {
         Order storage order,
         address caller,
         bytes32 reasonHash,
-        DepositAuth calldata auth
+        DepositAuth calldata auth,
+        SizeClass size
     ) private {
         IArbitration court = arbitration;
         if (address(court) == address(0)) revert ArbitrationNotSet();
 
         uint8 jurors = uint8(
-            registry.get(
-                order.sizeClass == SizeClass.Medium ? ParameterKeys.JURY_SIZE_MEDIUM : ParameterKeys.JURY_SIZE_LARGE
-            )
+            registry.get(size == SizeClass.Medium ? ParameterKeys.JURY_SIZE_MEDIUM : ParameterKeys.JURY_SIZE_LARGE)
         );
         uint128 fee = _tokenConfigs[order.token].jurorFee * jurors;
         if (fee > 0) _collect(order.token, caller, fee, auth);
@@ -111,28 +132,64 @@ contract DisputeModule is EscrowStorage {
     }
 
     function _resolve(uint256 orderId, Order storage order, uint16 share, bool automatic, bool waiveCost) private {
-        Split memory split = _computeSplit(order, _disputes[orderId], share, waiveCost);
+        bool milestoned = order.hasMilestones;
+        uint128 base = milestoned ? _milestones[orderId][_plans[orderId].disputedIndex].amount : order.price;
+        Split memory split = _computeSplit(order, _disputes[orderId], share, waiveCost, base);
 
-        order.status = OrderStatus.Settled;
-        order.settledAt = uint40(block.timestamp);
-        order.paidOut = split.gross > 0;
-        order.deposited = 0;
+        if (milestoned) {
+            _applyMilestoneOutcome(orderId, order, split);
+        } else {
+            order.status = OrderStatus.Settled;
+            order.settledAt = uint40(block.timestamp);
+            order.paidOut = split.gross > 0;
+            order.deposited = 0;
+        }
 
         _pay(order, split);
         emit DisputeResolved(orderId, share, split.toPayee, split.toPayer, split.protocolFee, split.cost, automatic);
-        _recordOutcome(orderId, order, share, split.gross);
+        _recordOutcome(orderId, order, share, split.gross, !milestoned);
     }
 
-    function _computeSplit(Order storage order, Dispute storage dispute, uint16 share, bool waiveCost)
+    function _openMilestoneScope(uint256 orderId, Order storage order) private returns (SizeClass) {
+        MilestonePlan storage plan = _plans[orderId];
+        uint8 index = plan.next;
+        Milestone storage milestone = _milestones[orderId][index];
+        if (milestone.status != MilestoneStatus.Delivered) revert MilestoneNotDelivered(index);
+        uint40 readyAt = milestone.deliveredAt + uint40(registry.get(ParameterKeys.AUTO_RELEASE_MILESTONE));
+        if (block.timestamp >= readyAt) revert ReviewWindowClosed(readyAt);
+        plan.disputing = true;
+        plan.disputedIndex = index;
+        return _classify(_tokenConfigs[order.token], milestone.amount);
+    }
+
+    function _applyMilestoneOutcome(uint256 orderId, Order storage order, Split memory split) private {
+        MilestonePlan storage plan = _plans[orderId];
+        uint8 index = plan.disputedIndex;
+        Milestone storage milestone = _milestones[orderId][index];
+        milestone.status = MilestoneStatus.Paid;
+        order.deposited -= milestone.amount;
+        plan.next = index + 1;
+        plan.started = true;
+        plan.disputing = false;
+        plan.progressBps = 0;
+        plan.progressEvidence = bytes32(0);
+        plan.paidTotal += split.toPayee;
+        plan.refundedTotal += split.toPayer;
+        plan.feeTotal += split.protocolFee;
+        if (index + 1 == plan.count) _closeMilestoned(orderId, order, true);
+        else order.status = OrderStatus.Agreed;
+    }
+
+    function _computeSplit(Order storage order, Dispute storage dispute, uint16 share, bool waiveCost, uint128 base)
         private
         view
         returns (Split memory split)
     {
         split.claimant = dispute.claimant;
-        split.gross = uint128((uint256(order.price) * share) / BPS);
+        split.gross = uint128((uint256(base) * share) / BPS);
         split.protocolFee = _protocolFee(_tokenConfigs[order.token], split.gross);
         split.toPayee = split.gross - split.protocolFee;
-        split.toPayer = order.deposited - split.gross;
+        split.toPayer = base - split.gross;
         if (waiveCost) {
             split.claimantRefund = dispute.fee;
             return split;
@@ -161,7 +218,9 @@ contract DisputeModule is EscrowStorage {
         return claimant == payee ? share > HALF : share < HALF;
     }
 
-    function _recordOutcome(uint256 orderId, Order storage order, uint16 share, uint128 gross) private {
+    function _recordOutcome(uint256 orderId, Order storage order, uint16 share, uint128 gross, bool settleOrder)
+        private
+    {
         IReputation target = reputation;
         if (address(target) == address(0)) return;
         address payer = order.payer;
@@ -174,7 +233,7 @@ contract DisputeModule is EscrowStorage {
         catch {
             emit HookFailed(orderId, IReputation.recordDispute.selector);
         }
-        if (gross == 0) return;
+        if (gross == 0 || !settleOrder) return;
         bool qualifies = order.price > _tokenConfigs[order.token].reputationMin;
         try target.recordSettled(payer, payee, 0, true, true, qualifies) {}
         catch {

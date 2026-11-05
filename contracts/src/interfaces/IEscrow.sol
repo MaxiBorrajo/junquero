@@ -14,7 +14,11 @@ import {
     Release,
     TokenConfig,
     SizeClass,
-    Dispute
+    Dispute,
+    Milestone,
+    MilestonePlan,
+    MilestoneTerms,
+    MilestoneRelease
 } from "../libraries/OrderTypes.sol";
 
 interface IEscrow is IEscrowEvents {
@@ -36,6 +40,22 @@ interface IEscrow is IEscrowEvents {
     function moderate(uint256 orderId, bytes32 reasonHash) external;
     function claim(address token, address account) external;
     function setReputation(IReputation reputation) external;
+    function agreeWithMilestones(
+        Agreement calldata agreement,
+        MilestoneTerms calldata terms,
+        bytes calldata payerSignature,
+        bytes calldata payeeSignature
+    ) external;
+    function deliverMilestone(uint256 orderId, uint8 index, bytes32 evidenceHash) external;
+    function reportProgress(uint256 orderId, uint16 progressBps, bytes32 evidenceHash) external;
+    function releaseMilestone(MilestoneRelease calldata release, bytes calldata payerSignature) external;
+    function autoReleaseMilestone(uint256 orderId) external;
+    function claimAdvance(uint256 orderId) external;
+    function terminateEarly(uint256 orderId) external;
+    function abandon(uint256 orderId) external;
+    function declareAbandoned(uint256 orderId) external;
+    function getMilestones(uint256 orderId) external view returns (Milestone[] memory);
+    function getPlan(uint256 orderId) external view returns (MilestonePlan memory);
     function setArbitration(IArbitration arbitration) external;
     function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external;
     function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost) external;

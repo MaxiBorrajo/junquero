@@ -67,6 +67,7 @@ contract CancelModule is EscrowStorage {
                 0
             );
         } else if (status == OrderStatus.Agreed) {
+            if (order.hasMilestones && _plans[orderId].started) revert MilestonesInProgress();
             if (caller == order.payee) {
                 _finishCancel(orderId, order, caller, CancelReason.PayeeCancelled, caller, 0, 0);
                 _recordFailure(orderId, caller, Role.Provider);
@@ -83,6 +84,7 @@ contract CancelModule is EscrowStorage {
 
     function reclaim(uint256 orderId) external nonReentrant {
         Order storage order = _requireStatus(orderId, OrderStatus.Agreed);
+        if (order.hasMilestones && _plans[orderId].started) revert MilestonesInProgress();
         if (order.deadline == 0 || block.timestamp <= order.deadline) revert DeadlineNotReached(order.deadline);
         _finishCancel(orderId, order, _msgSender(), CancelReason.Expired, address(0), 0, 0);
         _recordFailure(orderId, order.payee, Role.Provider);

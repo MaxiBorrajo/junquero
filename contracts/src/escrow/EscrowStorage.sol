@@ -31,7 +31,10 @@ import {
     Agreement,
     Release,
     TokenConfig,
-    Dispute
+    Dispute,
+    Milestone,
+    MilestonePlan,
+    MilestoneStatus
 } from "../libraries/OrderTypes.sol";
 
 abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, AccessControl, ReentrancyGuard {
@@ -57,6 +60,8 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     mapping(bytes32 pair => mapping(uint256 month => uint8)) internal _freeCancelsByPair;
     mapping(uint256 orderId => Dispute) internal _disputes;
     mapping(address account => mapping(uint256 month => uint8)) internal _smallDisputesByAccount;
+    mapping(uint256 orderId => Milestone[]) internal _milestones;
+    mapping(uint256 orderId => MilestonePlan) internal _plans;
 
     constructor(IParameterRegistry registry_, address treasury_, ISignatureTransfer permit2_, address forwarder)
         EIP712("Escrow", "1")
@@ -72,11 +77,13 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         return keccak256(abi.encode(address(registry), treasury, address(permit2), trustedForwarder()));
     }
 
-    function _recordSettled(uint256 orderId, Order storage order, uint8 rating, bool automatic) internal {
+    function _recordSettled(uint256 orderId, Order storage order, uint8 rating, bool automatic, bool disputed)
+        internal
+    {
         IReputation target = reputation;
         if (address(target) == address(0)) return;
         bool qualifies = order.price > _tokenConfigs[order.token].reputationMin;
-        try target.recordSettled(order.payer, order.payee, rating, automatic, false, qualifies) {}
+        try target.recordSettled(order.payer, order.payee, rating, automatic, disputed, qualifies) {}
         catch {
             emit HookFailed(orderId, IReputation.recordSettled.selector);
         }
@@ -127,7 +134,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         _payout(token, treasury, fee);
         _payout(token, payer, refunded);
         emit OrderSettled(orderId, payee, paid, refunded, fee, rating, automatic);
-        _recordSettled(orderId, order, rating, automatic);
+        _recordSettled(orderId, order, rating, automatic, false);
     }
 
     function _finishCancel(
@@ -240,5 +247,113 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
 
     function _pairKey(address payer, address payee) internal pure returns (bytes32) {
         return keccak256(abi.encode(payer, payee));
+    }
+
+    function _classify(TokenConfig storage config, uint128 amount) internal view returns (SizeClass) {
+        if (amount <= config.smallMax) return SizeClass.Small;
+        if (amount <= config.mediumMax) return SizeClass.Medium;
+        return SizeClass.Large;
+    }
+
+    function _requiresMilestones(Order storage order, uint128 price) internal view returns (bool) {
+        if (order.mode != PaymentMode.Escrowed) return false;
+        if (price > _tokenConfigs[order.token].milestoneAmount) return true;
+        uint40 deadline = order.deadline;
+        return
+            deadline > block.timestamp
+                && deadline - block.timestamp > registry.get(ParameterKeys.MILESTONE_MIN_DURATION);
+    }
+
+    function _agree(
+        Agreement calldata agreement,
+        bytes calldata payerSignature,
+        bytes calldata payeeSignature,
+        bool milestoned
+    ) internal {
+        Order storage order = _orders[agreement.orderId];
+        OrderStatus status = order.status;
+        if (status == OrderStatus.None) revert UnknownOrder(agreement.orderId);
+        if (status != OrderStatus.Open && status != OrderStatus.Reserved) {
+            revert InvalidStatus(agreement.orderId, status);
+        }
+        if (agreement.payer != order.payer) revert NotPayer(agreement.payer);
+        if (agreement.payee == agreement.payer) revert PayeeIsPayer();
+        if (status == OrderStatus.Reserved && agreement.payee != order.reservedPayee) revert AgreementMismatch();
+        if (agreement.specHash != order.specHash) revert AgreementMismatch();
+        if (block.timestamp > agreement.expiry) revert SignatureExpired(agreement.expiry);
+        if (agreement.price == 0) revert InvalidAmount();
+
+        bool escrowed = order.mode == PaymentMode.Escrowed;
+        if (escrowed && agreement.price > order.deposited) {
+            revert PriceExceedsDeposit(agreement.price, order.deposited);
+        }
+        if (!milestoned && _requiresMilestones(order, agreement.price)) revert MilestonesRequired();
+
+        bytes32 digest = _hashTypedDataV4(EscrowHashes.hash(agreement));
+        _verify(agreement.payer, digest, payerSignature);
+        _verify(agreement.payee, digest, payeeSignature);
+
+        uint128 refund = escrowed ? order.deposited - agreement.price : 0;
+        SizeClass sizeClass = _classify(_tokenConfigs[order.token], agreement.price);
+
+        order.status = OrderStatus.Agreed;
+        order.payee = agreement.payee;
+        order.price = agreement.price;
+        order.termsHash = agreement.termsHash;
+        order.agreedAt = uint40(block.timestamp);
+        order.sizeClass = sizeClass;
+        order.reservedPayee = address(0);
+        order.reservedAt = 0;
+        if (escrowed) order.deposited = agreement.price;
+
+        _payout(order.token, order.payer, refund);
+        emit OrderAgreed(agreement.orderId, agreement.payee, agreement.price, agreement.termsHash, uint8(sizeClass));
+    }
+
+    function _payMilestone(
+        uint256 orderId,
+        Order storage order,
+        uint8 index,
+        uint128 amount,
+        uint8 rating,
+        bool automatic
+    ) internal {
+        Milestone storage milestone = _milestones[orderId][index];
+        MilestonePlan storage plan = _plans[orderId];
+        uint128 fee = _protocolFee(_tokenConfigs[order.token], amount);
+        uint128 toPayee = amount - fee;
+        uint128 refund = milestone.amount - amount;
+
+        milestone.status = MilestoneStatus.Paid;
+        order.deposited -= milestone.amount;
+        plan.next = index + 1;
+        plan.started = true;
+        plan.progressBps = 0;
+        plan.progressEvidence = bytes32(0);
+        plan.paidTotal += toPayee;
+        plan.refundedTotal += refund;
+        plan.feeTotal += fee;
+        if (!automatic) {
+            plan.ratingSum += rating;
+            plan.ratingCount += 1;
+        }
+
+        address token = order.token;
+        _payout(token, order.payee, toPayee);
+        _payout(token, order.payer, refund);
+        _payout(token, treasury, fee);
+        emit MilestonePaid(orderId, index, toPayee, refund, fee, rating, automatic);
+        if (index + 1 == plan.count) _closeMilestoned(orderId, order, false);
+    }
+
+    function _closeMilestoned(uint256 orderId, Order storage order, bool disputed) internal {
+        MilestonePlan storage plan = _plans[orderId];
+        order.status = OrderStatus.Settled;
+        order.settledAt = uint40(block.timestamp);
+        order.paidOut = plan.paidTotal > 0;
+        bool automatic = plan.ratingCount == 0;
+        uint8 rating = automatic ? 0 : uint8(plan.ratingSum / plan.ratingCount);
+        emit OrderSettled(orderId, order.payee, plan.paidTotal, plan.refundedTotal, plan.feeTotal, rating, automatic);
+        _recordSettled(orderId, order, rating, automatic, disputed);
     }
 }

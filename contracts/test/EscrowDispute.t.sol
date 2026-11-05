@@ -286,11 +286,11 @@ contract EscrowDisputeTest is EscrowBase {
 
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotArbitration.selector, admin));
-        escrow.resolveDispute(orderId, 10_000);
+        escrow.resolveDispute(orderId, 10_000, false);
 
         vm.prank(payer);
         vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotArbitration.selector, payer));
-        escrow.resolveDispute(orderId, 0);
+        escrow.resolveDispute(orderId, 0, false);
     }
 
     function test_resolveRejectsSharesAboveTheMaximum() public {
@@ -422,6 +422,43 @@ contract EscrowDisputeTest is EscrowBase {
 
         assertEq(usdc.balanceOf(address(treasury)), 2 * USDC);
         assertEq(usdc.balanceOf(payee), 98 * USDC);
+    }
+
+    function test_waivedResolutionRefundsTheClaimantsFeeAndChargesNoCost() public {
+        uint256 orderId = _delivered(100 * USDC);
+        _open(payer, orderId, 3 * FEE);
+        uint256 payerBefore = usdc.balanceOf(payer);
+
+        vm.expectEmit(true, false, false, true);
+        emit IEscrowEvents.DisputeResolved(orderId, 0, 0, uint128(100 * USDC), 0, 0, false);
+        court.resolveWaived(orderId, 0);
+
+        assertEq(usdc.balanceOf(payer) - payerBefore, 100 * USDC + 3 * FEE);
+        assertEq(usdc.balanceOf(address(court)), 0);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
+    }
+
+    function test_waivedResolutionForTheProviderStillPaysTheClaimantBack() public {
+        uint256 orderId = _delivered(100 * USDC);
+        _open(payee, orderId, 3 * FEE);
+        uint256 payeeBefore = usdc.balanceOf(payee);
+
+        court.resolveWaived(orderId, 10_000);
+
+        assertEq(usdc.balanceOf(payee) - payeeBefore, 100 * USDC + 3 * FEE);
+        assertEq(usdc.balanceOf(address(court)), 0);
+    }
+
+    function test_waivedResolutionConservesTheMoney() public {
+        uint256 orderId = _delivered(100 * USDC);
+        uint256 total = _balanceSum();
+        _open(payer, orderId, 3 * FEE);
+        total += 3 * FEE;
+
+        court.resolveWaived(orderId, 3000);
+
+        assertEq(_balanceSum(), total);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
     }
 
     function test_conservationHoldsAcrossAWholeDispute() public {

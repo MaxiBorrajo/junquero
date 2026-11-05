@@ -48,12 +48,12 @@ contract DisputeModule is EscrowStorage {
         }
     }
 
-    function resolveDispute(uint256 orderId, uint16 payeeShareBps) external nonReentrant {
+    function resolveDispute(uint256 orderId, uint16 payeeShareBps, bool waiveCost) external nonReentrant {
         address caller = _msgSender();
         if (caller != address(arbitration)) revert NotArbitration(caller);
         if (payeeShareBps > BPS) revert InvalidShare(payeeShareBps);
         Order storage order = _requireStatus(orderId, OrderStatus.Disputed);
-        _resolve(orderId, order, payeeShareBps, false);
+        _resolve(orderId, order, payeeShareBps, false, waiveCost);
     }
 
     function getDispute(uint256 orderId) external view returns (Dispute memory) {
@@ -73,7 +73,7 @@ contract DisputeModule is EscrowStorage {
 
         _disputes[orderId] = Dispute(caller, 0, uint40(block.timestamp), 0, reasonHash);
         emit DisputeOpened(orderId, caller, reasonHash, 0, 0);
-        _resolve(orderId, order, HALF, true);
+        _resolve(orderId, order, HALF, true, false);
     }
 
     function _openWithJury(
@@ -111,8 +111,8 @@ contract DisputeModule is EscrowStorage {
         uint128 claimantRefund;
     }
 
-    function _resolve(uint256 orderId, Order storage order, uint16 share, bool automatic) private {
-        Split memory split = _computeSplit(order, _disputes[orderId], share);
+    function _resolve(uint256 orderId, Order storage order, uint16 share, bool automatic, bool waiveCost) private {
+        Split memory split = _computeSplit(order, _disputes[orderId], share, waiveCost);
 
         order.status = OrderStatus.Settled;
         order.settledAt = uint40(block.timestamp);
@@ -124,7 +124,7 @@ contract DisputeModule is EscrowStorage {
         _recordOutcome(orderId, order, share, split.gross);
     }
 
-    function _computeSplit(Order storage order, Dispute storage dispute, uint16 share)
+    function _computeSplit(Order storage order, Dispute storage dispute, uint16 share, bool waiveCost)
         private
         view
         returns (Split memory split)
@@ -134,6 +134,10 @@ contract DisputeModule is EscrowStorage {
         split.protocolFee = _protocolFee(_tokenConfigs[order.token], split.gross);
         split.toPayee = split.gross - split.protocolFee;
         split.toPayer = order.deposited - split.gross;
+        if (waiveCost) {
+            split.claimantRefund = dispute.fee;
+            return split;
+        }
         split.cost = dispute.fee;
 
         if (split.cost > 0 && _claimantWins(split.claimant, order.payee, share)) {

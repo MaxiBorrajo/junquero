@@ -25,6 +25,7 @@ interface IReputation {
     event CashRecorded(address indexed payer, address indexed payee, uint8 rating);
     event FailureRecorded(address indexed account, Role role);
     event DisputeRecorded(address indexed account, Role role, bool lost);
+    event JurorRecorded(address indexed juror, bool withMajority);
 
     error ZeroAddress();
     error InvalidRating(uint8 rating);
@@ -34,6 +35,7 @@ interface IReputation {
     function recordCash(address payer, address payee, uint8 rating) external;
     function recordFailure(address account, Role role) external;
     function recordDispute(address account, Role role, bool lost) external;
+    function recordJuror(address juror, bool withMajority) external;
 
     function stats(address account, Role role) external view returns (Stats memory);
     function closedWithoutDispute(address account) external view returns (uint32);

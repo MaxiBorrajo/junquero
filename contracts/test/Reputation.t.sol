@@ -183,6 +183,28 @@ contract ReputationTest is Test {
         assertEq(provider.disputesLost, 1);
     }
 
+    function test_jurorWithTheMajorityIsRecordedAsClean() public {
+        vm.expectEmit(true, false, false, true);
+        emit IReputation.JurorRecorded(other, true);
+        vm.prank(recorder);
+        reputation.recordJuror(other, true);
+
+        Stats memory juror = reputation.stats(other, Role.Juror);
+        assertEq(juror.closed, 1);
+        assertEq(juror.closedClean, 1);
+        assertEq(juror.disputesLost, 0);
+    }
+
+    function test_jurorInTheMinorityIsRecordedAsLost() public {
+        vm.prank(recorder);
+        reputation.recordJuror(other, false);
+
+        Stats memory juror = reputation.stats(other, Role.Juror);
+        assertEq(juror.closed, 1);
+        assertEq(juror.closedClean, 0);
+        assertEq(juror.disputesLost, 1);
+    }
+
     function test_onlyRecorderCanWrite() public {
         vm.startPrank(other);
         vm.expectRevert();
@@ -193,6 +215,8 @@ contract ReputationTest is Test {
         reputation.recordFailure(payee, Role.Provider);
         vm.expectRevert();
         reputation.recordDispute(payee, Role.Provider, true);
+        vm.expectRevert();
+        reputation.recordJuror(payee, true);
         vm.stopPrank();
     }
 

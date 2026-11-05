@@ -39,6 +39,10 @@ contract MockArbitration is IArbitration {
     }
 
     function resolve(uint256 orderId, uint16 payeeShareBps) external {
-        escrow.resolveDispute(orderId, payeeShareBps);
+        escrow.resolveDispute(orderId, payeeShareBps, false);
+    }
+
+    function resolveWaived(uint256 orderId, uint16 payeeShareBps) external {
+        escrow.resolveDispute(orderId, payeeShareBps, true);
     }
 }

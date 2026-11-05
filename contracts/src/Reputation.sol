@@ -73,6 +73,17 @@ contract Reputation is IReputation, AccessControl {
         emit DisputeRecorded(account, role, lost);
     }
 
+    function recordJuror(address juror, bool withMajority) external onlyRole(RECORDER_ROLE) {
+        Stats storage stats_ = _stats[juror][Role.Juror];
+        stats_.closed += 1;
+        if (withMajority) {
+            stats_.closedClean += 1;
+        } else {
+            stats_.disputesLost += 1;
+        }
+        emit JurorRecorded(juror, withMajority);
+    }
+
     function stats(address account, Role role) external view returns (Stats memory) {
         return _stats[account][role];
     }

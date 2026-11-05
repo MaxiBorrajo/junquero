@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IEscrowEvents} from "./IEscrowEvents.sol";
 import {IReputation} from "./IReputation.sol";
+import {IArbitration} from "./IArbitration.sol";
 import {
     Order,
     OrderStatus,
@@ -12,7 +13,8 @@ import {
     Agreement,
     Release,
     TokenConfig,
-    SizeClass
+    SizeClass,
+    Dispute
 } from "../libraries/OrderTypes.sol";
 
 interface IEscrow is IEscrowEvents {
@@ -34,6 +36,11 @@ interface IEscrow is IEscrowEvents {
     function moderate(uint256 orderId, bytes32 reasonHash) external;
     function claim(address token, address account) external;
     function setReputation(IReputation reputation) external;
+    function setArbitration(IArbitration arbitration) external;
+    function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external;
+    function resolveDispute(uint256 orderId, uint16 payeeShareBps) external;
+    function getDispute(uint256 orderId) external view returns (Dispute memory);
+    function smallDisputesUsed(address account) external view returns (uint8);
     function claimable(address token, address account) external view returns (uint256);
 
     function configureToken(address token, TokenConfig calldata config) external;

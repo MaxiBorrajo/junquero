@@ -6,6 +6,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {IEscrow} from "./IEscrow.sol";
 import {IParameterRegistry} from "./IParameterRegistry.sol";
 import {IReputation} from "./IReputation.sol";
+import {IArbitration} from "./IArbitration.sol";
 
 interface IEscrowFull is IEscrow, IAccessControl {
     function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
@@ -15,6 +16,7 @@ interface IEscrowFull is IEscrow, IAccessControl {
     function treasury() external view returns (address);
     function permit2() external view returns (ISignatureTransfer);
     function reputation() external view returns (IReputation);
+    function arbitration() external view returns (IArbitration);
     function lastOrderId() external view returns (uint256);
     function isTrustedForwarder(address forwarder) external view returns (bool);
     function trustedForwarder() external view returns (address);

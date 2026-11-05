@@ -14,6 +14,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {IEscrowEvents} from "../interfaces/IEscrowEvents.sol";
 import {IParameterRegistry} from "../interfaces/IParameterRegistry.sol";
 import {IReputation, Role} from "../interfaces/IReputation.sol";
+import {IArbitration} from "../interfaces/IArbitration.sol";
 import {EscrowHashes} from "../libraries/EscrowHashes.sol";
 import {ParameterKeys} from "../libraries/ParameterKeys.sol";
 import {
@@ -29,7 +30,8 @@ import {
     Reservation,
     Agreement,
     Release,
-    TokenConfig
+    TokenConfig,
+    Dispute
 } from "../libraries/OrderTypes.sol";
 
 abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, AccessControl, ReentrancyGuard {
@@ -45,6 +47,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     ISignatureTransfer public immutable permit2;
 
     IReputation public reputation;
+    IArbitration public arbitration;
     uint256 public lastOrderId;
 
     mapping(uint256 orderId => Order) internal _orders;
@@ -52,6 +55,8 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     mapping(address token => mapping(address account => uint256)) public claimable;
     mapping(address payer => mapping(uint256 month => uint8)) internal _freeCancelsByAccount;
     mapping(bytes32 pair => mapping(uint256 month => uint8)) internal _freeCancelsByPair;
+    mapping(uint256 orderId => Dispute) internal _disputes;
+    mapping(address account => mapping(uint256 month => uint8)) internal _smallDisputesByAccount;
 
     constructor(IParameterRegistry registry_, address treasury_, ISignatureTransfer permit2_, address forwarder)
         EIP712("Escrow", "1")

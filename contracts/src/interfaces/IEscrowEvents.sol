@@ -58,6 +58,19 @@ interface IEscrowEvents {
     event Claimed(address indexed token, address indexed account, uint256 amount);
     event ReputationUpdated(address indexed reputation);
     event HookFailed(uint256 indexed orderId, bytes4 selector);
+    event DisputeOpened(
+        uint256 indexed orderId, address indexed claimant, bytes32 reasonHash, uint256 caseId, uint128 fee
+    );
+    event DisputeResolved(
+        uint256 indexed orderId,
+        uint16 payeeShareBps,
+        uint128 paidToPayee,
+        uint128 refundedToPayer,
+        uint128 protocolFee,
+        uint128 arbitrationCost,
+        bool automatic
+    );
+    event ArbitrationUpdated(address indexed arbitration);
 
     error TokenNotAllowed(address token);
     error InvalidAmount();
@@ -91,4 +104,8 @@ interface IEscrowEvents {
     error ChangesNotAllowed();
     error ChangeRequestsExhausted(uint8 max);
     error NothingToClaim();
+    error ArbitrationNotSet();
+    error NotArbitration(address caller);
+    error DisputeCapReached(uint64 max);
+    error InvalidShare(uint16 share);
 }

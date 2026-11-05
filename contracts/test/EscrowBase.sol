@@ -74,6 +74,9 @@ abstract contract EscrowBase is Test {
         registry.grantRole(setterRole, admin);
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
         registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
+        registry.defineParameter(ParameterKeys.JURY_SIZE_MEDIUM, 1, 15, 3);
+        registry.defineParameter(ParameterKeys.JURY_SIZE_LARGE, 1, 15, 5);
+        registry.defineParameter(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH, 0, 20, 3);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_GRACE, 0, 7 days, 12 hours);
         registry.defineParameter(ParameterKeys.RESERVATION_RAMP, 1 hours, 30 days, 3 days);
@@ -113,7 +116,8 @@ abstract contract EscrowBase is Test {
             feeFloor: uint128(USDC / 4),
             feeCap: uint128(5 * USDC),
             cashFeeFloor: uint128(2 * USDC),
-            reservationCap: uint128(10 * USDC)
+            reservationCap: uint128(10 * USDC),
+            jurorFee: uint128(USDC)
         });
         vm.prank(admin);
         escrow.configureToken(token, config);

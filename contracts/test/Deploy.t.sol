@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {Deploy} from "../script/Deploy.s.sol";
+import {IEscrow} from "../src/interfaces/IEscrow.sol";
 import {ParameterKeys} from "../src/libraries/ParameterKeys.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {MockPermit2} from "./mocks/MockPermit2.sol";
@@ -31,6 +32,14 @@ contract DeployTest is Test {
         assertEq(address(deployment.receipt.escrow()), address(deployment.escrow));
         assertTrue(deployment.receipt.isTrustedForwarder(address(deployment.forwarder)));
         assertEq(deployment.registry.get(ParameterKeys.REPUTATION_PAIR_CAP), 2);
+    }
+
+    function test_disputeModuleIsRoutedAndItsParametersExist() public view {
+        assertTrue(deployment.escrow.moduleOf(IEscrow.openDispute.selector) != address(0));
+        assertTrue(deployment.escrow.modulesLocked());
+        assertEq(deployment.registry.get(ParameterKeys.JURY_SIZE_MEDIUM), 3);
+        assertEq(deployment.registry.get(ParameterKeys.JURY_SIZE_LARGE), 5);
+        assertEq(deployment.registry.get(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH), 3);
     }
 
     function test_definesEveryParameterTheEscrowReads() public view {

@@ -5,6 +5,9 @@ library ParameterKeys {
     bytes32 internal constant FEE_BPS = keccak256("FEE_BPS");
     bytes32 internal constant REQUEST_CHANGES_MAX = keccak256("REQUEST_CHANGES_MAX");
     bytes32 internal constant REPUTATION_PAIR_CAP = keccak256("REPUTATION_PAIR_CAP");
+    bytes32 internal constant JURY_SIZE_MEDIUM = keccak256("JURY_SIZE_MEDIUM");
+    bytes32 internal constant JURY_SIZE_LARGE = keccak256("JURY_SIZE_LARGE");
+    bytes32 internal constant SMALL_DISPUTES_PER_ACCOUNT_MONTH = keccak256("SMALL_DISPUTES_PER_ACCOUNT_MONTH");
     bytes32 internal constant AGREEMENT_WINDOW = keccak256("AGREEMENT_WINDOW");
     bytes32 internal constant AUTO_RELEASE_SHORT = keccak256("AUTO_RELEASE_SHORT");
     bytes32 internal constant AUTO_RELEASE_MILESTONE = keccak256("AUTO_RELEASE_MILESTONE");

@@ -25,7 +25,7 @@ contract EscrowRouterTest is EscrowBase {
     }
 
     function _expectedSelectors() internal pure returns (bytes4[] memory list) {
-        list = new bytes4[](23);
+        list = new bytes4[](28);
         list[0] = IEscrow.createOrder.selector;
         list[1] = IEscrow.reserve.selector;
         list[2] = IEscrow.withdrawReservation.selector;
@@ -49,6 +49,11 @@ contract EscrowRouterTest is EscrowBase {
         list[20] = IEscrow.reservationCompensation.selector;
         list[21] = IEscrow.freeCancelsUsed.selector;
         list[22] = IEscrow.domainSeparator.selector;
+        list[23] = IEscrow.setArbitration.selector;
+        list[24] = IEscrow.openDispute.selector;
+        list[25] = IEscrow.resolveDispute.selector;
+        list[26] = IEscrow.getDispute.selector;
+        list[27] = IEscrow.smallDisputesUsed.selector;
     }
 
     function test_everyEscrowFunctionIsRouted() public view {

@@ -127,4 +127,13 @@ struct TokenConfig {
     uint128 feeCap;
     uint128 cashFeeFloor;
     uint128 reservationCap;
+    uint128 jurorFee;
+}
+
+struct Dispute {
+    address claimant;
+    uint128 fee;
+    uint40 openedAt;
+    uint256 caseId;
+    bytes32 reasonHash;
 }

@@ -130,6 +130,7 @@ contract OrderModule is EscrowStorage {
         if (order.mode != PaymentMode.Escrowed) revert UnsupportedForMode();
         if (order.hasMilestones) revert UseMilestones();
         if (evidenceHash == bytes32(0)) revert EvidenceRequired();
+        _requireWitnessAssigned(orderId, order);
         order.status = OrderStatus.Delivered;
         order.deliveredAt = uint40(block.timestamp);
         order.evidenceHash = evidenceHash;
@@ -147,6 +148,7 @@ contract OrderModule is EscrowStorage {
         if (caller != order.payee) revert NotPayee(caller);
         if (order.hasMilestones) revert UseMilestones();
         if (releaseData.payee != order.payee) revert NotPayee(releaseData.payee);
+        _requireWitnessApproval(releaseData.orderId, order, 0, order.evidenceHash);
         if (block.timestamp > releaseData.expiry) revert SignatureExpired(releaseData.expiry);
         if (releaseData.rating == 0 || releaseData.rating > 5) revert InvalidRating(releaseData.rating);
         if (releaseData.amount > order.price) revert ReleaseAmountExceedsPrice(releaseData.amount, order.price);
@@ -166,6 +168,7 @@ contract OrderModule is EscrowStorage {
         Order storage order = _requireStatus(orderId, OrderStatus.Delivered);
         uint40 readyAt = _reviewDeadline(order);
         if (block.timestamp < readyAt) revert AutoReleaseNotReady(readyAt);
+        _requireWitnessApproval(orderId, order, 0, order.evidenceHash);
         _settle(orderId, order, order.price, 0, true);
     }
 

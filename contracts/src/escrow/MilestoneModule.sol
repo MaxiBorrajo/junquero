@@ -75,6 +75,7 @@ contract MilestoneModule is EscrowStorage {
         if (evidenceHash == bytes32(0)) revert EvidenceRequired();
         Milestone storage milestone = _milestones[orderId][index];
         if (milestone.status != MilestoneStatus.Pending) revert MilestoneNotPending(index);
+        _requireWitnessAssigned(orderId, order);
 
         milestone.status = MilestoneStatus.Delivered;
         milestone.deliveredAt = uint40(block.timestamp);
@@ -107,6 +108,9 @@ contract MilestoneModule is EscrowStorage {
         Milestone storage milestone = _milestones[release.orderId][release.index];
         if (release.amount > milestone.amount) revert ReleaseAmountExceedsPrice(release.amount, milestone.amount);
 
+        if (!(release.index == 0 && plan.firstIsAdvance)) {
+            _requireWitnessApproval(release.orderId, order, release.index, milestone.evidenceHash);
+        }
         _verify(order.payer, _hashTypedDataV4(EscrowHashes.hash(release)), payerSignature);
         _payMilestone(release.orderId, order, release.index, release.amount, release.rating, false);
     }
@@ -118,6 +122,7 @@ contract MilestoneModule is EscrowStorage {
         if (milestone.status != MilestoneStatus.Delivered) revert MilestoneNotDelivered(index);
         uint40 readyAt = milestone.deliveredAt + uint40(registry.get(ParameterKeys.AUTO_RELEASE_MILESTONE));
         if (block.timestamp < readyAt) revert AutoReleaseNotReady(readyAt);
+        _requireWitnessApproval(orderId, order, index, milestone.evidenceHash);
         _payMilestone(orderId, order, index, milestone.amount, 0, true);
     }
 

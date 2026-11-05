@@ -6,7 +6,7 @@ Este documento fija qué se construye, en qué orden y cómo se sabe que está l
 
 ## 0. Avance (5 de noviembre de 2026, tarde)
 
-Terminados y con pruebas (603 en verde): pasos 1 a 6 del orden de construcción.
+Terminados y con pruebas (652 en verde): pasos 1 a 7 del orden de construcción.
 
 | Paso | Estado | Notas |
 | --- | --- | --- |
@@ -16,7 +16,8 @@ Terminados y con pruebas (603 en verde): pasos 1 a 6 del orden de construcción.
 | 4. Arbitration | Hecho sin apelación | Stake, sorteo por compromiso y revelación, recusaciones, votos cifrados, castigos, árbitro de emergencia, respuesta en 72 horas |
 | 5. Hitos | Hecho | Plan de hitos firmado, pago por QR por hito, liberación automática a las 72 h, anticipo como primer hito, término anticipado, abandono con reapertura, disputa por hito |
 | 6. Changa grupal | Hecho | Fondeo con plazo, aportes de 5% a 50%, retiro hasta el acuerdo, devolución automática proporcional, propuesta de prestador con veto, cambio de coordinador por mayoría de dinero y objeción |
-| 7 a 10 | Pendientes | Testigo, votación, apelación, pruebas finales y Sepolia |
+| 7. Testigo | Hecho | Asignación firmada por las dos partes, atestado firmado por el testigo, compuerta de cobro en changas de más de 300 USDC y tarifa pagada desde el tesoro |
+| 8 a 10 | Pendientes | Votación y gobernanza, apelación, pruebas finales y Sepolia |
 
 **Cambios de diseño respecto de lo especificado**
 
@@ -25,6 +26,7 @@ Terminados y con pruebas (603 en verde): pasos 1 a 6 del orden de construcción.
 - **Término anticipado y abandono:** el solicitante paga lo ya verificado, el avance reportado del hito en curso y una compensación sobre lo que queda; no puede terminar mientras hay un hito esperando revisión (debe aprobarlo o disputarlo). Si el prestador abandona, la changa vuelve a abierta con los fondos restantes.
 - **Grupal: quién firma y quién cobra.** El coordinador (por defecto quien publica) es el `payer` del Escrow: firma el acuerdo y el QR. Todo reembolso al solicitante se reparte entre los aportantes en proporción a lo que pusieron, y el resto del redondeo va al último.
 - **Grupal: veto y objeción.** El veto del prestador propuesto y la objeción usan el mismo umbral: 25% del dinero o 2 personas distintas. Al alcanzarse la objeción se abre la disputa y el costo del jurado lo adelanta quien la dispara (la última persona en objetar). Las reservas de prestador no existen en changas grupales; las reemplaza la propuesta con ventana de veto de 24 horas.
+- **Testigo: elección y pago.** Una parte lo propone y lo firman las dos partes (también sirve en changas chicas, de forma opcional). El testigo firma un atestado de la entrega (o de cada hito); sin un atestado aprobado no se puede cobrar con QR ni por liberación automática en changas de más de 300 USDC. La disputa con jurado no depende del testigo. La tarifa fija la paga el tesoro (el Escrow tiene permiso de retiro acotado a esto); si el tesoro no tiene fondos, queda como deuda que el testigo reclama después. Las changas que no exigen testigo no pagan tarifa.
 - **Apelación diferida:** la apelación única con costo adicional no está implementada. Su costo se cruza con quién paga a los jurados de la segunda ronda y con el reembolso al apelante si gana; conviene cerrarlo después de los pasos 5 a 8.
 - **Costo del arbitraje:** lo adelanta quien reclama. Si gana y la parte que pierde no tiene dinero en el Escrow (por ejemplo, el prestador cuando pierde todo), el reclamante termina pagando el costo. Es una limitación conocida del diseño, sin garantía del prestador.
 - **Quién se postula como jurado:** los jurados se anotan solos en cada caso (compromiso del sorteo), por lo que el backend tiene que avisarles cuando se abre un caso.

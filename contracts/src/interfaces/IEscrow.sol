@@ -20,7 +20,10 @@ import {
     MilestoneTerms,
     MilestoneRelease,
     GroupParams,
-    GroupInfo
+    GroupInfo,
+    WitnessAssignment,
+    Attestation,
+    AttestationRecord
 } from "../libraries/OrderTypes.sol";
 
 interface IEscrow is IEscrowEvents {
@@ -68,6 +71,16 @@ interface IEscrow is IEscrowEvents {
     function vetoProvider(uint256 orderId) external;
     function supportCoordinator(uint256 orderId, address candidate) external;
     function object(uint256 orderId, bytes32 reasonHash, DepositAuth calldata auth) external;
+    function assignWitness(
+        WitnessAssignment calldata assignment,
+        bytes calldata payerSignature,
+        bytes calldata payeeSignature
+    ) external;
+    function attest(Attestation calldata attestation, bytes calldata witnessSignature) external;
+    function claimWitnessFee(address token, address witness) external;
+    function witnessOf(uint256 orderId) external view returns (address);
+    function attestationOf(uint256 orderId, uint8 index) external view returns (AttestationRecord memory);
+    function witnessOwed(address token, address witness) external view returns (uint256);
     function getGroup(uint256 orderId) external view returns (GroupInfo memory);
     function contributorsOf(uint256 orderId) external view returns (address[] memory);
     function contributionOf(uint256 orderId, address account) external view returns (uint128);

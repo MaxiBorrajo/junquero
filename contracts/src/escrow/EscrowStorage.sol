@@ -35,7 +35,8 @@ import {
     Milestone,
     MilestonePlan,
     MilestoneStatus,
-    GroupInfo
+    GroupInfo,
+    AttestationRecord
 } from "../libraries/OrderTypes.sol";
 
 abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, AccessControl, ReentrancyGuard {
@@ -64,6 +65,9 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     mapping(uint256 orderId => Milestone[]) internal _milestones;
     mapping(uint256 orderId => MilestonePlan) internal _plans;
     mapping(uint256 orderId => GroupInfo) internal _groups;
+    mapping(uint256 orderId => address) internal _witnesses;
+    mapping(uint256 orderId => mapping(uint8 index => AttestationRecord)) internal _attestations;
+    mapping(address token => mapping(address witness => uint256)) public witnessOwed;
     mapping(uint256 orderId => address[]) internal _contributors;
     mapping(uint256 orderId => mapping(address account => uint128)) internal _contributions;
     mapping(uint256 orderId => mapping(uint32 epoch => mapping(address account => bool))) internal _vetoed;
@@ -401,5 +405,24 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     function _thresholdReached(uint128 total, uint128 money, uint8 count) internal view returns (bool) {
         return uint256(money) * BPS >= uint256(total) * registry.get(ParameterKeys.OBJECTION_MONEY_BPS)
             || count >= registry.get(ParameterKeys.OBJECTION_MIN_PEOPLE);
+    }
+
+    function _requiresWitness(Order storage order) internal view returns (bool) {
+        return order.mode == PaymentMode.Escrowed && order.price > _tokenConfigs[order.token].witnessAmount;
+    }
+
+    function _requireWitnessAssigned(uint256 orderId, Order storage order) internal view {
+        if (_requiresWitness(order) && _witnesses[orderId] == address(0)) revert WitnessRequired();
+    }
+
+    function _requireWitnessApproval(uint256 orderId, Order storage order, uint8 index, bytes32 evidenceHash)
+        internal
+        view
+    {
+        if (!_requiresWitness(order)) return;
+        AttestationRecord storage record = _attestations[orderId][index];
+        if (!record.approved || evidenceHash == bytes32(0) || record.evidenceHash != evidenceHash) {
+            revert WitnessAttestationMissing(index);
+        }
     }
 }

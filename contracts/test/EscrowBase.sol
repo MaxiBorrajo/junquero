@@ -121,13 +121,14 @@ abstract contract EscrowBase is Test {
             smallMax: uint128(20 * USDC),
             mediumMax: uint128(300 * USDC),
             milestoneAmount: type(uint128).max,
-            witnessAmount: uint128(300 * USDC),
+            witnessAmount: type(uint128).max,
             reputationMin: uint128(5 * USDC),
             feeFloor: uint128(USDC / 4),
             feeCap: uint128(5 * USDC),
             cashFeeFloor: uint128(2 * USDC),
             reservationCap: uint128(10 * USDC),
-            jurorFee: uint128(USDC)
+            jurorFee: uint128(USDC),
+            witnessFee: uint128(USDC)
         });
         vm.prank(admin);
         escrow.configureToken(token, config);

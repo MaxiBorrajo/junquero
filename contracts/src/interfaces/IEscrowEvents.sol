@@ -93,6 +93,11 @@ interface IEscrowEvents {
     event ProposalCleared(uint256 indexed orderId);
     event CoordinatorSupported(uint256 indexed orderId, address indexed by, address indexed candidate);
     event CoordinatorChanged(uint256 indexed orderId, address indexed previous, address indexed current);
+    event WitnessAssigned(uint256 indexed orderId, address indexed witness);
+    event Attested(uint256 indexed orderId, address indexed witness, uint8 index, bytes32 evidenceHash, bool approved);
+    event WitnessPaid(uint256 indexed orderId, address indexed witness, uint128 fee);
+    event WitnessFeeOwed(uint256 indexed orderId, address indexed witness, uint128 fee);
+    event WitnessFeeClaimed(address indexed token, address indexed witness, uint256 amount);
     event ObjectionRegistered(uint256 indexed orderId, address indexed by, uint128 money, uint8 count);
 
     error TokenNotAllowed(address token);
@@ -155,6 +160,14 @@ interface IEscrowEvents {
     error AlreadyVoted(address account);
     error InvalidCoordinator(address candidate);
     error GroupAgreementNeedsProposal();
+    error WitnessRequired();
+    error WitnessAlreadyAssigned(address witness);
+    error WitnessNotAssigned();
+    error InvalidWitness(address witness);
+    error WitnessAttestationMissing(uint8 index);
+    error AlreadyAttested(uint8 index);
+    error EvidenceMismatch();
+    error NothingOwed();
     error VetoWindowClosed(uint40 readyAt);
     error NotAvailableForGroup();
 }

@@ -75,6 +75,7 @@ contract Deploy is Script {
             address(deployment.forwarder)
         );
         _defineParameters(deployment.registry, demo);
+        deployment.treasury.grantRole(deployment.treasury.SPENDER_ROLE(), address(deployment.escrow));
         deployment.credentials = new Credentials(admin);
         deployment.reputation = new Reputation(admin, IParameterRegistry(address(deployment.registry)));
         deployment.receipt = new JunqueroReceipt(IEscrow(address(deployment.escrow)), address(deployment.forwarder));
@@ -201,7 +202,8 @@ contract Deploy is Script {
                 feeCap: uint128(5 * UNIT),
                 cashFeeFloor: uint128(UNIT),
                 reservationCap: uint128(10 * UNIT),
-                jurorFee: uint128(UNIT)
+                jurorFee: uint128(UNIT),
+                witnessFee: uint128(UNIT)
             })
         );
     }

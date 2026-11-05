@@ -4,6 +4,25 @@ Escrito el 4 de noviembre de 2026. Objetivo: terminar todos los contratos, proba
 
 Este documento fija qué se construye, en qué orden y cómo se sabe que está listo. Las decisiones sin cerrar están en la sección 9, cada una con una recomendación.
 
+## 0. Avance (4 de noviembre de 2026)
+
+Terminados y con pruebas (413 en verde): pasos 1 a 4 del orden de construcción.
+
+| Paso | Estado | Notas |
+| --- | --- | --- |
+| 1. Base del Escrow | Hecho | Pagos reclamables, categoría, moderación, cambios a distancia |
+| 2. Credentials, Reputation, Receipt | Hecho | El Escrow avisa a Reputation sin poder trabar un pago |
+| 3. Disputa en el Escrow | Hecho | 50/50 automático en changas chicas; jurado para medias y altas |
+| 4. Arbitration | Hecho sin apelación | Stake, sorteo por compromiso y revelación, recusaciones, votos cifrados, castigos, árbitro de emergencia, respuesta en 72 horas |
+| 5 a 10 | Pendientes | Hitos, grupal, testigo, votación, pruebas finales y Sepolia |
+
+**Cambios de diseño respecto de lo especificado**
+
+- **Escrow modular:** el Escrow superó el límite de 24 KB por contrato. Ahora es un router de 3,9 KB que delega en módulos (`OrderModule`, `CancelModule`, `AdminModule`, `DisputeModule`) con la misma dirección y la misma caja de datos. Quedan módulos libres para hitos, grupal y testigo.
+- **Apelación diferida:** la apelación única con costo adicional no está implementada. Su costo se cruza con quién paga a los jurados de la segunda ronda y con el reembolso al apelante si gana; conviene cerrarlo después de los pasos 5 a 8.
+- **Costo del arbitraje:** lo adelanta quien reclama. Si gana y la parte que pierde no tiene dinero en el Escrow (por ejemplo, el prestador cuando pierde todo), el reclamante termina pagando el costo. Es una limitación conocida del diseño, sin garantía del prestador.
+- **Quién se postula como jurado:** los jurados se anotan solos en cada caso (compromiso del sorteo), por lo que el backend tiene que avisarles cuando se abre un caso.
+
 ## 1. Estado de partida
 
 Hecho y con tests (112 en verde): `Escrow` para changa individual y en efectivo, `ParameterRegistry`, `Treasury`, `Forwarder` y el script `Deploy.s.sol`.

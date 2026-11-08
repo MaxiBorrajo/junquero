@@ -1,0 +1,16 @@
+{
+  "name": "junquero-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "preview_urls": false,
+  "triggers": { "crons": ["* * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "junquero",
+      "database_id": "1ab6e7a7-eb33-4e4c-bb20-990bb32da75d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": { "CONFIRMATIONS": "2", "BLOCK_CHUNK": "10", "CHUNKS_PER_RUN": "6" }
+}

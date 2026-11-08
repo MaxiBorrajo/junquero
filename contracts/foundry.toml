@@ -12,7 +12,10 @@ remappings = [
     "forge-std/=lib/forge-std/src/",
 ]
 
-fs_permissions = [{ access = "read-write", path = "./vectors" }]
+fs_permissions = [{ access = "read-write", path = "./vectors" }, { access = "read", path = "./deployments" }]
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
 
 [fuzz]
 runs = 512

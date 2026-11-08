@@ -6,6 +6,7 @@ import {IEscrowFull} from "../src/interfaces/IEscrowFull.sol";
 import {EscrowAssembly} from "./lib/EscrowAssembly.sol";
 import {Forwarder} from "../src/Forwarder.sol";
 import {Treasury} from "../src/Treasury.sol";
+import {TestUSDC} from "../src/TestUSDC.sol";
 import {Credentials} from "../src/Credentials.sol";
 import {Reputation} from "../src/Reputation.sol";
 import {Receipt as JunqueroReceipt} from "../src/Receipt.sol";
@@ -50,10 +51,13 @@ contract Deploy is Script {
         address finalAdmin = vm.envOr("FINAL_ADMIN", address(0));
         bool governance = vm.envOr("GOVERNANCE", false);
 
+        bool testToken = vm.envOr("DEPLOY_TEST_TOKEN", false);
+
         vm.startBroadcast();
+        if (usdc == address(0) && testToken) usdc = address(new TestUSDC());
         require(usdc != address(0), "USDC required as the juror stake token");
         deployment = deploy(msg.sender, ISignatureTransfer(permit2), IERC20(usdc), demo);
-        if (usdc != address(0)) _configureToken(deployment.escrow, usdc, DepositMethod.Permit);
+        _configureToken(deployment.escrow, usdc, DepositMethod.Permit);
         if (usdt != address(0)) _configureToken(deployment.escrow, usdt, DepositMethod.Permit2);
         bool hasFinalAdmin = finalAdmin != address(0) && finalAdmin != msg.sender;
         if (governance) {
@@ -64,6 +68,7 @@ contract Deploy is Script {
         }
         vm.stopBroadcast();
 
+        console.log("Token", usdc);
         console.log("Forwarder", address(deployment.forwarder));
         console.log("ParameterRegistry", address(deployment.registry));
         console.log("Treasury", address(deployment.treasury));

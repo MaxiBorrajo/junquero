@@ -1,0 +1,106 @@
+{
+  "chainId": 11155111,
+  "mode": "demo",
+  "governanceHandedOver": true,
+  "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
+  "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
+  "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  "startBlock": 12087708,
+  "contracts": {
+    "token": {
+      "address": "0x057Dc87344bB1f7B213433C959B23bAACc711EEA",
+      "block": 12087708
+    },
+    "forwarder": {
+      "address": "0xdcED2C36F0F1ad8F923427D6cc1010785F9C4F02",
+      "block": 12087710
+    },
+    "parameterRegistry": {
+      "address": "0x2fcf110E95EEaF5a47cB3FC39D1aEB403506632d",
+      "block": 12087711
+    },
+    "treasury": {
+      "address": "0xe51e2C9151E51b23b82C87973F138E6D28b86f0c",
+      "block": 12087712
+    },
+    "escrow": {
+      "address": "0x739e7c41627E91F541B7DaCe2D5d3BEb997B0C02",
+      "block": 12087715
+    },
+    "orderModule": {
+      "address": "0xbf962dfFa3CdAAA27C27633ed867C807F560ed6d",
+      "block": 12087716
+    },
+    "cancelModule": {
+      "address": "0x1fd66061e54989C752ed3A0Ca8577279b59B0013",
+      "block": 12087718
+    },
+    "adminModule": {
+      "address": "0xCd1919e6872cC7C3EC09A0660B628344b5812Da0",
+      "block": 12087721
+    },
+    "disputeModule": {
+      "address": "0xb3eb2712F4Df72B292695c21cF1d20Fed76AB7c8",
+      "block": 12087723
+    },
+    "milestoneModule": {
+      "address": "0x0d6BC78989509F8Ae5137c3Ae7061e48205F03Ce",
+      "block": 12087725
+    },
+    "groupModule": {
+      "address": "0x7258e30C9C93FED52521112f56aC2951bfD8b321",
+      "block": 12087727
+    },
+    "witnessModule": {
+      "address": "0xCee94046A8a05C52DBd5d9f57Fed26Ac30a1bd6C",
+      "block": 12087730
+    },
+    "credentials": {
+      "address": "0xfEDF26965237c0c9B868e3097E329d679B88B3ca",
+      "block": 12087780
+    },
+    "reputation": {
+      "address": "0x59D53e29f2f3996A3a4561325375ADf5C0B64630",
+      "block": 12087781
+    },
+    "receipt": {
+      "address": "0x03976cAa4FC4EE252046693D4f6047f1CB613389",
+      "block": 12087782
+    },
+    "arbitration": {
+      "address": "0x1204d91dcD99e9Fb8928Ccf5c3A7c0EcE837a642",
+      "block": 12087785
+    },
+    "votingWeight": {
+      "address": "0x231bbBa8f9F8926D1eAEa6456391050D68b78296",
+      "block": 12087788
+    },
+    "timelock": {
+      "address": "0x74C5e4A76E183cC613de7b59dDae4431b376e7B8",
+      "block": 12087789
+    },
+    "governor": {
+      "address": "0x397F42FAc34e8a983a3731cE458206fd029D8330",
+      "block": 12087790
+    }
+  },
+  "abiDirectory": "deployments/abi",
+  "abiNotes": "Escrow.json une el router y los siete modulos (misma direccion, una sola interfaz).",
+  "demoAccounts": {
+    "solicitante": "0x6419B1743FCd4b36a25dd14cacAB1c1d78d22fBa",
+    "prestador": "0x99e5486D3BeC0c971a4104dF5D564bd99d762ee0",
+    "jurors": [
+      "0x1B56dB16685BACcB58c5fC9e9E5Eab89DD65Cc05",
+      "0xB4f8eccEf4975B0AD7f06e6Bb46D713BcDB024d8",
+      "0x98fbFd1516d9164CaB979C284ac15DA30feAc33F",
+      "0x9017620e283a3A6006A15b213613A466299F37EE",
+      "0xfEB47472fe647c437576F72213CaB65dff50a6a8"
+    ],
+    "contributors": [
+      "0x32c3be9194e1Ab9C2780805a4d6a05D962089053",
+      "0x34711Aa19d8437E7d9905770B5391e807eC018DA",
+      "0xD45c525621d51FD6ff5689067Ff1658c8a15F231"
+    ],
+    "witness": "0xe811699865567fab481e98637A21AA7e028fe31A"
+  }
+}

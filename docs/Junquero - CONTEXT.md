@@ -34,7 +34,7 @@ Nombre público: Junquero (pájaro de los humedales del Cono Sur, *Phleocryptes 
 | Billetera | MetaMask por WalletConnect (SDK de Reown), viem y wagmi |
 | Backend | Cloudflare Workers con Hono, Durable Objects (chat), D1 |
 | Pruebas y adjuntos | R2, URLs firmadas; evidencia cifrada en el cliente; referencia y hash en D1 |
-| RPC | Alchemy, plan gratuito |
+| RPC | Despliegue y fork: RPC público de Sepolia (publicnode); indexador y relayer: Alchemy, plan gratuito, si el público no alcanza |
 | Relayer | Cuenta dedicada, clave como secreto del Worker, poco saldo, límites por cuenta |
 | Chat | Propio, libsodium sobre Durable Objects, cifrado de punta a punta, sin vencimiento |
 | Verificación | Sin teléfono: perfil con datos y selfie en vivo (nivel 0). Nivel 2 con documento (Didit) queda fuera del TP |
@@ -43,6 +43,7 @@ Nombre público: Junquero (pájaro de los humedales del Cono Sur, *Phleocryptes 
 | Panel | Web propia para escritorio, lee de D1 |
 | Tope de costo | 20 USD por mes de infraestructura |
 | Privacidad | Pseudonimato: wallet dedicada; nada personal en la cadena, solo hashes, estados y montos |
+| Monedas | Producción: USDC (permit), USDT y DAI (Permit2; DAI con 18 decimales); sin moneda en pesos (decidido el 7 de noviembre: los umbrales en dólares obligarían a revotarlos por inflación). Sepolia: token de prueba propio `TestUSDC` |
 | Idioma | es-AR con voseo; todo el texto en archivos de traducción para una versión neutra después |
 
 ## Contratos

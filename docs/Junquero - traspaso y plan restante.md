@@ -91,7 +91,7 @@ Alcance del TP: 37 de 40 funciones; quedan fuera historial y nivel 1, nivel 2 co
 
 ### 5.1 Para el despliegue en Sepolia (bloquea el paso 10)
 
-1. **URL de RPC de Sepolia**, por ejemplo la de Alchemy (plan gratuito).
+1. **URL de RPC de Sepolia**: decidido el 7 de noviembre usar el RPC público `https://ethereum-sepolia-rpc.publicnode.com` (sin cuenta) para el despliegue y el fork. Para el indexador y el relayer se evalúa Alchemy (plan gratuito) si el público no aguanta los límites.
 2. **Una cuenta con ETH de Sepolia** para pagar el despliegue. **Nunca pasar la clave privada por el chat.** El plan es que Maxi ejecute él mismo el comando final de despliegue en su máquina con la clave en una variable de entorno o en un keystore de Foundry, y que Claude prepare y revise el comando.
 3. **Clave de API de Etherscan** para verificar los contratos.
 4. **Moneda**: dirección de USDC en Sepolia. Opciones: el USDC oficial de Circle (confirmar la dirección vigente en la documentación de Circle y conseguir fondos en su faucet) o desplegar un token de prueba propio con permiso. Sin dirección no se puede correr el script. USDT no tiene versión oficial en Sepolia; es opcional y se puede omitir.
@@ -115,7 +115,7 @@ Alcance del TP: 37 de 40 funciones; quedan fuera historial y nivel 1, nivel 2 co
 - Validación legal con un profesional (la app se declara intermediaria sin relación laboral).
 - Auditoría externa de los contratos antes de usar dinero real; lo hecho hasta ahora no la reemplaza.
 - Proveedor del mapa: MapLibre con MapTiler en plan gratuito, que es solo no comercial.
-- Contratar o configurar: cuenta de Cloudflare (Workers, D1, R2, Durable Objects), Alchemy, Expo, Reown (WalletConnect), MapTiler, y un servicio de correo para avisos críticos.
+- Contratar o configurar: cuenta de Cloudflare (Workers, D1, R2, Durable Objects), Alchemy (solo si el RPC público no alcanza para el indexador y el relayer), Expo, Reown (WalletConnect), MapTiler, y un servicio de correo para avisos críticos.
 
 ## 6. Limitaciones conocidas de los contratos
 

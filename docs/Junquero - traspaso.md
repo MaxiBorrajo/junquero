@@ -1,3 +1,5 @@
+> **Reemplazado por `Junquero - traspaso y plan restante.md` (7 de noviembre de 2026). Este documento quedó desactualizado.**
+
 # Junquero: traspaso a otro chat
 
 Escrito el 4 de noviembre de 2026. Está pensado para pegarlo entero al empezar un chat nuevo. Reúne el contexto del proyecto, el estado real del código verificado ese día, lo que falta y el orden recomendado para seguir.

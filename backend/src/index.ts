@@ -3,10 +3,13 @@ import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { indexedContracts, startBlock } from "./contracts";
 import { readCursor, runIndexerRounds, type ChainClient } from "./indexer";
+import { relay, type RelayPolicy } from "./relay";
+import { createRelayChain, relayTargets } from "./relayChain";
 
 interface Env {
   DB: D1Database;
   RPC_URL: string;
+  RELAYER_KEY: `0x${string}`;
   CONFIRMATIONS: string;
   BLOCK_CHUNK: string;
   CHUNKS_PER_RUN: string;
@@ -25,6 +28,15 @@ function chainClient(rpcUrl: string): ChainClient {
   };
 }
 
+const relayPolicy: RelayPolicy = {
+  targets: relayTargets,
+  maxGas: 3_000_000n,
+  minDeadlineSeconds: 60,
+  maxPerWindow: 30,
+  windowSeconds: 3600,
+  minRelayerBalance: 1_000_000_000_000n,
+};
+
 const app = new Hono<{ Bindings: Env }>();
 
 interface EventRecord {
@@ -42,6 +54,20 @@ const parseLimit = (value: string | undefined): number => {
 app.get("/health", async (c) => {
   const lastBlock = await readCursor(c.env.DB, startBlock);
   return c.json({ ok: true, lastIndexedBlock: lastBlock });
+});
+
+app.post("/relay", async (c) => {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "invalid json" }, 400);
+  }
+  if (!c.env.RELAYER_KEY) return c.json({ error: "relayer not configured" }, 503);
+  const chain = createRelayChain(c.env.RPC_URL, c.env.RELAYER_KEY);
+  const result = await relay(c.env.DB, chain, relayPolicy, body, Math.floor(Date.now() / 1000));
+  if (!result.ok) return c.json({ error: result.error }, result.status as 400 | 403 | 422 | 429 | 503);
+  return c.json({ txHash: result.txHash });
 });
 
 app.get("/orders/:id/timeline", async (c) => {

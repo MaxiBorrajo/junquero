@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 type Param = string | number | null;
@@ -31,7 +31,8 @@ class FakeStatement {
 
 export function createFakeD1(): { db: D1Database; raw: DatabaseSync } {
   const raw = new DatabaseSync(":memory:");
-  raw.exec(readFileSync(resolve(process.cwd(), "migrations/0001_events.sql"), "utf8"));
+  const directory = resolve(process.cwd(), "migrations");
+  for (const file of readdirSync(directory).sort()) raw.exec(readFileSync(resolve(directory, file), "utf8"));
   const db = {
     prepare: (sql: string) => new FakeStatement(raw, sql),
     async batch(statements: FakeStatement[]) {

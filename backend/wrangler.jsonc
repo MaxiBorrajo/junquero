@@ -12,5 +12,5 @@
       "migrations_dir": "migrations"
     }
   ],
-  "vars": { "CONFIRMATIONS": "2", "BLOCK_CHUNK": "10", "CHUNKS_PER_RUN": "6" }
+  "vars": { "CONFIRMATIONS": "2", "BLOCK_CHUNK": "10", "CHUNKS_PER_RUN": "6", "TASK_BATCH": "40", "TASK_MAX_SENDS": "5" }
 }

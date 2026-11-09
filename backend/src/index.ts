@@ -5,6 +5,8 @@ import { indexedContracts, startBlock } from "./contracts";
 import { readCursor, runIndexerRounds, type ChainClient } from "./indexer";
 import { relay, type RelayPolicy } from "./relay";
 import { createRelayChain, relayTargets } from "./relayChain";
+import { createTaskChain } from "./taskChain";
+import { runTasks } from "./tasks";
 
 interface Env {
   DB: D1Database;
@@ -13,6 +15,8 @@ interface Env {
   CONFIRMATIONS: string;
   BLOCK_CHUNK: string;
   CHUNKS_PER_RUN: string;
+  TASK_BATCH: string;
+  TASK_MAX_SENDS: string;
 }
 
 const MAX_BLOCKS_WITH_LOGS = 30;
@@ -117,5 +121,13 @@ export default {
       maxBlocksWithLogs: MAX_BLOCKS_WITH_LOGS,
     };
     ctx.waitUntil(runIndexerRounds(env.DB, client, options, Number(env.CHUNKS_PER_RUN)));
+    if (env.RELAYER_KEY) {
+      const taskOptions = { batchSize: Number(env.TASK_BATCH), maxSends: Number(env.TASK_MAX_SENDS) };
+      ctx.waitUntil(
+        runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY), taskOptions, Math.floor(Date.now() / 1000)).catch(
+          (error) => console.error("tasks failed", error),
+        ),
+      );
+    }
   },
 };

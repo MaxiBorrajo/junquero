@@ -34,8 +34,9 @@ Nombre público: Junquero (pájaro de los humedales del Cono Sur, *Phleocryptes 
 | Billetera | MetaMask por WalletConnect (SDK de Reown), viem y wagmi |
 | Backend | Cloudflare Workers con Hono, Durable Objects (chat), D1 |
 | Pruebas y adjuntos | R2, URLs firmadas; evidencia cifrada en el cliente; referencia y hash en D1 |
-| RPC | Despliegue y fork: RPC público de Sepolia (publicnode); indexador y relayer: Alchemy, plan gratuito, si el público no alcanza |
-| Relayer | Cuenta dedicada, clave como secreto del Worker, poco saldo, límites por cuenta |
+| RPC | Alchemy, plan gratuito, para despliegue, indexador y relayer (el RPC público de publicnode falló). El plan gratuito limita `eth_getLogs` a 10 bloques |
+| Relayer | Cuenta dedicada, clave como secreto del Worker, poco saldo, límites por cuenta y por IP. Desplegado en Sepolia: `POST /relay` en `junquero-api` |
+| Robot de tareas | Cron de un minuto en el mismo Worker: ejecuta `autoRelease`, `draw`, `finalize`, `execute`, `resolveByDefault`, `refundFunding`, `reclaim` y `autoReleaseMilestone` cuando vencen; dirigido por eventos |
 | Chat | Propio, libsodium sobre Durable Objects, cifrado de punta a punta, sin vencimiento |
 | Verificación | Sin teléfono: perfil con datos y selfie en vivo (nivel 0). Nivel 2 con documento (Didit) queda fuera del TP |
 | Push | Expo, con vista previa descifrada en el dispositivo; avisos críticos del jurado también por correo |

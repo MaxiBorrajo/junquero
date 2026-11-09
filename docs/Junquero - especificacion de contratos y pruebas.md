@@ -6,7 +6,7 @@ Este documento fija qué se construye, en qué orden y cómo se sabe que está l
 
 ## 0. Avance (5 de noviembre de 2026, tarde)
 
-Terminados y con pruebas (754 en verde): pasos 1 a 9 y la apelación, salvo la bifurcación de Sepolia del orden de construcción.
+Terminados y con pruebas (758 en verde): pasos 1 a 9 y la apelación. El paso 10 está hecho en lo esencial: desplegado en Sepolia el 8 de noviembre de 2026, con comprobación posterior, carga inicial, prueba de humo de los escenarios A y B y traspaso al Timelock. Quedan las pruebas con bifurcación (fork) de Sepolia contra Permit2 y USDC reales.
 
 | Paso | Estado | Notas |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ Terminados y con pruebas (754 en verde): pasos 1 a 9 y la apelación, salvo la b
 | 7. Testigo | Hecho | Asignación firmada por las dos partes, atestado firmado por el testigo, compuerta de cobro en changas de más de 300 USDC y tarifa pagada desde el tesoro |
 | 8. Votación y gobernanza | Hecho | `VotingWeight`, `ProtocolGovernor`, Timelock y traspaso del control de parámetros, monedas, roles y tesoro al Timelock |
 | 9. Pruebas finales | Hecho, falta el fork | Invariantes con secuencias aleatorias (200 corridas de 120 acciones), escenarios A a F sobre el despliegue real, vectores de firma para la app (`contracts/vectors/`), cobertura de 98,8% de líneas y 91,9% de ramas, análisis estático con Slither (`contracts/SECURITY.md`) |
-| 10 | Pendiente | Pruebas con bifurcación de Sepolia, despliegue y publicación |
+| 10 | Hecho, salvo el fork | Despliegue y publicación en Sepolia hechos; pruebas con bifurcación de Sepolia pendientes |
 | Apelación | Hecho | Una sola, por quien perdió, con 2N+1 jurados nuevos; el veredicto espera una ventana antes de mover el dinero |
 
 **Cambios de diseño respecto de lo especificado**

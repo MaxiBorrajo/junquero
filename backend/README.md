@@ -61,6 +61,19 @@ Lectura:
 
 El monto se normaliza a 6 decimales según los decimales de la moneda; hoy solo `TestUSDC` está en el mapa de `deployedTokenDecimals` (`src/contracts.ts`). Al agregar DAI hay que sumar sus 18 decimales ahí.
 
+## Postulaciones
+
+Viven fuera de la cadena hasta que se acuerda. Se identifican por el `id` de la changa publicada (el que devuelve `GET /changas`).
+
+- `PUT /me/applications/:changaId` crea o actualiza la propia: `{ amount?, message (hasta 500), attachments? (hasta 3) }`. `amount` es una contraoferta en unidades de la moneda; sin `amount` se acepta el monto publicado. Una por cuenta y changa. 201 si es nueva, 200 si se actualiza.
+- `DELETE /me/applications/:changaId` la retira. Se puede volver a postular.
+- `GET /me/applications` lista las propias con el estado de la changa.
+- `GET /me/changas/:changaId/applications` las ve solo quien publicó, con nombre, zona general y `verified` de cada postulante. La reputación se lee de la cadena.
+
+Reglas: no se puede postular a la propia changa ni a una que no esté `open`; máximo 50 activas por changa y 30 por postulante. Con la variable `REQUIRE_VERIFIED_APPLICANT=true` se exige selfie aprobada (hoy `false`, porque todavía no hay flujo de selfie).
+
+Estados: `active`, `withdrawn`, `chosen` (el indexador ve `OrderAgreed` con ese prestador) y `closed` (otra persona fue elegida o la orden se cerró).
+
 ## Cadena
 
 - `POST /relay`: pedido firmado para el Forwarder (ver `src/relay.ts`).

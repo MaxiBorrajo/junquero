@@ -1,5 +1,14 @@
 import { Hono, type Context } from "hono";
 import { createMiddleware } from "hono/factory";
+import {
+  listForOwner,
+  listMine,
+  presentApplication,
+  presentForOwner,
+  submitApplication,
+  validateApplication,
+  withdrawApplication,
+} from "./applications";
 import { issueToken, parseLogin, verifyLogin, verifyToken } from "./auth";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
@@ -156,6 +165,48 @@ app.post("/me/changas", async (c) => {
 app.get("/me/changas", async (c) => {
   const rows = await listByOwner(c.env.DB, c.get("address"), OWN_CHANGAS_LIMIT);
   return c.json({ changas: rows.map(presentChanga) });
+});
+
+const parseChangaId = (value: string): number | null => {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+};
+
+app.put("/me/applications/:changaId", async (c) => {
+  const changaId = parseChangaId(c.req.param("changaId"));
+  if (changaId === null) return c.json({ error: "invalid changa id" }, 400);
+  const body = await readJson(c);
+  if (body === undefined) return c.json({ error: "invalid json" }, 400);
+  const parsed = validateApplication(body);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const outcome = await submitApplication(
+    c.env.DB,
+    changaId,
+    c.get("address"),
+    parsed.value,
+    nowSeconds(),
+    c.env.REQUIRE_VERIFIED_APPLICANT === "true",
+  );
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  return c.json({ application: presentApplication(outcome.row) }, outcome.created ? 201 : 200);
+});
+
+app.delete("/me/applications/:changaId", async (c) => {
+  const changaId = parseChangaId(c.req.param("changaId"));
+  if (changaId === null) return c.json({ error: "invalid changa id" }, 400);
+  const withdrawn = await withdrawApplication(c.env.DB, changaId, c.get("address"), nowSeconds());
+  return withdrawn ? c.json({ ok: true }) : c.json({ error: "no active application" }, 404);
+});
+
+app.get("/me/applications", async (c) => c.json({ applications: await listMine(c.env.DB, c.get("address"), OWN_CHANGAS_LIMIT) }));
+
+app.get("/me/changas/:changaId/applications", async (c) => {
+  const changaId = parseChangaId(c.req.param("changaId"));
+  if (changaId === null) return c.json({ error: "invalid changa id" }, 400);
+  const result = await listForOwner(c.env.DB, changaId, c.get("address"));
+  if (result.status === 404) return c.json({ error: "changa not found" }, 404);
+  if (result.status === 403) return c.json({ error: "only the owner can see the applications" }, 403);
+  return c.json({ applications: result.rows.map(presentForOwner) });
 });
 
 app.get("/changas", async (c) => {

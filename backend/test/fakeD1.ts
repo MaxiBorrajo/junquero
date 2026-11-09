@@ -16,8 +16,8 @@ class FakeStatement {
   }
 
   async run() {
-    this.db.prepare(this.sql).run(...this.params);
-    return { success: true };
+    const result = this.db.prepare(this.sql).run(...this.params);
+    return { success: true, meta: { changes: Number(result.changes) } };
   }
 
   async first<T>() {

@@ -14,4 +14,5 @@ export interface Env {
   CHUNKS_PER_RUN: string;
   TASK_BATCH: string;
   TASK_MAX_SENDS: string;
+  REQUIRE_VERIFIED_APPLICANT?: string;
 }

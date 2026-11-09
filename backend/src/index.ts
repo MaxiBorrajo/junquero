@@ -1,4 +1,5 @@
 import { app } from "./app";
+import { applicationsHandler } from "./applications";
 import { createChangasHandler, purgeStaleDrafts } from "./changas";
 import { deployedTokenDecimals, indexedContracts, startBlock } from "./contracts";
 import type { Env } from "./env";
@@ -27,7 +28,7 @@ function chainClient(rpcUrl: string): ChainClient {
 const changasHandler = createChangasHandler(deployedTokenDecimals);
 
 async function processAndRun(env: Env, nowSeconds: number): Promise<void> {
-  await processEvents(env.DB, [watchedHandler, changasHandler], EVENT_SCAN_LIMIT);
+  await processEvents(env.DB, [watchedHandler, changasHandler, applicationsHandler], EVENT_SCAN_LIMIT);
   if (!env.RELAYER_KEY) return;
   const options = {
     batchSize: Number(env.TASK_BATCH),

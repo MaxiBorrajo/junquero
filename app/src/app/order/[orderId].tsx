@@ -1,12 +1,17 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { deployment } from "../../chain/deployment";
+import { approveRemotely, releaseCall, type RemoteRelease } from "../../chain/remoteRelease";
 import { encodeCheckIn, encodeDeliver, encodeReleaseQr, releaseTypedData, sendViaRelay, RELEASE_VALIDITY_SECONDS } from "../../chain/orderActions";
-import { readForwarderNonce } from "../../chain/reader";
-import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
+import { readContributionOf, readForwarderNonce, readGroup, readJurorFee, readParam, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
+import { encodeObject } from "../../chain/group";
+import { disputeCost, reasonHash } from "../../chain/jury";
+import { formatAmount } from "../../lib/money";
+import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { Stars } from "../../components/Stars";
 import { MilestoneBoard } from "../../components/MilestoneBoard";
 import { useChangaBySpec } from "../../data/useChangas";
@@ -15,7 +20,7 @@ import { useOrder } from "../../data/useOrder";
 import { EvidenceGallery, EvidenceUploader, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
 import { t } from "../../i18n";
-import { canFinish, roleOf, viewFor } from "../../lib/actions";
+import { canFinish, extendedRole, roleOf, viewFor } from "../../lib/actions";
 import { formatDate } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
@@ -38,6 +43,20 @@ export default function OrderScreen() {
   const [rating, setRating] = useState(5);
   const [qr, setQr] = useState<{ text: string; expiry: number } | null>(null);
 
+  const contribution = useQuery({
+    queryKey: ["contribution", id, address],
+    enabled: Boolean(order.data?.isGroup && address),
+    queryFn: () => readContributionOf(id, address as `0x${string}`),
+  });
+  const groupInfo = useQuery({ queryKey: ["group", id], enabled: Boolean(order.data?.isGroup), refetchInterval: 20_000, queryFn: () => readGroup(id) });
+  const [objection, setObjection] = useState("");
+  const remote = useQuery({
+    queryKey: ["release", id, address],
+    enabled: Boolean(address && order.data && !order.data.hasMilestones && order.data.status === 4),
+    refetchInterval: 15_000,
+    queryFn: async () => (await api.get<{ release: RemoteRelease | null }>(`/me/orders/${id}/release`)).release,
+  });
+
   if (order.isLoading || !order.data || !address) {
     return (
       <Screen>
@@ -52,6 +71,7 @@ export default function OrderScreen() {
   const view = viewFor(state.status, role);
   const items = evidence.data ?? [];
   const counterpart = role === "payer" ? state.payee : state.payer;
+  const contributor = extendedRole(role, state.isGroup, contribution.data ?? 0n) === "contributor";
   const account = address as `0x${string}`;
   const relayDeps = { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped };
 
@@ -75,6 +95,36 @@ export default function OrderScreen() {
       const hash = evidenceBundleHash(items.filter((item) => item.uploader.toLowerCase() === address.toLowerCase()).map((item) => item.hash));
       await sendViaRelay(relayDeps, encodeDeliver(BigInt(id), hash));
     }, t.order.finishFailed);
+
+  const object = () =>
+    run(async () => {
+      const text = objection.trim();
+      if (text.length < 10) throw new Error("reason");
+      const account = address as `0x${string}`;
+      const [fee, jurors] = await Promise.all([readJurorFee(), readParam(state.sizeClass === 1 ? "JURY_SIZE_MEDIUM" : "JURY_SIZE_LARGE")]);
+      const cost = disputeCost(state.sizeClass, fee, Number(jurors));
+      let auth = { method: 0, nonce: 0n, deadline: 0n, signature: "0x" as `0x${string}` };
+      if (cost > 0n) {
+        if ((await readTokenBalance(account)) < cost) throw new Error("balance");
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + PERMIT_VALIDITY_SECONDS);
+        auth = { method: 0, nonce: 0n, deadline, signature: await signTyped(permitTypedData(deployment, account, cost, await readTokenNonce(account), deadline)) };
+      }
+      await sendViaRelay(relayDeps, encodeObject(BigInt(id), reasonHash(text), auth));
+      setObjection("");
+    }, t.group.objectionFailed);
+
+  const approve = () =>
+    run(async () => {
+      await approveRemotely({ api, deployment, orderId: id, payee: state.payee, index: null, amount: state.price, rating, evidenceHash: state.evidenceHash, now: Math.floor(Date.now() / 1000), sign: signTyped });
+      setMessage(t.order.approved);
+      await queryClient.invalidateQueries({ queryKey: ["release", id] });
+    }, t.order.releaseFailed);
+
+  const claim = () =>
+    run(async () => {
+      if (!remote.data) return;
+      await sendViaRelay(relayDeps, releaseCall(id, remote.data));
+    }, t.order.releaseFailed);
 
   const arrive = () => run(async () => void (await sendViaRelay(relayDeps, encodeCheckIn(BigInt(id)))), t.order.finishFailed);
 
@@ -126,6 +176,12 @@ export default function OrderScreen() {
         <>
           <Body>{t.order.statusDelivered}</Body>
           <Secondary>{t.order.autoRelease}</Secondary>
+          {remote.data ? (
+            <>
+              <Body>{t.order.readyToClaim}</Body>
+              <Button label={t.order.claim} onPress={claim} loading={busy} />
+            </>
+          ) : null}
         </>
       ) : null}
 
@@ -147,12 +203,29 @@ export default function OrderScreen() {
             <>
               <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
+              <Secondary>{t.order.approveRemoteNote}</Secondary>
+              <Button label={t.order.approveRemote} variant="secondary" onPress={approve} loading={busy} />
               <Button label={t.order.problem} variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(id) } })} />
             </>
           )}
         </>
       ) : null}
 
+      {contributor && view === "payer-waiting-work" ? <Body>{t.order.statusAgreed}</Body> : null}
+      {contributor && state.status === 4 ? (
+        <>
+          <Body>{t.group.reviewTitle}</Body>
+          <EvidenceGallery orderId={id} items={items} />
+          {groupInfo.data ? (
+            <Secondary>{`${t.group.objectionProgress}: ${groupInfo.data.target > 0n ? Number((groupInfo.data.objectionMoney * 10000n) / groupInfo.data.target) / 100 : 0}% ${t.group.objectionMoney} · ${groupInfo.data.objectionCount} ${t.group.objectionPeople}`}</Secondary>
+          ) : null}
+          <Secondary>{t.group.thanks}</Secondary>
+          <Text style={text.subtitle}>{t.group.objection}</Text>
+          <Secondary>{t.group.objectionNote}</Secondary>
+          <Field label={t.group.objectionReason} value={objection} onChangeText={setObjection} multiline maxLength={1500} />
+          <Button label={t.group.objection} variant="secondary" onPress={object} loading={busy} disabled={objection.trim().length < 10} />
+        </>
+      ) : null}
       {view === "disputed" ? (
         <>
           <Body>{t.order.statusDisputed}</Body>

@@ -5,13 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
 import { Button, Chip, Row, Secondary, Title } from "../../components/ui";
-import { useMyAgreements, useMyApplications, useMyChangas } from "../../data/useMine";
+import { useMyAgreements, useMyApplications, useMyChangas, useMyContributions } from "../../data/useMine";
 import { t } from "../../i18n";
 import { statusLabel } from "../../lib/status";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
 
-type Tab = "published" | "applied";
+type Tab = "published" | "applied" | "contributions";
 
 export default function MyChangas() {
   const { address } = useSession();
@@ -19,6 +19,7 @@ export default function MyChangas() {
   const published = useMyChangas();
   const applied = useMyApplications();
   const agreements = useMyAgreements();
+  const contributions = useMyContributions();
 
   if (!address) {
     return (
@@ -42,6 +43,7 @@ export default function MyChangas() {
         <Row>
           <Chip label={t.mine.published} selected={tab === "published"} onPress={() => setTab("published")} />
           <Chip label={t.mine.applied} selected={tab === "applied"} onPress={() => setTab("applied")} />
+          <Chip label={t.mine.contributions} selected={tab === "contributions"} onPress={() => setTab("contributions")} />
         </Row>
         {toConfirm.map((item) => (
           <AgreementBanner key={item.orderId} agreement={item} />
@@ -54,6 +56,21 @@ export default function MyChangas() {
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyPublished}</Secondary>}
           renderItem={({ item }) => <PublishedItem changa={item} waiting={item.orderId !== null && waiting.has(item.orderId)} />}
+        />
+      ) : tab === "contributions" ? (
+        <FlatList
+          contentContainerStyle={styles.list}
+          data={contributions.data ?? []}
+          keyExtractor={(item) => String(item.orderId)}
+          ListEmptyComponent={<Secondary>{t.contributions.empty}</Secondary>}
+          renderItem={({ item }) => (
+            <View style={styles.item}>
+              <Text style={text.subtitle}>{item.title ?? `#${item.orderId}`}</Text>
+              <Text style={styles.status}>{statusLabel(item.status ?? "")}</Text>
+              <Button label={t.contributions.open} variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} />
+              {item.status === "delivered" || item.status === "agreed" ? <Button label={t.mine.openOrder} variant="ghost" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} /> : null}
+            </View>
+          )}
         />
       ) : (
         <FlatList

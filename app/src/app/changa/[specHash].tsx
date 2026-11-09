@@ -52,7 +52,7 @@ export default function ChangaDetail() {
     isOwner && changa.status === "open" ? (
       <Button label={t.mine.viewApplications} onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
     ) : block === null ? (
-      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "", plan: spec.milestones ? "1" : "0" } })} />
+      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "", plan: spec.milestones ? "1" : "0", spec: changa.specHash } })} />
     ) : block === "anonymous" || block === "no-profile" ? (
       <Button label={t.welcome.needHand} onPress={() => router.push("/welcome")} />
     ) : null;
@@ -85,6 +85,7 @@ export default function ChangaDetail() {
       ) : null}
       {spec.milestones && spec.milestones.length > 0 ? (
         <Section label={t.milestonesBoard.title}>
+          {spec.materials ? <Secondary>{t.publish.materials[spec.materials]}</Secondary> : null}
           {spec.milestones.map((item, index) => (
             <View key={index} style={{ gap: 2, marginBottom: 8 }}>
               <Body>{`${index + 1}. ${item.name} · ${formatUsdc(item.amount)}`}</Body>
@@ -118,6 +119,7 @@ export default function ChangaDetail() {
         </Section>
       ) : null}
       {groupButton && changa.status === "open" ? groupButton : null}
+      {block !== "anonymous" && block !== "own" ? <Button label={t.report.changa} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } })} /> : null}
       {block && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
     </Screen>
   );

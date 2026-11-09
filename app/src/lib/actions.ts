@@ -1,6 +1,7 @@
 import { OrderStatus } from "../chain/orderAbi";
 
 export type Role = "payer" | "payee" | "viewer";
+export type ExtendedRole = Role | "contributor";
 
 export type OrderView =
   | "worker-working"
@@ -35,6 +36,10 @@ export function viewFor(status: number, role: Role): OrderView {
     default:
       return "other";
   }
+}
+
+export function extendedRole(role: Role, isGroup: boolean, contribution: bigint): ExtendedRole {
+  return role === "viewer" && isGroup && contribution > 0n ? "contributor" : role;
 }
 
 export function canFinish(evidenceCount: number, hasMilestones: boolean, isGroup: boolean): boolean {

@@ -90,3 +90,6 @@ export function parseMilestoneQr(text: string, nowSeconds: number): { data: Mile
     return "invalid";
   }
 }
+
+export const encodeReportProgress = (orderId: bigint, progressBps: number, evidenceHash: Hex): Hex => call("reportProgress", [orderId, progressBps, evidenceHash]);
+export const PROGRESS_STEPS = [2500, 5000, 7500, 10000] as const;

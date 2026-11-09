@@ -63,3 +63,5 @@ export const encodeRefundFunding = (orderId: bigint): Hex => call("refundFunding
 export const encodeProposeProvider = (orderId: bigint, payee: Address): Hex => call("proposeProvider", [orderId, payee]);
 export const encodeVetoProvider = (orderId: bigint): Hex => call("vetoProvider", [orderId]);
 export const encodeObject = (orderId: bigint, reasonHash: Hex, auth: { method: number; nonce: bigint; deadline: bigint; signature: Hex }): Hex => call("object", [orderId, reasonHash, auth]);
+
+export const encodeSupportCoordinator = (orderId: bigint, candidate: Address): Hex => call("supportCoordinator", [orderId, candidate]);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Share, StyleSheet, Text, View } from "react-native";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
-import { checkContribution, contributionLimits, encodeContribute, encodeRefundFunding, encodeVetoProvider, encodeWithdrawContribution, fundingProgress, percentOf, vetoOpen } from "../../chain/group";
+import { checkContribution, contributionLimits, encodeContribute, encodeSupportCoordinator, encodeRefundFunding, encodeVetoProvider, encodeWithdrawContribution, fundingProgress, percentOf, vetoOpen } from "../../chain/group";
 import { OrderStatus } from "../../chain/orderAbi";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readContributionRule, readGroup, readTokenBalance, readTokenNonce } from "../../chain/reader";
@@ -110,9 +110,14 @@ export default function GroupScreen() {
 
       <Text style={text.subtitle}>{t.group.contributors}</Text>
       {info.contributors.map((item) => (
-        <View key={item.address} style={styles.row}>
-          <Text style={text.body}>{item.address.toLowerCase() === me ? t.group.mine : shortAddress(item.address)}</Text>
-          <Text style={text.body}>{`${formatUsdc(item.amount.toString())} · ${percentOf(item.amount, info.target)}% ${t.group.percent}`}</Text>
+        <View key={item.address} style={{ gap: 4 }}>
+          <View style={styles.row}>
+            <Text style={text.body}>{item.address.toLowerCase() === me ? t.group.mine : shortAddress(item.address)}</Text>
+            <Text style={text.body}>{`${formatUsdc(item.amount.toString())} · ${percentOf(item.amount, info.target)}% ${t.group.percent}`}</Text>
+          </View>
+          {mine > 0n && item.address.toLowerCase() !== me && open ? (
+            <Button label={t.group.supportCoordinator} variant="ghost" onPress={() => send(encodeSupportCoordinator(BigInt(id), item.address), t.group.supportDone)} disabled={busy} />
+          ) : null}
         </View>
       ))}
 

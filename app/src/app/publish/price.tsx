@@ -74,6 +74,13 @@ export default function PublishPrice() {
             <Chip label={t.publish.no} selected={!draft.advance} onPress={() => update({ advance: false })} />
           </Row>
           <Secondary>{t.publish.advanceNote}</Secondary>
+          <Text style={text.label}>{t.publish.materialsLabel}</Text>
+          <Row>
+            <Chip label={t.publish.materialsPayer} selected={draft.materials === "payer"} onPress={() => update({ materials: "payer" })} />
+            <Chip label={t.publish.materialsAdvance} selected={draft.materials === "advance"} onPress={() => update({ materials: "advance", advance: true })} />
+            <Chip label={t.publish.materialsWorker} selected={draft.materials === "worker"} onPress={() => update({ materials: "worker" })} />
+          </Row>
+          <Secondary>{t.publish.materialsNote}</Secondary>
           {errors.milestones ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.milestonesError}</Text> : null}
           {errors.amount === "amountMin" ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.amountMinError}</Text> : null}
         </>

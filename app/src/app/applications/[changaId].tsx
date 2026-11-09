@@ -35,7 +35,7 @@ export default function ReceivedApplications() {
 
   const choose = async (application: ReceivedApplication, target: Changa) => {
     if (!address || target.orderId === null) return;
-    const plan = milestoneTerms(target.spec.milestones, target.spec.advance, target.specHash as `0x${string}`);
+    const plan = milestoneTerms(application.plan?.milestones ?? target.spec.milestones, application.plan ? application.plan.advance : target.spec.advance, target.specHash as `0x${string}`);
     const price = plan ? proposalPrice(null, target.amount) : proposalPrice(application.amount, target.amount);
     if (price === null) return;
     setBusy(application.id);
@@ -104,10 +104,18 @@ export default function ReceivedApplications() {
         ListEmptyComponent={<Secondary>{t.received.empty}</Secondary>}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={text.subtitle}>{item.profile?.name ?? item.applicant.slice(0, 8)}</Text>
+            <Text style={text.subtitle} onPress={() => router.push({ pathname: "/profile-public", params: { address: item.applicant } })}>{item.profile?.name ?? item.applicant.slice(0, 8)}</Text>
             <Secondary>{item.profile?.verified ? t.received.verified : t.received.unverified}</Secondary>
             <Text style={text.body}>{`${t.received.offer}: ${item.amount ? formatUsdc(item.amount) : changa ? `${formatUsdc(changa.amount)}` : t.received.publishedAmount}`}</Text>
             {item.message ? <Text style={text.body}>{item.message}</Text> : null}
+            {item.plan ? (
+              <View style={{ gap: 2 }}>
+                <Text style={text.label}>{t.planChange.proposes}</Text>
+                {item.plan.milestones.map((m, i) => (
+                  <Secondary key={i}>{`${i + 1}. ${m.name} · ${formatUsdc(m.amount)} · ${m.criteria}`}</Secondary>
+                ))}
+              </View>
+            ) : null}
             <Button label={t.received.talk} variant="ghost" onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } })} />
             {changa && changa.status === "open" && changa.spec.group ? <Button label={t.group.propose} variant="secondary" onPress={() => proposeProvider(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
             {changa && changa.status === "open" ? <Button label={t.received.choose} onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}

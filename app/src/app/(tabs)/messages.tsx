@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { ChatSummary, PublicProfile } from "../../api/types";
+import { loadPreview } from "../../chat/preview";
+import { secureKeyStorage } from "../../crypto/secureKeyStorage";
 import { Button, Secondary, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { useSession } from "../../session/SessionProvider";
@@ -25,6 +27,13 @@ function useCounterpartName(address: string) {
 
 function ChatRow({ chat }: { chat: ChatSummary }) {
   const name = useCounterpartName(chat.counterpart);
+  const { api, address } = useSession();
+  const preview = useQuery({
+    queryKey: ["preview", chat.applicationId, chat.lastSeq],
+    enabled: Boolean(address) && chat.lastSeq > 0,
+    staleTime: Infinity,
+    queryFn: () => loadPreview(api, secureKeyStorage, address as string, chat),
+  });
   return (
     <Pressable
       accessibilityRole="button"
@@ -36,6 +45,7 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
           {chat.title}
         </Text>
         <Secondary>{name.data?.name ?? t.chat.unknownUser}</Secondary>
+        {chat.lastSeq > 0 ? <Text style={text.secondary} numberOfLines={1}>{preview.data ?? (chat.unread ? t.chat.newMessage : "")}</Text> : null}
         {!chat.writable ? <Text style={text.label}>{t.chat.readOnly}</Text> : null}
       </View>
       {chat.unread ? <View style={styles.dot} accessibilityLabel={t.chat.unread} /> : null}

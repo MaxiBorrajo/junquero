@@ -160,6 +160,8 @@ export async function readGroup(orderId: number) {
     proposedAt: info.proposedAt,
     vetoMoney: info.vetoMoney,
     vetoCount: info.vetoCount,
+    objectionMoney: info.objectionMoney,
+    objectionCount: info.objectionCount,
     contributors: contributors.map((account, index) => ({ address: account, amount: amounts[index]! })),
   };
 }
@@ -184,3 +186,6 @@ export async function readMilestones(orderId: number) {
     paidTotal: plan.paidTotal,
   };
 }
+
+export const readContributionOf = (orderId: number, account: Address): Promise<bigint> =>
+  readContract(config(), { address: deployment.escrow, abi: groupAbi, functionName: "contributionOf", args: [BigInt(orderId), account] });

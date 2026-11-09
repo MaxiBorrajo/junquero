@@ -117,3 +117,44 @@ describe("gestor de claves", () => {
     expect(open).toBeDefined();
   });
 });
+
+import { loadPreview, previewText } from "../src/chat/preview";
+import { seal } from "../src/crypto/chat";
+
+describe("vista previa de mensajes", () => {
+  const mine = keyPairFromSeed(new Uint8Array(32).fill(7));
+  const theirs = keyPairFromSeed(new Uint8Array(32).fill(8));
+  const chat = { applicationId: 3, counterpart: "0xbbb0000000000000000000000000000000000002", lastSeq: 4 };
+
+  it("recorta y aplana el texto", () => {
+    expect(previewText("  hola\n\n  que tal  ")).toBe("hola que tal");
+    expect(previewText("x".repeat(100))).toHaveLength(70);
+    expect(previewText("x".repeat(100)).endsWith("…")).toBe(true);
+  });
+
+  it("descifra el último mensaje en el dispositivo sin pedir firmas", async () => {
+    const sealed = seal("Llego en diez minutos, ¿abrís la puerta?", mine.publicKey, theirs);
+    const calls: string[] = [];
+    const api = createApi({
+      baseUrl: "https://x",
+      getToken: () => "t",
+      fetcher: async (url) => {
+        calls.push(url);
+        if (url.includes("/me/chat-keys/")) return new Response(JSON.stringify({ publicKey: publicKeyHex(theirs) }), { status: 200 });
+        return new Response(JSON.stringify({ messages: [{ seq: 4, sender: chat.counterpart, nonce: sealed.nonce, body: sealed.body, clientId: "c", createdAt: 1 }] }), { status: 200 });
+      },
+    });
+    const storage = { getSecret: async () => secretKeyHex(mine) };
+    expect(await loadPreview(api, storage, "0xAAA", chat)).toBe("Llego en diez minutos, ¿abrís la puerta?");
+    expect(calls.some((url) => url.includes("after=3&limit=1"))).toBe(true);
+  });
+
+  it("no muestra nada si no hay clave guardada, no hay mensajes o no se puede descifrar", async () => {
+    const api = createApi({ baseUrl: "https://x", getToken: () => "t", fetcher: async () => new Response(JSON.stringify({ publicKey: publicKeyHex(theirs), messages: [] }), { status: 200 }) });
+    expect(await loadPreview(api, { getSecret: async () => null }, "0xA", chat)).toBeNull();
+    expect(await loadPreview(api, { getSecret: async () => secretKeyHex(mine) }, "0xA", chat)).toBeNull();
+    expect(await loadPreview(api, { getSecret: async () => secretKeyHex(mine) }, "0xA", { ...chat, lastSeq: 0 })).toBeNull();
+    const broken = createApi({ baseUrl: "https://x", getToken: () => "t", fetcher: async (url) => (url.includes("chat-keys") ? new Response(JSON.stringify({ publicKey: publicKeyHex(theirs) }), { status: 200 }) : new Response(JSON.stringify({ messages: [{ seq: 1, sender: "x", nonce: "AAAA", body: "AAAA", clientId: "c", createdAt: 1 }] }), { status: 200 })) });
+    expect(await loadPreview(broken, { getSecret: async () => secretKeyHex(mine) }, "0xA", chat)).toBeNull();
+  });
+});

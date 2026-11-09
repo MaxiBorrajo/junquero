@@ -136,3 +136,16 @@ describe("hitos y grupo en el borrador", () => {
     expect(groupDeadline(1, 0)).toBe(86400);
   });
 });
+
+describe("materiales", () => {
+  const plan2 = [
+    { name: "A", amount: "50", criteria: "Criterio", evidence: "Foto" },
+    { name: "B", amount: "30", criteria: "Criterio", evidence: "Foto" },
+  ];
+  it("sin elegir, los compra quien publica; con anticipo la ficha lo refleja", () => {
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "" }), "nonce-12345", NOW).materials).toBe("payer");
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "", advance: true }), "nonce-12345", NOW).materials).toBe("advance");
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "", materials: "worker" }), "nonce-12345", NOW).materials).toBe("worker");
+    expect(buildSpec(base(), "nonce-12345", NOW).materials).toBeUndefined();
+  });
+});

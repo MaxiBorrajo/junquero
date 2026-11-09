@@ -5,12 +5,13 @@ import QRCode from "react-native-qrcode-svg";
 import { router } from "expo-router";
 import type { Changa } from "../api/types";
 import { deployment } from "../chain/deployment";
-import { MilestoneStatus, encodeAbandon, encodeClaimAdvance, encodeDeclareAbandoned, encodeDeliverMilestone, encodeMilestoneQr, encodeTerminateEarly, milestoneReleaseTypedData } from "../chain/milestones";
+import { MilestoneStatus, PROGRESS_STEPS, encodeReportProgress, encodeAbandon, encodeClaimAdvance, encodeDeclareAbandoned, encodeDeliverMilestone, encodeMilestoneQr, encodeTerminateEarly, milestoneReleaseTypedData } from "../chain/milestones";
 import { RELEASE_VALIDITY_SECONDS, sendViaRelay } from "../chain/orderActions";
 import { readMilestones } from "../chain/reader";
 import { useEvidence, EvidenceGallery, EvidenceUploader } from "../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../evidence/crypto";
 import { t } from "../i18n";
+import { approveRemotely, releaseCall, type RemoteRelease } from "../chain/remoteRelease";
 import { allPaid, boardAction } from "../lib/board";
 import { formatDate } from "../lib/format";
 import { formatUsdc } from "../lib/money";
@@ -18,7 +19,7 @@ import { relayDepsFor } from "../lib/relayHelpers";
 import { useSession } from "../session/SessionProvider";
 import { isRejection, signTyped } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
-import { Body, Button, ErrorText, Secondary } from "./ui";
+import { Body, Button, Chip, ErrorText, Row, Secondary } from "./ui";
 import { Stars } from "./Stars";
 
 export function MilestoneBoard({ orderId, role, counterpart, changa, payee, deadline }: { orderId: number; role: "payer" | "payee" | "viewer"; counterpart: string; changa: Changa | null; payee: string; deadline: number }) {
@@ -32,6 +33,13 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   const [rating, setRating] = useState(5);
   const [qr, setQr] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [progress, setProgress] = useState<number>(PROGRESS_STEPS[1]);
+  const remote = useQuery({
+    queryKey: ["release", orderId, address, "m"],
+    enabled: Boolean(address),
+    refetchInterval: 15_000,
+    queryFn: async () => (await api.get<{ release: RemoteRelease | null }>(`/me/orders/${orderId}/release`)).release,
+  });
 
   if (!board.data || !address) return <Secondary>{t.common.loading}</Secondary>;
   const state = board.data;
@@ -58,6 +66,19 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   };
 
   const send = (data: `0x${string}`) => async () => void (await sendViaRelay(deps, data));
+
+  const approve = () =>
+    run(async () => {
+      if (!current) return;
+      await approveRemotely({ api, deployment, orderId, payee: payee as `0x${string}`, index: state.next, amount: current.amount, rating, evidenceHash: current.evidenceHash, now: Math.floor(Date.now() / 1000), sign: signTyped });
+      await queryClient.invalidateQueries({ queryKey: ["release", orderId] });
+    }, t.order.approved);
+
+  const claim = () =>
+    run(async () => {
+      if (!remote.data) return;
+      await sendViaRelay(deps, releaseCall(orderId, remote.data));
+    }, t.milestonesBoard.done);
 
   const showQr = () =>
     run(async () => {
@@ -96,9 +117,27 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
           />
         </>
       ) : null}
+      {action === "deliver" ? (
+        <>
+          <Text style={text.subtitle}>{t.progress.title}</Text>
+          <Secondary>{t.progress.hint}</Secondary>
+          <Row>
+            {PROGRESS_STEPS.map((step) => (
+              <Chip key={step} label={`${step / 100}%`} selected={progress === step} onPress={() => setProgress(step)} />
+            ))}
+          </Row>
+          <Button label={t.progress.report} variant="secondary" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done)} loading={busy} disabled={mine.length === 0} />
+        </>
+      ) : null}
       {action === "wait-review" ? (
         <>
           <Secondary>{t.order.autoRelease}</Secondary>
+          {remote.data && remote.data.index === state.next ? (
+            <>
+              <Body>{t.order.readyToClaim}</Body>
+              <Button label={t.order.claim} onPress={claim} loading={busy} />
+            </>
+          ) : null}
           <Button label={t.order.scanQr} onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(orderId) } })} />
         </>
       ) : null}
@@ -117,6 +156,8 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
               <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
               <Button label={t.milestonesBoard.showQr} onPress={showQr} loading={busy} />
+              <Button label={t.order.approveRemote} variant="secondary" onPress={approve} loading={busy} />
+              <Button label={t.order.problem} variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(orderId) } })} />
             </>
           )}
         </>

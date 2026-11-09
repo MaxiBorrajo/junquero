@@ -42,3 +42,21 @@ export function useReceivedApplications(changaId: number) {
     queryFn: async () => (await api.get<{ applications: ReceivedApplication[] }>(`/me/changas/${changaId}/applications`)).applications,
   });
 }
+
+export interface Contribution {
+  orderId: number;
+  changaId: number | null;
+  specHash: string | null;
+  status: string | null;
+  title: string | null;
+}
+
+export function useMyContributions() {
+  const { api, address } = useSession();
+  return useQuery({
+    queryKey: ["contributions", address],
+    enabled: Boolean(address),
+    refetchInterval: REFRESH_MS,
+    queryFn: async () => (await api.get<{ contributions: Contribution[] }>("/me/contributions")).contributions,
+  });
+}

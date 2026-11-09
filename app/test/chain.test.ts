@@ -66,3 +66,22 @@ describe("createOrder", () => {
     expect(JSON.parse(JSON.stringify(body)).gas).toBe("800000");
   });
 });
+
+import { agreementTypedData, proposalPrice } from "../src/chain/agreement";
+
+describe("acuerdo", () => {
+  it("el acuerdo da el mismo digest y firma que los vectores", async () => {
+    const vector = vectors.vectors.agreement;
+    const m = vector.message;
+    const typed = agreementTypedData(deployment, { orderId: BigInt(m.orderId), payer: m.payer, payee: m.payee, price: BigInt(m.price), specHash: m.specHash, termsHash: m.termsHash, expiry: Number(m.expiry) });
+    expect(hashTypedData(typed)).toBe(vector.digest);
+    const signer = await recoverTypedDataAddress({ ...typed, signature: vector.signatures.payer as Hex });
+    expect(signer.toLowerCase()).toBe(m.payer.toLowerCase());
+  });
+
+  it("el precio es la contraoferta o, si no hay, el monto publicado", () => {
+    expect(proposalPrice("7000000", "10000000")).toBe(7_000_000n);
+    expect(proposalPrice(null, "10000000")).toBe(10_000_000n);
+    expect(proposalPrice(null, null)).toBeNull();
+  });
+});

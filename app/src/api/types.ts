@@ -67,3 +67,39 @@ export interface Changa {
   status: ChangaStatus;
   createdAt: number;
 }
+
+export type ApplicationStatus = "active" | "withdrawn" | "chosen" | "closed";
+
+export interface Application {
+  id: number;
+  changaId: number;
+  applicant: string;
+  amount: string | null;
+  message: string;
+  attachments: Attachment[];
+  status: ApplicationStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MyApplication extends Application {
+  changa: { specHash: string; orderId: number | null; status: ChangaStatus };
+}
+
+export interface ReceivedApplication extends Application {
+  profile: { name: string; verified: boolean; zone: { lat: number; lng: number } } | null;
+}
+
+export type AgreementStatus = "pending" | "sending" | "submitted" | "expired";
+
+export interface AgreementRecord {
+  orderId: number;
+  payer: string;
+  payee: string;
+  price: string;
+  specHash: string;
+  termsHash: string;
+  expiry: number;
+  status: AgreementStatus;
+  txHash: string | null;
+}

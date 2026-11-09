@@ -32,6 +32,8 @@ describe("money", () => {
     expect(parseCounterOffer("-3")).toEqual({ ok: false });
     expect(parseCounterOffer("1e3")).toEqual({ ok: false });
     expect(parseCounterOffer("1.1234567")).toEqual({ ok: false });
+    expect(parseCounterOffer("11", 10_000_000n)).toEqual({ ok: false });
+    expect(parseCounterOffer("10", 10_000_000n)).toEqual({ ok: true, value: "10000000" });
   });
 });
 

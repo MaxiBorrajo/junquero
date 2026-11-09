@@ -10,7 +10,7 @@ import { useSession } from "../../session/SessionProvider";
 const MESSAGE_MAX = 500;
 
 export default function Apply() {
-  const { changaId } = useLocalSearchParams<{ changaId: string }>();
+  const { changaId, max } = useLocalSearchParams<{ changaId: string; max?: string }>();
   const { api } = useSession();
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
@@ -18,7 +18,7 @@ export default function Apply() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const offer = parseCounterOffer(amount);
+  const offer = parseCounterOffer(amount, max && /^\d+$/.test(max) ? BigInt(max) : undefined);
   const amountError = offer.ok ? null : t.apply.amountInvalid;
 
   const submit = async () => {

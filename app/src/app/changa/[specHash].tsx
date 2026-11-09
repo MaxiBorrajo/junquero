@@ -42,9 +42,12 @@ export default function ChangaDetail() {
 
   const { spec } = changa;
   const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null });
+  const isOwner = block === "own";
   const action =
-    block === null ? (
-      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id) } })} />
+    isOwner && changa.status === "open" ? (
+      <Button label={t.mine.viewApplications} onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
+    ) : block === null ? (
+      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "" } })} />
     ) : block === "anonymous" || block === "no-profile" ? (
       <Button label={t.welcome.needHand} onPress={() => router.push("/welcome")} />
     ) : null;

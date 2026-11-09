@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { signTypedData } from "wagmi/actions";
 import { ApiError } from "../../api/client";
 import { InsufficientBalance, publishChanga, waitUntilOpen, type PublishStep } from "../../chain/publish";
 import { deployment } from "../../chain/deployment";
@@ -14,7 +13,7 @@ import { formatAmount, formatUsdc } from "../../lib/money";
 import { parseAmount, validateAll } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { useSession } from "../../session/SessionProvider";
-import { wagmiAdapter } from "../../wallet/appkit";
+import { isRejection, signTyped } from "../../wallet/sign";
 import { text } from "../../theme";
 
 const STEP_TEXT: Record<PublishStep, string> = {
@@ -25,11 +24,6 @@ const STEP_TEXT: Record<PublishStep, string> = {
   relay: t.publish.stepRelay,
   confirming: t.publish.stepConfirming,
 };
-
-function isRejection(error: unknown): boolean {
-  const message = String((error as { message?: string })?.message ?? error).toLowerCase();
-  return message.includes("reject") || message.includes("denied") || message.includes("cancel");
-}
 
 export default function PublishReview() {
   const { draft, reset } = useDraft();
@@ -55,7 +49,7 @@ export default function PublishReview() {
           readBalance: () => readTokenBalance(account),
           readTokenNonce: () => readTokenNonce(account),
           readForwarderNonce: () => readForwarderNonce(account),
-          signTypedData: (typed) => signTypedData(wagmiAdapter.wagmiConfig, typed as Parameters<typeof signTypedData>[1]),
+          signTypedData: signTyped,
           onStep: setStep,
         },
         draft,

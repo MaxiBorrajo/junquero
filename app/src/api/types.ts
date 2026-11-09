@@ -31,3 +31,39 @@ export interface LoginResponse {
   expiresAt: number;
   address: string;
 }
+
+export interface Attachment {
+  hash: string;
+  name: string;
+  mime: string;
+  size: number;
+}
+
+export interface Spec {
+  v: number;
+  title: string;
+  description: string;
+  category: number;
+  modality: "onsite" | "remote";
+  nonce: string;
+  area?: WorkZone;
+  startsAt?: number;
+  deadline?: number;
+  durationMin?: number;
+  evidence: string[];
+  attachments: Attachment[];
+}
+
+export type ChangaStatus = "draft" | "open" | "agreed" | "delivered" | "settled" | "cancelled" | "disputed" | string;
+
+export interface Changa {
+  id: number;
+  owner: string;
+  specHash: string;
+  spec: Spec;
+  orderId: number | null;
+  token: string | null;
+  amount: string | null;
+  status: ChangaStatus;
+  createdAt: number;
+}

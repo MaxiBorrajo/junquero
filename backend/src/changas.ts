@@ -105,7 +105,7 @@ export async function saveDraft(
 }
 
 export async function listOpen(db: D1Database, filters: ListFilters): Promise<ChangaRow[]> {
-  const where = ["status = 'open'"];
+  const where = ["status = 'open'", "hidden = 0"];
   const values: (string | number)[] = [];
   if (filters.remote) {
     where.push("modality = 'remote'");
@@ -147,7 +147,7 @@ export async function getPublished(db: D1Database, specHash: string): Promise<Ch
   const { results } = await db
     .prepare(
       `SELECT id, owner, spec_hash, spec, order_id, token, amount, status, created_at
-       FROM changas WHERE spec_hash = ? AND order_id IS NOT NULL ORDER BY id DESC LIMIT 5`,
+       FROM changas WHERE spec_hash = ? AND order_id IS NOT NULL AND hidden = 0 ORDER BY id DESC LIMIT 5`,
     )
     .bind(specHash)
     .all<ChangaRow>();

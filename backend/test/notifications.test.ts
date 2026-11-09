@@ -160,7 +160,7 @@ describe("what triggers a notification", () => {
       headers: { authorization: `Bearer ${user.body.token}`, "content-type": "image/jpeg", "content-length": String(selfie.length), "x-content-sha256": sha256(selfie) },
     });
     const boss = await tokenFor(ctx.call, admin);
-    await ctx.call(`/admin/selfies/${owner.address}`, authed(boss.body.token, "POST", { approved: false }));
+    await ctx.call(`/admin/selfies/${owner.address}`, authed(boss.body.token, "POST", { approved: false, reason: "Foto borrosa" }));
     expect(rows(ctx).find((r) => r.kind === "selfie_rejected")?.address).toBe(owner.address.toLowerCase());
   });
 });

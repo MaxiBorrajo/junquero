@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { cors } from "hono/cors";
 import { createMiddleware } from "hono/factory";
 import {
   listForOwner,
@@ -31,6 +32,7 @@ import type { Env } from "./env";
 import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, upsertProfile, validateProfile } from "./profiles";
+import { listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
@@ -131,6 +133,15 @@ app.use("/files/*", limitBy((env) => env.FILE_LIMITER));
 app.use("/auth/*", limitBy((env) => env.AUTH_LIMITER));
 app.use("/me", requireAuth);
 app.use("/me/*", requireAuth);
+const adminCors = cors({
+  origin: (origin, c) => ((c.env as Env).ADMIN_ORIGINS ?? "").split(",").map((item) => item.trim()).filter(Boolean).includes(origin) ? origin : null,
+  allowHeaders: ["authorization", "content-type"],
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  maxAge: 3600,
+});
+app.use("/admin/*", adminCors);
+app.use("/auth/*", adminCors);
+app.use("/health", adminCors);
 app.use("/admin/*", requireAuth, requireAdmin);
 
 app.get("/health", async (c) => c.json({ ok: true, lastIndexedBlock: await readCursor(c.env.DB, startBlock) }));
@@ -252,14 +263,49 @@ app.get("/admin/selfies/:address", async (c) => {
 
 app.post("/admin/selfies/:address", async (c) => {
   const address = c.req.param("address").toLowerCase();
-  const body = (await readJson(c)) as { approved?: unknown } | undefined;
+  const body = (await readJson(c)) as { approved?: unknown; reason?: unknown } | undefined;
   if (!ADDRESS.test(address) || typeof body?.approved !== "boolean") return c.json({ error: "approved must be true or false" }, 400);
+  const parsed = body.approved && body.reason === undefined ? ({ ok: true, reason: "approved" } as const) : parseReason(body.reason);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const reviewed = await reviewSelfie(c.env.DB, address, body.approved, nowSeconds());
   if (!reviewed) return c.json({ error: "no pending selfie" }, 404);
   const stored = await pendingSelfieHash(c.env.DB, address);
   if (stored) await deleteFile(c.env.DB, c.env.FILES, address, stored.hash);
   await queueNotification(c.env.DB, address, body.approved ? "selfie_approved" : "selfie_rejected", "selfie").run();
+  await logAction(c.env.DB, c.get("address"), body.approved ? "selfie_approved" : "selfie_rejected", address, parsed.reason, nowSeconds()).run();
   return c.json({ selfieStatus: body.approved ? "approved" : "rejected" });
+});
+
+app.get("/admin/summary", async (c) => c.json(await cachedRead(c.req.url, () => adminSummary(c.env.DB, nowSeconds()))));
+
+app.get("/admin/changas", async (c) => {
+  const query = c.req.query();
+  const before = optionalInt(query.before);
+  if (before === null) return c.json({ error: "invalid filter" }, 400);
+  return c.json({ changas: await adminChangas(c.env.DB, { status: query.status || undefined, before, limit: parseLimit(query.limit, 50, 100) }) });
+});
+
+app.post("/admin/changas/:id/hidden", async (c) => {
+  const id = parseChangaId(c.req.param("id"));
+  const body = (await readJson(c)) as { hidden?: unknown; reason?: unknown } | undefined;
+  if (id === null || typeof body?.hidden !== "boolean") return c.json({ error: "hidden must be true or false" }, 400);
+  const parsed = parseReason(body.reason);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  if (!(await setHidden(c.env.DB, id, body.hidden))) return c.json({ error: "changa not found" }, 404);
+  readCache.clear();
+  await logAction(c.env.DB, c.get("address"), body.hidden ? "changa_hidden" : "changa_restored", String(id), parsed.reason, nowSeconds()).run();
+  return c.json({ hidden: body.hidden });
+});
+
+app.get("/admin/users", async (c) => {
+  const query = c.req.query();
+  return c.json({ users: await listUsers(c.env.DB, { query: query.q?.slice(0, 40) || undefined, before: query.before?.toLowerCase(), limit: parseLimit(query.limit, 50, 100) }) });
+});
+
+app.get("/admin/log", async (c) => {
+  const before = optionalInt(c.req.query("before"));
+  if (before === null) return c.json({ error: "invalid filter" }, 400);
+  return c.json({ log: await listLog(c.env.DB, parseLimit(c.req.query("limit"), 50, 100), before) });
 });
 
 app.get("/files/:owner/:hash", async (c) => {

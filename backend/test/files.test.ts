@@ -218,7 +218,7 @@ describe("selfie review", () => {
     const ctx = setup();
     const { user } = await submitted(ctx);
     const boss = await tokenFor(ctx.call, admin);
-    await ctx.call(`/admin/selfies/${owner.address}`, authed(boss.body.token, "POST", { approved: false }));
+    await ctx.call(`/admin/selfies/${owner.address}`, authed(boss.body.token, "POST", { approved: false, reason: "Foto borrosa" }));
     expect(((await (await ctx.call("/me", authed(user.body.token, "GET"))).json()) as any).profile.selfieStatus).toBe("rejected");
     const retry = new Uint8Array([255, 216, 255, 9, 9, 9]);
     expect((await upload(ctx, user.body.token, retry, "image/jpeg", "/me/selfie")).status).toBe(202);

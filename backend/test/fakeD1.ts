@@ -37,14 +37,15 @@ export function createFakeD1(): { db: D1Database; raw: DatabaseSync } {
     prepare: (sql: string) => new FakeStatement(raw, sql),
     async batch(statements: FakeStatement[]) {
       raw.exec("BEGIN");
+      const results: unknown[] = [];
       try {
-        for (const statement of statements) await statement.run();
+        for (const statement of statements) results.push(/^\s*SELECT/i.test(statement.sql) ? await statement.all() : await statement.run());
         raw.exec("COMMIT");
       } catch (error) {
         raw.exec("ROLLBACK");
         throw error;
       }
-      return [];
+      return results;
     },
   };
   return { db: db as unknown as D1Database, raw };

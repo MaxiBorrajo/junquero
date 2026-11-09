@@ -8,6 +8,7 @@ export interface Env {
   RELAYER_KEY: `0x${string}`;
   AUTH_SECRET: string;
   ADMIN_ADDRESSES: string;
+  ADMIN_ORIGINS?: string;
   RELAY_LIMITER: Limiter;
   READ_LIMITER: Limiter;
   AUTH_LIMITER: Limiter;

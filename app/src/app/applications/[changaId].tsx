@@ -10,7 +10,7 @@ import { relayDepsFor } from "../../lib/relayHelpers";
 import { AGREEMENT_VALIDITY_SECONDS, ZERO_HASH, agreementTypedData, proposalPrice } from "../../chain/agreement";
 import { milestoneTerms, milestoneTermsHash } from "../../chain/terms";
 import { deployment } from "../../chain/deployment";
-import { Button, ErrorText, Secondary, Title } from "../../components/ui";
+import { BackButton, Button, ErrorText, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
 import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
@@ -84,6 +84,7 @@ export default function ReceivedApplications() {
 
   return (
     <SafeAreaView style={styles.screen}>
+      <BackButton />
       <FlatList
         contentContainerStyle={styles.list}
         data={applications.data ?? []}

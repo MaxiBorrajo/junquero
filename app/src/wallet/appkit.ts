@@ -13,6 +13,7 @@ export const appKit = createAppKit({
   defaultNetwork: sepolia,
   adapters: [wagmiAdapter],
   storage: walletStorage,
+  features: { socials: false },
   metadata: {
     name: "Junquero",
     description: "Changas con pago en garantía",

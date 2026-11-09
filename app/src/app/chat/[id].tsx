@@ -1,9 +1,9 @@
 import { useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useChatRoom } from "../../chat/useChatRoom";
-import { Body, Button, ErrorText, Secondary } from "../../components/ui";
+import { BackButton, Body, Button, ErrorText, Secondary } from "../../components/ui";
 import { t } from "../../i18n";
 import { colors, radius, spacing, text } from "../../theme";
 
@@ -21,6 +21,7 @@ export default function ChatScreen() {
   if (room.status !== "ready") {
     return (
       <SafeAreaView style={styles.screen}>
+        <BackButton />
         <View style={styles.center}>
           {room.status === "loading" ? <Body>{t.chat.activating}</Body> : null}
           {room.status === "key-denied" ? <ErrorText>{t.chat.keyDenied}</ErrorText> : null}
@@ -34,7 +35,8 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={styles.screen} behavior="padding">
+        <BackButton />
         <View style={styles.header}>
           <Text style={text.subtitle} numberOfLines={1}>
             {title ?? ""}

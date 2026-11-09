@@ -11,7 +11,7 @@ export default function Done() {
   const publishFirst = getFirstScreen() === "publish" && status === "approved";
 
   return (
-    <Screen
+    <Screen back={false}
       footer={
         <>
           {status === "rejected" ? <Button label={t.done.retake} onPress={() => router.replace("/selfie")} /> : null}

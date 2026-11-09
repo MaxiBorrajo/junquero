@@ -1,19 +1,34 @@
+import { router } from "expo-router";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { t } from "../i18n";
 import { colors, radius, spacing, text } from "../theme";
+import { Icon } from "./Icon";
 
-export function Screen({ children, scroll = true, footer }: { children: ReactNode; scroll?: boolean; footer?: ReactNode }) {
+export function BackButton() {
+  if (!router.canGoBack()) return null;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} onPress={() => router.back()} style={styles.back}>
+      <Icon name="back" size={22} color={colors.ink} />
+    </Pressable>
+  );
+}
+
+export function Screen({ children, scroll = true, footer, back = true }: { children: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean }) {
   return (
     <SafeAreaView style={styles.screen}>
-      {scroll ? (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={styles.content}>{children}</View>
-      )}
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        {back ? <BackButton /> : null}
+        {scroll ? (
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={styles.content}>{children}</View>
+        )}
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -106,6 +121,8 @@ const labelStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  back: { width: 44, height: 44, marginLeft: spacing.sm, alignItems: "center", justifyContent: "center" },
   content: { padding: spacing.md, gap: spacing.md, flexGrow: 1 },
   footer: { padding: spacing.md, gap: spacing.sm },
   button: { minHeight: 52, borderRadius: radius.md, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.lg },

@@ -181,16 +181,6 @@ export function buildSpec(draft: Draft, nonce: string, nowSeconds: number = Math
 
 export const groupDeadline = (days: number, nowSeconds: number): number => nowSeconds + days * 86400;
 
-export function dayOptions(now: Date, count: number): Date[] {
-  const days: Date[] = [];
-  for (let i = 0; i < count; i += 1) days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() + i));
-  return days;
-}
-
-export function atTime(day: Date, hour: number, minute = 0): number {
-  return Math.floor(new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute).getTime() / 1000);
-}
-
 export function setModality(draft: Draft, modality: Modality): Draft {
   if (modality === draft.modality) return draft;
   return { ...draft, modality, point: null, approx: null, startsAt: null, deadline: null };

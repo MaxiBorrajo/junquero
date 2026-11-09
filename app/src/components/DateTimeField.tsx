@@ -1,46 +1,61 @@
-import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { Chip, Row } from "./ui";
+import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Icon, type IconName } from "./Icon";
 import { t } from "../i18n";
-import { atTime, dayOptions } from "../publish/draft";
-import { spacing, text } from "../theme";
+import { lastPickableDay, startOfDay, withDay, withTime } from "../lib/datetime";
+import { colors, radius, spacing, text } from "../theme";
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
-const MINUTES = [0, 15, 30, 45];
+const dayText = (date: Date): string => date.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+const timeText = (date: Date): string => date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-const dayLabel = (day: Date): string => day.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
-
-export function DateTimeField({ value, onChange, dayCount = 21 }: { value: number | null; onChange: (seconds: number) => void; dayCount?: number }) {
-  const days = useMemo(() => dayOptions(new Date(), dayCount), [dayCount]);
+export function DateTimeField({ value, onChange }: { value: number | null; onChange: (seconds: number) => void }) {
   const current = value === null ? null : new Date(value * 1000);
-  const selectedDay = current ? days.find((day) => day.toDateString() === current.toDateString()) ?? null : null;
-  const hour = current?.getHours() ?? 9;
-  const minute = current?.getMinutes() ?? 0;
+
+  const pickDay = () => {
+    const now = new Date();
+    DateTimePickerAndroid.open({
+      value: current ?? now,
+      mode: "date",
+      minimumDate: startOfDay(now),
+      maximumDate: lastPickableDay(now),
+      onValueChange: (_event, date) => onChange(withDay(value, date)),
+    });
+  };
+
+  const pickTime = () => {
+    const now = new Date();
+    DateTimePickerAndroid.open({
+      value: current ?? now,
+      mode: "time",
+      is24Hour: true,
+      onValueChange: (_event, date) => onChange(withTime(value, date, now)),
+    });
+  };
 
   return (
     <View style={styles.box}>
-      <Text style={text.label}>{t.publish.day}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {days.map((day) => (
-          <Chip key={day.toISOString()} label={dayLabel(day)} selected={selectedDay?.toDateString() === day.toDateString()} onPress={() => onChange(atTime(day, hour, minute))} />
-        ))}
-      </ScrollView>
-      <Text style={text.label}>{t.publish.time}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {HOURS.map((h) => (
-          <Chip key={h} label={`${String(h).padStart(2, "0")} h`} selected={current !== null && hour === h} onPress={() => onChange(atTime(selectedDay ?? days[0]!, h, minute))} />
-        ))}
-      </ScrollView>
-      <Row>
-        {MINUTES.map((m) => (
-          <Chip key={m} label={`:${String(m).padStart(2, "0")}`} selected={current !== null && minute === m} onPress={() => onChange(atTime(selectedDay ?? days[0]!, hour, m))} />
-        ))}
-      </Row>
+      <Cell icon="calendar" label={t.publish.day} value={current ? dayText(current) : t.publish.pickDay} filled={current !== null} onPress={pickDay} />
+      <Cell icon="clock" label={t.publish.time} value={current ? timeText(current) : t.publish.pickTime} filled={current !== null} onPress={pickTime} />
     </View>
+  );
+}
+
+function Cell({ icon, label, value, filled, onPress }: { icon: IconName; label: string; value: string; filled: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.cell, pressed && styles.pressed]}>
+      <Icon name={icon} size={22} color={colors.brick} />
+      <View style={styles.cellText}>
+        <Text style={text.secondary}>{label}</Text>
+        <Text style={[text.body, !filled && styles.placeholder]}>{value}</Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   box: { gap: spacing.sm },
-  scroll: { gap: spacing.sm },
+  cell: { flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, minHeight: 64 },
+  cellText: { flex: 1 },
+  placeholder: { color: colors.muted },
+  pressed: { opacity: 0.85 },
 });

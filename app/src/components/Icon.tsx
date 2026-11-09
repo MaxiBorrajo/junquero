@@ -20,6 +20,9 @@ export const icons = {
   file: [path("M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"), path("M14 2v4a2 2 0 0 0 2 2h4")],
   close: [path("M18 6 6 18"), path("m6 6 12 12")],
   calendar: [path("M8 2v4"), path("M16 2v4"), { kind: "rect", x: 3, y: 4, width: 18, height: 18, rx: 2 }, path("M3 10h18")],
+  pin: [path("M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"), { kind: "circle", cx: 12, cy: 10, r: 3 }],
+  minus: [path("M5 12h14")],
+  plus: [path("M5 12h14"), path("M12 5v14")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 6v6l4 2")],
 } as const satisfies Record<string, readonly Shape[]>;
 

@@ -37,9 +37,10 @@ export async function publishChanga(deps: PublishDeps, draft: Draft, amount: big
 
   deps.onStep?.("spec");
   const spec = buildSpec(draft, deps.nonce(), deps.now());
-  const saved = await api.send<{ specHash: Hex }>("POST", "/me/changas", spec);
+  const savedRequest = api.send<{ specHash: Hex }>("POST", "/me/changas", spec);
 
   if (spec.group) {
+    const [saved, groupNonce] = await Promise.all([savedRequest, deps.readForwarderNonce()]);
     deps.onStep?.("forward");
     const groupData = encodeCreateGroup(
       deployment,
@@ -47,7 +48,6 @@ export async function publishChanga(deps: PublishDeps, draft: Draft, amount: big
       spec.group.fundingDeadline,
     );
     const groupDeadline = deps.now() + FORWARD_VALIDITY_SECONDS;
-    const groupNonce = await deps.readForwarderNonce();
     const groupSignature = await deps.signTypedData(forwardTypedData(deployment, account, deployment.escrow, groupData, groupNonce, groupDeadline, GAS_CREATE_ORDER));
     deps.onStep?.("relay");
     const sent = await api.send<{ txHash: Hex }>("POST", "/relay", relayBody(account, deployment.escrow, groupData, GAS_CREATE_ORDER, groupDeadline, groupSignature));
@@ -55,20 +55,18 @@ export async function publishChanga(deps: PublishDeps, draft: Draft, amount: big
     return { specHash: saved.specHash, txHash: sent.txHash };
   }
 
+  const [saved, balance, permitNonce, forwardNonce] = await Promise.all([savedRequest, deps.readBalance(), deps.readTokenNonce(), deps.readForwarderNonce()]);
   deps.onStep?.("balance");
-  const balance = await deps.readBalance();
   if (balance < amount) throw new InsufficientBalance(amount - balance);
 
   deps.onStep?.("permit");
   const permitDeadline = BigInt(deps.now() + PERMIT_VALIDITY_SECONDS);
-  const permitNonce = await deps.readTokenNonce();
   const permitSignature = await deps.signTypedData(permitTypedData(deployment, account, amount, permitNonce, permitDeadline));
 
   const data = encodeCreateOrder(deployment, { amount, specHash: saved.specHash, spec }, permitSignature, permitDeadline);
 
   deps.onStep?.("forward");
   const forwardDeadline = deps.now() + FORWARD_VALIDITY_SECONDS;
-  const forwardNonce = await deps.readForwarderNonce();
   const forwardSignature = await deps.signTypedData(forwardTypedData(deployment, account, deployment.escrow, data, forwardNonce, forwardDeadline, GAS_CREATE_ORDER));
 
   deps.onStep?.("relay");

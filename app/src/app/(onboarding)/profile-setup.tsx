@@ -3,20 +3,18 @@ import * as Location from "expo-location";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
+import { RadiusStepper } from "../../components/RadiusStepper";
 import { ZonePicker } from "../../components/ZonePicker";
 import { API_URL, DEFAULT_CENTER } from "../../config";
 import { t } from "../../i18n";
+import { takeProfilePhoto } from "../../lib/pick";
 import { readBytes, uploadBytes, type Uploaded } from "../../lib/files";
 import type { LatLng } from "../../lib/geo";
 import { isValidName, normalizeName } from "../../lib/validation";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
-
-const RADII = [1000, 2000, 5000, 10000, 25000];
-
-const kmLabel = (meters: number): string => `${meters / 1000} km`;
 
 export default function ProfileSetup() {
   const { api, profile, refresh } = useSession();
@@ -51,6 +49,13 @@ export default function ProfileSetup() {
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     setPhoto({ uri: asset.uri, mime: asset.mimeType ?? "image/jpeg" });
+    setKeepPhoto(null);
+  };
+
+  const snapPhoto = async () => {
+    const taken = await takeProfilePhoto();
+    if (!taken) return;
+    setPhoto({ uri: taken.uri, mime: taken.mime });
     setKeepPhoto(null);
   };
 
@@ -90,7 +95,8 @@ export default function ProfileSetup() {
         {shownPhoto ? <Image source={{ uri: shownPhoto }} style={styles.photo} /> : <View style={[styles.photo, styles.photoEmpty]} />}
         <View style={styles.photoActions}>
           <Text style={text.label}>{t.profile.photo}</Text>
-          <Button label={t.profile.pickPhoto} variant="secondary" onPress={pickPhoto} />
+          <Button label={t.profile.takePhoto} variant="secondary" onPress={snapPhoto} />
+          <Button label={t.profile.pickPhoto} variant="ghost" onPress={pickPhoto} />
           {shownPhoto ? (
             <Button
               label={t.profile.removePhoto}
@@ -106,13 +112,7 @@ export default function ProfileSetup() {
       <Text style={text.subtitle}>{t.profile.zone}</Text>
       <Secondary>{t.profile.zoneHint}</Secondary>
       <ZonePicker center={center} radiusM={radiusM} onChange={setCenter} />
-      <View style={styles.chips}>
-        {RADII.map((value) => (
-          <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: value === radiusM }} onPress={() => setRadiusM(value)} style={[styles.chip, value === radiusM && styles.chipOn]}>
-            <Text style={[text.label, value === radiusM && styles.chipOnLabel]}>{kmLabel(value)}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <RadiusStepper value={radiusM} onChange={setRadiusM} />
       <Button label={t.profile.useMyLocation} variant="ghost" onPress={useLocation} />
       {message ? <ErrorText>{message}</ErrorText> : null}
     </Screen>
@@ -124,8 +124,4 @@ const styles = StyleSheet.create({
   photoActions: { flex: 1, gap: spacing.xs },
   photo: { width: 88, height: 88, borderRadius: radius.pill },
   photoEmpty: { backgroundColor: colors.map },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
-  chipOn: { backgroundColor: colors.brick, borderColor: colors.brick },
-  chipOnLabel: { color: colors.white },
 });

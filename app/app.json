@@ -16,19 +16,50 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-localization",
-      ["expo-splash-screen", { "backgroundColor": "#F4EEE6", "image": "./assets/images/splash-icon.png", "imageWidth": 120 }],
-      ["expo-camera", { "cameraPermission": "Junquero usa la cámara para tu selfie de verificación y las fotos del trabajo." }],
-      ["expo-location", { "locationWhenInUsePermission": "Junquero usa tu ubicación para mostrarte changas cerca." }],
-      ["expo-image-picker", { "photosPermission": "Junquero necesita tus fotos para adjuntarlas." }],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F4EEE6",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Junquero usa la cámara para tu selfie de verificación y las fotos del trabajo."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Junquero usa tu ubicación para mostrarte changas cerca."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Junquero necesita tus fotos para adjuntarlas."
+        }
+      ],
       "expo-notifications",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "@react-native-community/datetimepicker"
     ],
-    "experiments": { "typedRoutes": true, "reactCompiler": true }
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
   }
 }

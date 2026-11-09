@@ -73,6 +73,12 @@ export default function JuryHub() {
       <Title>{t.jury.title}</Title>
       <Secondary>{t.jury.explanation}</Secondary>
       <View style={styles.box}>
+        <Text style={text.subtitle}>{t.jury.howTitle}</Text>
+        {t.jury.how.map((line) => (
+          <Secondary key={line}>{`•  ${line}`}</Secondary>
+        ))}
+      </View>
+      <View style={styles.box}>
         <Row label={t.jury.stake} value={account.data ? formatAmount(account.data.staked.toString()) : "-"} />
         <Row label={t.jury.locked} value={account.data ? formatAmount(account.data.locked.toString()) : "-"} />
         <Row label={t.jury.active} value={account.data ? String(account.data.active) : "-"} />

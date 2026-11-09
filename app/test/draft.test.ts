@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atTime, buildSpec, dayOptions, emptyDraft, parseAmount, setModality, validateAll, validateBasics, validatePrice, validateWhen, withApproximateZone, type Draft } from "../src/publish/draft";
+import { buildSpec, emptyDraft, parseAmount, setModality, validateAll, validateBasics, validatePrice, validateWhen, withApproximateZone, type Draft } from "../src/publish/draft";
 import { distanceM } from "../src/lib/geo";
 
 const NOW = 1_800_000_000;
@@ -81,14 +81,6 @@ describe("borrador", () => {
     const d = distanceM(draft.point!, draft.approx!);
     expect(d).toBeGreaterThan(39);
     expect(d).toBeLessThan(151);
-  });
-
-  it("arma opciones de día y horario", () => {
-    const days = dayOptions(new Date(2026, 10, 9, 15, 30), 3);
-    expect(days.map((d) => d.getDate())).toEqual([9, 10, 11]);
-    const ts = atTime(days[1]!, 9, 30);
-    const back = new Date(ts * 1000);
-    expect([back.getDate(), back.getHours(), back.getMinutes()]).toEqual([10, 9, 30]);
   });
 });
 

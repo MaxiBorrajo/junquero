@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import * as Location from "expo-location";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Text } from "react-native";
 import { Chip, Button, Row, Secondary } from "../../components/ui";
 import { DateTimeField } from "../../components/DateTimeField";
@@ -24,6 +24,10 @@ export default function PublishWhen() {
 
   const setPoint = (point: { lat: number; lng: number }) => update((d) => withApproximateZone(d, point, Math.random));
 
+  useEffect(() => {
+    if (onsite && !draft.point) setPoint(fallback);
+  }, []);
+
   const useMyLocation = async () => {
     const permission = await Location.requestForegroundPermissionsAsync();
     if (!permission.granted) return;
@@ -43,7 +47,7 @@ export default function PublishWhen() {
       {onsite ? (
         <>
           <Text style={text.label}>{t.publish.wherePoint}</Text>
-          <ZonePicker center={draft.point ?? fallback} radiusM={draft.point ? 300 : 0} onChange={setPoint} />
+          <ZonePicker center={draft.point ?? fallback} radiusM={0} onChange={setPoint} />
           <Secondary>{t.publish.wherePrivacy}</Secondary>
           <Button label={t.profile.useMyLocation} variant="ghost" onPress={useMyLocation} />
           {errors.point ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.pointError}</Text> : null}
@@ -58,6 +62,7 @@ export default function PublishWhen() {
         </>
       )}
       <Text style={text.label}>{t.publish.durationLabel}</Text>
+      <Secondary>{t.publish.durationHint}</Secondary>
       <Row>
         {t.publish.durations.map((minutes) => (
           <Chip key={minutes} label={formatDuration(minutes)} selected={draft.durationMin === minutes} onPress={() => update({ durationMin: draft.durationMin === minutes ? null : minutes })} />

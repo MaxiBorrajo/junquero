@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { ApiError } from "../../api/client";
-import { InsufficientBalance, publishChanga, waitUntilOpen, type PublishStep } from "../../chain/publish";
+import { InsufficientBalance, publishChanga, type PublishStep } from "../../chain/publish";
 import { deployment } from "../../chain/deployment";
 import { readForwarderNonce, readTokenBalance, readTokenNonce } from "../../chain/reader";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -55,10 +55,10 @@ export default function PublishReview() {
         draft,
         amount,
       );
-      const open = await waitUntilOpen(api, result.specHash, { attempts: 12, delayMs: 10_000, statuses: draft.kind === "group" ? ["funding", "open"] : ["open"] });
-      await queryClient.invalidateQueries({ queryKey: ["changas"] });
+      void queryClient.invalidateQueries({ queryKey: ["changas"] });
+      const group = draft.kind === "group";
       reset();
-      router.replace({ pathname: "/publish/done", params: { confirmed: open ? "1" : "0", group: draft.kind === "group" ? "1" : "0", spec: result.specHash } });
+      router.replace({ pathname: "/publish/done", params: { confirmed: "0", group: group ? "1" : "0", spec: result.specHash } });
     } catch (failure) {
       setStep(null);
       if (failure instanceof InsufficientBalance) setError(t.publish.insufficient.replace("{amount}", formatAmount(failure.missing.toString())));
@@ -69,7 +69,7 @@ export default function PublishReview() {
   };
 
   return (
-    <Screen footer={<Button label={t.publish.publishAction} onPress={publish} loading={step !== null} disabled={invalid} />}>
+    <Screen footer={<Button label={step ? STEP_TEXT[step] : t.publish.publishAction} onPress={publish} loading={step !== null} disabled={invalid} />}>
       <Title>{t.publish.reviewTitle}</Title>
       <Text style={text.subtitle}>{draft.title}</Text>
       <Text style={text.amount}>{amount !== null ? formatUsdc(amount.toString()) : "-"}</Text>
@@ -82,7 +82,6 @@ export default function PublishReview() {
         {draft.attachments.length > 0 ? <Secondary>{`${draft.attachments.length} ${t.detail.attachments.toLowerCase()}`}</Secondary> : null}
       </View>
       <Secondary>{t.publish.reviewNote}</Secondary>
-      {step ? <Body>{STEP_TEXT[step]}</Body> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>
   );

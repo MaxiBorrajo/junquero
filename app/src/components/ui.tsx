@@ -57,7 +57,14 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [styles.button, buttonStyles[variant], inactive && styles.inactive, pressed && styles.pressed]}
     >
-      {loading ? <ActivityIndicator color={variant === "primary" ? colors.white : colors.brick} /> : <Text style={[styles.buttonLabel, labelStyles[variant]]}>{label}</Text>}
+      {loading ? (
+        <View style={styles.busy}>
+          <ActivityIndicator color={variant === "primary" ? colors.white : colors.brick} />
+          {label ? <Text style={[styles.buttonLabel, labelStyles[variant]]}>{label}</Text> : null}
+        </View>
+      ) : (
+        <Text style={[styles.buttonLabel, labelStyles[variant]]}>{label}</Text>
+      )}
     </Pressable>
   );
 }
@@ -127,6 +134,7 @@ const styles = StyleSheet.create({
   footer: { padding: spacing.md, gap: spacing.sm },
   button: { minHeight: 52, borderRadius: radius.md, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.lg },
   buttonLabel: { ...text.button },
+  busy: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   inactive: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
   errorBox: { flexDirection: "row", gap: spacing.sm, backgroundColor: colors.white, borderColor: colors.error, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, alignItems: "center" },

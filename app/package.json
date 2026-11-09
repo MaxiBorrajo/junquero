@@ -47,7 +47,9 @@
     "wagmi": "^2.19.5"
   },
   "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14",
     "@types/react": "~19.3.0",
+    "libsodium-wrappers": "^0.8.4",
     "typescript": "~6.0.3",
     "vitest": "^5.1.0"
   },

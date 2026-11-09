@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { WagmiProvider } from "wagmi";
 import { colors } from "../theme";
+import { ChatKeyProvider } from "../chat/ChatKeyProvider";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { appKit, wagmiAdapter } from "../wallet/appkit";
 
@@ -38,7 +39,9 @@ export default function RootLayout() {
       <WagmiProvider config={wagmiAdapter.wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
-            <Shell />
+            <ChatKeyProvider>
+              <Shell />
+            </ChatKeyProvider>
             <View style={{ position: "absolute", height: "100%", width: "100%" }} pointerEvents="box-none">
               <AppKit />
             </View>

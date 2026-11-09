@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -87,6 +87,7 @@ export default function ReceivedApplications() {
             <Secondary>{item.profile?.verified ? t.received.verified : t.received.unverified}</Secondary>
             <Text style={text.body}>{`${t.received.offer}: ${item.amount ? formatUsdc(item.amount) : changa ? `${formatUsdc(changa.amount)}` : t.received.publishedAmount}`}</Text>
             {item.message ? <Text style={text.body}>{item.message}</Text> : null}
+            <Button label={t.received.talk} variant="ghost" onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } })} />
             {changa && changa.status === "open" ? <Button label={t.received.choose} onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
           </View>
         )}

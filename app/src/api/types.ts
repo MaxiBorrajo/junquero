@@ -103,3 +103,22 @@ export interface AgreementRecord {
   status: AgreementStatus;
   txHash: string | null;
 }
+
+export interface ChatSummary {
+  applicationId: number;
+  changaId: number;
+  title: string;
+  counterpart: string;
+  writable: boolean;
+  lastSeq: number;
+  lastSender: string | null;
+  lastAt: number | null;
+  unread: boolean;
+}
+
+export interface PublicProfile {
+  address: string;
+  name: string;
+  photo: FileRef | null;
+  verified: boolean;
+}

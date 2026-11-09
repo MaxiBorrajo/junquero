@@ -31,6 +31,16 @@ export const partiesHandler: EventHandler = (db: D1Database, events: StreamEvent
             .bind(event.order_id, payee.toLowerCase()),
         );
       }
+    } else if ((event.name === "GroupCreated" || event.name === "CoordinatorChanged") && event.order_id !== null) {
+      const args = parse<{ coordinator?: string; current?: string }>(event.args);
+      const coordinator = event.name === "GroupCreated" ? args?.coordinator : args?.current;
+      if (coordinator && isAddress(coordinator)) {
+        statements.push(
+          db
+            .prepare("INSERT INTO order_parties (order_id, payer) VALUES (?, ?) ON CONFLICT(order_id) DO UPDATE SET payer = excluded.payer")
+            .bind(event.order_id, coordinator.toLowerCase()),
+        );
+      }
     } else if (event.name === "ReservationWithdrawn" && event.order_id !== null) {
       statements.push(db.prepare("UPDATE order_parties SET payee = NULL WHERE order_id = ?").bind(event.order_id));
     } else if (event.name === "CaseOpened" && event.order_id !== null && event.case_id !== null) {

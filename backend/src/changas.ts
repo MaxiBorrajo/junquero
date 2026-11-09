@@ -173,6 +173,7 @@ interface CreatedArgs {
 }
 
 export function createChangasHandler(decimalsByToken: ReadonlyMap<string, number>): EventHandler {
+  const [groupToken, groupDecimals] = [...decimalsByToken.entries()][0] ?? ["", DEFAULT_DECIMALS];
   return (db: D1Database, events: StreamEvent[]) => {
     const statements: D1PreparedStatement[] = [];
     for (const event of events) {
@@ -196,6 +197,32 @@ export function createChangasHandler(decimalsByToken: ReadonlyMap<string, number
               args.specHash.toLowerCase(),
             ),
         );
+        continue;
+      }
+      if (event.name === "GroupCreated" && event.args) {
+        const args = JSON.parse(event.args) as { creator?: string; target?: string; deadline?: string | number };
+        if (!args.creator || !args.target || args.deadline === undefined) continue;
+        statements.push(
+          db
+            .prepare(
+              `UPDATE changas SET order_id = ?, token = ?, amount = ?, amount_micro = ?, status = 'funding'
+               WHERE owner = ? AND order_id IS NULL AND json_extract(spec, '$.group.target') = ?
+                 AND json_extract(spec, '$.group.fundingDeadline') = ?`,
+            )
+            .bind(event.order_id, groupToken, args.target, amountMicro(args.target, groupDecimals), args.creator.toLowerCase(), args.target, Number(args.deadline)),
+        );
+        continue;
+      }
+      if (event.name === "FundingCompleted") {
+        statements.push(db.prepare("UPDATE changas SET status = 'open' WHERE order_id = ? AND status = 'funding'").bind(event.order_id));
+        continue;
+      }
+      if (event.name === "ContributionWithdrawn") {
+        statements.push(db.prepare("UPDATE changas SET status = 'funding' WHERE order_id = ? AND status = 'open'").bind(event.order_id));
+        continue;
+      }
+      if (event.name === "FundingRefunded") {
+        statements.push(db.prepare("UPDATE changas SET status = 'cancelled' WHERE order_id = ?").bind(event.order_id));
         continue;
       }
       const status = STATUS_BY_EVENT[event.name];

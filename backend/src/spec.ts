@@ -2,7 +2,7 @@ import { keccak256, toBytes, type Hex } from "viem";
 import { roundCoordinate } from "./geo";
 
 export const SPEC_VERSION = 1;
-const MAX_CANONICAL_BYTES = 8192;
+const MAX_CANONICAL_BYTES = 16384;
 const HEX32 = /^0x[0-9a-f]{64}$/;
 
 export interface Area {
@@ -31,12 +31,27 @@ export interface Spec {
   durationMin?: number;
   evidence: string[];
   attachments: Attachment[];
+  milestones?: Milestone[];
+  advance?: boolean;
+  group?: GroupPlan;
+}
+
+export interface Milestone {
+  name: string;
+  amount: string;
+  criteria: string;
+  evidence: string;
+}
+
+export interface GroupPlan {
+  target: string;
+  fundingDeadline: number;
 }
 
 export type SpecResult = { ok: true; spec: Spec; canonical: string; hash: Hex } | { ok: false; error: string };
 
 const ALLOWED_KEYS = new Set([
-  "v", "title", "description", "category", "modality", "nonce", "area", "startsAt", "deadline", "durationMin", "evidence", "attachments",
+  "v", "title", "description", "category", "modality", "nonce", "area", "startsAt", "deadline", "durationMin", "evidence", "attachments", "milestones", "advance", "group",
 ]);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -73,6 +88,36 @@ function parseAttachments(value: unknown): Attachment[] | string {
     parsed.push({ hash: hash as Hex, name, mime, size: item.size });
   }
   return parsed;
+}
+
+const AMOUNT = /^[1-9][0-9]{0,38}$/;
+export const MIN_MILESTONES = 2;
+export const MAX_MILESTONES = 20;
+
+function parseMilestones(value: unknown): Milestone[] | string {
+  if (!Array.isArray(value) || value.length < MIN_MILESTONES || value.length > MAX_MILESTONES) return `milestones must be a list of ${MIN_MILESTONES} to ${MAX_MILESTONES}`;
+  const parsed: Milestone[] = [];
+  for (const item of value) {
+    if (!isObject(item)) return "invalid milestone";
+    const unknown = Object.keys(item).find((key) => !["name", "amount", "criteria", "evidence"].includes(key));
+    if (unknown) return `unknown milestone field ${unknown}`;
+    const name = cleanText(item.name, 2, 60);
+    const criteria = cleanText(item.criteria, 3, 200);
+    const evidence = cleanText(item.evidence, 3, 100);
+    if (!name || !criteria || !evidence) return "every milestone needs a name, a criteria and the evidence asked";
+    if (typeof item.amount !== "string" || !AMOUNT.test(item.amount)) return "milestone amount must be a positive integer in token units";
+    parsed.push({ name, amount: item.amount, criteria, evidence });
+  }
+  return parsed;
+}
+
+function parseGroup(value: unknown, nowSeconds: number): GroupPlan | string {
+  if (!isObject(value)) return "group must be an object";
+  const unknown = Object.keys(value).find((key) => !["target", "fundingDeadline"].includes(key));
+  if (unknown) return `unknown group field ${unknown}`;
+  if (typeof value.target !== "string" || !AMOUNT.test(value.target)) return "group.target must be a positive integer in token units";
+  if (!isInt(value.fundingDeadline, nowSeconds + 3600, nowSeconds + 365 * 24 * 3600)) return "group.fundingDeadline must be between 1 hour and 1 year from now";
+  return { target: value.target, fundingDeadline: value.fundingDeadline };
 }
 
 export function canonicalize(value: unknown): string {
@@ -145,6 +190,24 @@ export function validateSpec(input: unknown, nowSeconds: number): SpecResult {
     const attachments = parseAttachments(input.attachments);
     if (typeof attachments === "string") return { ok: false, error: attachments };
     spec.attachments = attachments;
+  }
+
+  if (input.milestones !== undefined) {
+    const milestones = parseMilestones(input.milestones);
+    if (typeof milestones === "string") return { ok: false, error: milestones };
+    spec.milestones = milestones;
+  }
+  if (input.advance !== undefined) {
+    if (input.advance !== true || spec.milestones === undefined) return { ok: false, error: "advance is only valid as true together with milestones" };
+    spec.advance = true;
+  }
+  if (input.group !== undefined) {
+    const group = parseGroup(input.group, nowSeconds);
+    if (typeof group === "string") return { ok: false, error: group };
+    if (spec.milestones && spec.milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n) !== BigInt(group.target)) {
+      return { ok: false, error: "milestones must add up to the group target" };
+    }
+    spec.group = group;
   }
 
   const canonical = canonicalize(spec);

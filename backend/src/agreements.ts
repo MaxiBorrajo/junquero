@@ -1,6 +1,8 @@
 import { getAddress, isAddress, isHex, verifyTypedData, type Address, type Hex } from "viem";
 import deployment from "../../contracts/deployments/sepolia.json";
 import { queueNotification } from "./notifications";
+import type { Spec } from "./spec";
+import { milestoneTerms, milestoneTermsHash, milestoneTotal, type MilestoneTermsData } from "./terms";
 
 export const ZERO_HASH: Hex = `0x${"0".repeat(64)}`;
 export const MIN_PROPOSAL_SECONDS = 3600;
@@ -53,7 +55,7 @@ export interface AgreementRow {
 export type AgreeResult = { ok: true; txHash: Hex } | { ok: false; reason: "revert" | "unavailable" };
 
 export interface AgreementChain {
-  agree(agreement: Agreement, payerSignature: Hex, payeeSignature: Hex): Promise<AgreeResult>;
+  agree(agreement: Agreement, payerSignature: Hex, payeeSignature: Hex, terms?: MilestoneTermsData): Promise<AgreeResult>;
 }
 
 export interface ProposalInput {
@@ -104,6 +106,7 @@ interface ChangaForOrder {
   id: number;
   owner: string;
   spec_hash: string;
+  spec: string;
   amount: string | null;
   status: string;
 }
@@ -112,7 +115,7 @@ export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; status:
 
 export async function propose(db: D1Database, payer: string, orderId: number, input: ProposalInput, nowSeconds: number): Promise<ActionResult<{ row: AgreementRow }>> {
   const changa = await db
-    .prepare("SELECT id, owner, spec_hash, amount, status FROM changas WHERE order_id = ?")
+    .prepare("SELECT id, owner, spec_hash, spec, amount, status FROM changas WHERE order_id = ?")
     .bind(orderId)
     .first<ChangaForOrder>();
   if (!changa) return { ok: false, status: 404, error: "order not found" };
@@ -134,13 +137,19 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
   if (expected === null || input.price !== expected) return { ok: false, status: 400, error: "price must match the application" };
   if (changa.amount !== null && BigInt(input.price) > BigInt(changa.amount)) return { ok: false, status: 400, error: "price exceeds the deposit" };
 
+  const spec = JSON.parse(changa.spec) as Spec;
+  const terms = milestoneTerms(spec, changa.spec_hash as Hex);
+  if (terms && (input.price !== changa.amount || BigInt(input.price) !== milestoneTotal(spec))) {
+    return { ok: false, status: 400, error: "with milestones the price must be the published amount, equal to the sum of the milestones" };
+  }
+
   const row: AgreementRow = {
     order_id: orderId,
     payer,
     payee,
     price: input.price,
     spec_hash: changa.spec_hash,
-    terms_hash: ZERO_HASH,
+    terms_hash: terms ? milestoneTermsHash(terms) : ZERO_HASH,
     expiry: input.expiry,
     payer_signature: input.signature,
     status: "pending",
@@ -181,7 +190,9 @@ export async function accept(db: D1Database, chain: AgreementChain, orderId: num
     .run();
   if (!claimed.meta.changes) return { ok: false, status: 409, error: "the agreement is not pending" };
 
-  const outcome = await chain.agree(agreement, row.payer_signature as Hex, signature);
+  const changa = await db.prepare("SELECT spec FROM changas WHERE order_id = ?").bind(orderId).first<{ spec: string }>();
+  const terms = changa ? milestoneTerms(JSON.parse(changa.spec) as Spec, row.spec_hash as Hex) : null;
+  const outcome = await chain.agree(agreement, row.payer_signature as Hex, signature, terms ?? undefined);
   if (!outcome.ok) {
     await db.prepare("UPDATE agreements SET status = 'pending', updated_at = ? WHERE order_id = ?").bind(nowSeconds, orderId).run();
     return outcome.reason === "revert"

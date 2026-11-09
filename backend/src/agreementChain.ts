@@ -3,6 +3,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { indexedContracts } from "./contracts";
 import type { Agreement, AgreementChain } from "./agreements";
+import type { MilestoneTermsData } from "./terms";
 
 const escrow = indexedContracts.find((contract) => contract.name === "escrow")!;
 
@@ -13,12 +14,12 @@ export function createAgreementChain(rpcUrl: string, privateKey: Hex): Agreement
   const wallet = createWalletClient({ account, chain: sepolia, transport });
 
   return {
-    async agree(agreement: Agreement, payerSignature: Hex, payeeSignature: Hex) {
+    async agree(agreement: Agreement, payerSignature: Hex, payeeSignature: Hex, terms?: MilestoneTermsData) {
       const call = {
         address: escrow.address as Address,
         abi: escrow.abi as Abi,
-        functionName: "agree",
-        args: [agreement, payerSignature, payeeSignature],
+        functionName: terms ? "agreeWithMilestones" : "agree",
+        args: terms ? [agreement, terms, payerSignature, payeeSignature] : [agreement, payerSignature, payeeSignature],
         account,
       } as const;
       let gas: bigint;

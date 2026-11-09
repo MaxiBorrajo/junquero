@@ -6,7 +6,10 @@ import { t } from "../i18n";
 import { colors, radius, spacing, text } from "../theme";
 import type { PullRefresh } from "../lib/useManualRefresh";
 import { Icon } from "./Icon";
-import { PullRefreshControl } from "./PullRefreshControl";
+import { usePullGesture } from "../lib/usePullGesture";
+import { PullSpinner } from "./PullSpinner";
+
+const NO_REFRESH: PullRefresh = { refreshing: false, onRefresh: () => undefined };
 
 export function BackButton() {
   return (
@@ -17,12 +20,14 @@ export function BackButton() {
 }
 
 export function Screen({ children, scroll = true, footer, back = true, refresh }: { children: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean; refresh?: PullRefresh }) {
+  const pull = usePullGesture(refresh ?? NO_REFRESH);
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         {back ? <BackButton /> : null}
         {scroll ? (
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={refresh ? <PullRefreshControl refresh={refresh} /> : undefined}>
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" {...(refresh ? pull : {})}>
+            <PullSpinner active={refresh?.refreshing ?? false} />
             {children}
           </ScrollView>
         ) : (
@@ -73,7 +78,7 @@ export function Button({
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
-      <Text style={[text.label, selected && styles.chipOnLabel]}>{label}</Text>
+      <Text style={[text.label, styles.chipLabel, selected && styles.chipOnLabel]}>{label}</Text>
     </Pressable>
   );
 }
@@ -148,6 +153,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.brick, borderColor: colors.brick },
+  chipLabel: { includeFontPadding: false },
   chipOnLabel: { color: colors.white },
   fieldError: { ...text.secondary, color: colors.error },
 });

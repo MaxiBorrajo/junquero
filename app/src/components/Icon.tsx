@@ -29,6 +29,9 @@ export const icons = {
   bell: [path("M10.268 21a2 2 0 0 0 3.464 0"), path("M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326")],
   chevron: [path("m9 18 6-6-6-6")],
   refresh: [path("M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"), path("M21 3v5h-5"), path("M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"), path("M8 16H3v5")],
+  list: [path("M3 6h.01"), path("M3 12h.01"), path("M3 18h.01"), path("M8 6h13"), path("M8 12h13"), path("M8 18h13")],
+  filter: [path("M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z")],
+  globe: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"), path("M2 12h20")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 6v6l4 2")],
 } as const satisfies Record<string, readonly Shape[]>;
 

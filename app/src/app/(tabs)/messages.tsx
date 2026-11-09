@@ -6,8 +6,9 @@ import type { ChatSummary, PublicProfile } from "../../api/types";
 import { loadPreview } from "../../chat/preview";
 import { secureKeyStorage } from "../../crypto/secureKeyStorage";
 import { Button, Secondary, Title } from "../../components/ui";
-import { PullRefreshControl } from "../../components/PullRefreshControl";
+import { PullSpinner } from "../../components/PullSpinner";
 import { t } from "../../i18n";
+import { usePullGesture } from "../../lib/usePullGesture";
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
@@ -65,6 +66,7 @@ export default function Messages() {
   });
 
   const refresh = useManualRefresh([() => chats.refetch()]);
+  const pull = usePullGesture(refresh);
 
   if (!address) {
     return (
@@ -85,7 +87,8 @@ export default function Messages() {
       </View>
       <FlatList
         contentContainerStyle={styles.list}
-        refreshControl={<PullRefreshControl refresh={refresh} />}
+        {...pull}
+          ListHeaderComponent={<PullSpinner active={refresh.refreshing} />}
         data={chats.data ?? []}
         keyExtractor={(item) => String(item.applicationId)}
         ListEmptyComponent={<Secondary>{t.chat.empty}</Secondary>}

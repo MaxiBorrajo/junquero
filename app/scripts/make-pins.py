@@ -1,7 +1,8 @@
 from PIL import Image, ImageDraw
 
 SCALE = 8
-W, H = 120, 44
+H = 44
+SIZES = {"s": 96, "m": 120, "l": 140}
 BRICK = (143, 47, 34, 255)
 INK = (35, 24, 21, 255)
 WHITE = (255, 255, 255, 255)
@@ -47,16 +48,24 @@ def glyph(draw, kind, ox, oy, size, fill, hole):
             draw.ellipse(box(x - 5, 19, x + 5, 29), fill=fill)
 
 
-def pill(path, body, kind):
+def pill(path, body, kind, W):
     im = Image.new("RGBA", (W * SCALE, H * SCALE), CLEAR)
     d = ImageDraw.Draw(im)
     d.rounded_rectangle((0, 0, W * SCALE - 1, H * SCALE - 1), radius=H * SCALE // 2, fill=WHITE)
     b = 3 * SCALE
     d.rounded_rectangle((b, b, W * SCALE - 1 - b, H * SCALE - 1 - b), radius=H * SCALE // 2 - b, fill=body)
-    glyph(d, kind, 12 * SCALE, 9 * SCALE, 26, WHITE, body)
+    glyph(d, kind, 11 * SCALE, 12 * SCALE, 20, WHITE, body)
     im.resize((W, H), Image.LANCZOS).save(path)
 
 
+names = []
 for kind in range(9):
-    pill(f"assets/images/pin-{kind}.png", BRICK, kind)
-    pill(f"assets/images/pin-on-{kind}.png", INK, kind)
+    for size, width in SIZES.items():
+        pill(f"assets/images/pin-{kind}-{size}.png", BRICK, kind, width)
+        pill(f"assets/images/pin-on-{kind}-{size}.png", INK, kind, width)
+        names += [f"pin-{kind}-{size}", f"pin-on-{kind}-{size}"]
+
+lines = ["export const PIN_IMAGES = {"]
+lines += [f'  "{name}": require("../../assets/images/{name}.png"),' for name in names]
+lines.append("};")
+open("src/lib/pinImages.ts", "w").write("\n".join(lines) + "\n")

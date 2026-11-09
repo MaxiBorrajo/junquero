@@ -2,12 +2,13 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { PullRefreshControl } from "../components/PullRefreshControl";
+import { PullSpinner } from "../components/PullSpinner";
 import { BackButton, Secondary, Title } from "../components/ui";
 import { useLastSeen, useMarkSeen, useNotifications, type NotificationItem } from "../data/useNotifications";
 import { t } from "../i18n";
 import { notificationText } from "../lib/notificationText";
 import { formatDate } from "../lib/format";
+import { usePullGesture } from "../lib/usePullGesture";
 import { useManualRefresh } from "../lib/useManualRefresh";
 import { routeForNotification } from "../push/routes";
 import { colors, radius, spacing, text } from "../theme";
@@ -17,6 +18,7 @@ export default function Notifications() {
   const seen = useLastSeen();
   const mark = useMarkSeen();
   const refresh = useManualRefresh([() => list.refetch()]);
+  const pull = usePullGesture(refresh);
   const items = list.data ?? [];
   const newest = items[0]?.createdAt ?? 0;
   const lastSeen = seen.data ?? 0;
@@ -33,7 +35,8 @@ export default function Notifications() {
       </View>
       <FlatList
         contentContainerStyle={styles.list}
-        refreshControl={<PullRefreshControl refresh={refresh} />}
+        {...pull}
+          ListHeaderComponent={<PullSpinner active={refresh.refreshing} />}
         data={items}
         keyExtractor={(item) => String(item.id)}
         ListEmptyComponent={<Secondary>{list.isLoading ? t.common.loading : t.notifications.empty}</Secondary>}

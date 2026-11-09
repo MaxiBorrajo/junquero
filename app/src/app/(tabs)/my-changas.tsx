@@ -4,12 +4,13 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
-import { PullRefreshControl } from "../../components/PullRefreshControl";
+import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
 import { Button, Chip, Row, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyApplications, useMyChangas, useMyContributions } from "../../data/useMine";
 import { t } from "../../i18n";
 import { matchesQuery } from "../../lib/search";
+import { usePullGesture } from "../../lib/usePullGesture";
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { statusLabel } from "../../lib/status";
 import { useSession } from "../../session/SessionProvider";
@@ -28,6 +29,7 @@ export default function MyChangas() {
   const contributions = useMyContributions();
 
   const refresh = useManualRefresh([() => published.refetch(), () => applied.refetch(), () => agreements.refetch(), () => contributions.refetch()]);
+  const pull = usePullGesture(refresh);
 
   if (!address) {
     return (
@@ -61,7 +63,8 @@ export default function MyChangas() {
       {tab === "published" ? (
         <FlatList
           contentContainerStyle={styles.list}
-          refreshControl={<PullRefreshControl refresh={refresh} />}
+          {...pull}
+          ListHeaderComponent={<PullSpinner active={refresh.refreshing} />}
           data={(published.data ?? []).filter((item) => matchesQuery(query, [item.spec.title, item.spec.description, t.publish.categories[item.spec.category], statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyPublished}</Secondary>}
@@ -70,7 +73,8 @@ export default function MyChangas() {
       ) : tab === "contributions" ? (
         <FlatList
           contentContainerStyle={styles.list}
-          refreshControl={<PullRefreshControl refresh={refresh} />}
+          {...pull}
+          ListHeaderComponent={<PullSpinner active={refresh.refreshing} />}
           data={(contributions.data ?? []).filter((item) => matchesQuery(query, [item.title, statusLabel(item.status ?? "")]))}
           keyExtractor={(item) => String(item.orderId)}
           ListEmptyComponent={<Secondary>{t.contributions.empty}</Secondary>}
@@ -86,7 +90,8 @@ export default function MyChangas() {
       ) : (
         <FlatList
           contentContainerStyle={styles.list}
-          refreshControl={<PullRefreshControl refresh={refresh} />}
+          {...pull}
+          ListHeaderComponent={<PullSpinner active={refresh.refreshing} />}
           data={(applied.data ?? []).filter((item) => matchesQuery(query, [item.changa.title, item.message, statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyApplied}</Secondary>}

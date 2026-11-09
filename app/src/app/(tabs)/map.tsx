@@ -7,8 +7,8 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Changa } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
-import { Icon } from "../../components/Icon";
-import { PullRefreshControl } from "../../components/PullRefreshControl";
+import { Icon, type IconName } from "../../components/Icon";
+import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
 import { Button, ErrorText, Secondary } from "../../components/ui";
 import { DEFAULT_CENTER, MAP_STYLE_URL } from "../../config";
@@ -17,35 +17,17 @@ import { countUnread, useLastSeen, useNotifications } from "../../data/useNotifi
 import { useChangasInBounds, useRemoteChangas } from "../../data/useChangas";
 import { activeFilterCount } from "../../lib/filters";
 import { t } from "../../i18n";
+import { PIN_IMAGES } from "../../lib/pinImages";
 import { roundBounds, toFeatures, type Bounds } from "../../lib/changaMap";
 import { distanceM } from "../../lib/geo";
 import { matchesQuery } from "../../lib/search";
+import { usePullGesture } from "../../lib/usePullGesture";
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { useSession } from "../../session/SessionProvider";
-import { colors, radius, spacing, text } from "../../theme";
+import { colors, fonts, radius, spacing, text } from "../../theme";
 
 type Mode = "map" | "list";
 
-const PIN_IMAGES = {
-  "pin-0": require("../../../assets/images/pin-0.png"),
-  "pin-on-0": require("../../../assets/images/pin-on-0.png"),
-  "pin-1": require("../../../assets/images/pin-1.png"),
-  "pin-on-1": require("../../../assets/images/pin-on-1.png"),
-  "pin-2": require("../../../assets/images/pin-2.png"),
-  "pin-on-2": require("../../../assets/images/pin-on-2.png"),
-  "pin-3": require("../../../assets/images/pin-3.png"),
-  "pin-on-3": require("../../../assets/images/pin-on-3.png"),
-  "pin-4": require("../../../assets/images/pin-4.png"),
-  "pin-on-4": require("../../../assets/images/pin-on-4.png"),
-  "pin-5": require("../../../assets/images/pin-5.png"),
-  "pin-on-5": require("../../../assets/images/pin-on-5.png"),
-  "pin-6": require("../../../assets/images/pin-6.png"),
-  "pin-on-6": require("../../../assets/images/pin-on-6.png"),
-  "pin-7": require("../../../assets/images/pin-7.png"),
-  "pin-on-7": require("../../../assets/images/pin-on-7.png"),
-  "pin-8": require("../../../assets/images/pin-8.png"),
-  "pin-on-8": require("../../../assets/images/pin-on-8.png"),
-};
 
 export default function MapScreen() {
   const { profile } = useSession();
@@ -67,6 +49,7 @@ export default function MapScreen() {
   const nearby = useChangasInBounds(bounds, filters);
   const remote = useRemoteChangas(filters);
   const refresh = useManualRefresh([() => nearby.refetch(), () => remote.refetch()]);
+  const pull = usePullGesture(refresh);
   const changas = nearby.data ?? [];
   const features = useMemo(() => toFeatures(changas), [changas]);
   const selectedChanga = selected === null ? null : (changas.find((item) => item.id === selected) ?? null);
@@ -128,13 +111,14 @@ export default function MapScreen() {
               type="symbol"
               filter={["!", ["has", "point_count"]]}
               layout={{
-                "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["to-string", ["get", "category"]]],
+                "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["to-string", ["get", "category"]], "-", ["get", "size"]],
                 "icon-size": 0.85,
                 "icon-allow-overlap": true,
                 "text-field": ["get", "label"],
                 "text-size": 12,
                 "text-font": ["Noto Sans Bold"],
-                "text-offset": [1.1, 0],
+                "text-anchor": "left",
+                "text-offset": ["match", ["get", "size"], "s", ["literal", [-0.85, 0]], "m", ["literal", [-1.7, 0]], ["literal", [-2.4, 0]]],
                 "text-allow-overlap": true,
                 "symbol-sort-key": ["case", ["==", ["get", "id"], selected ?? -1], 1, 0],
               }}
@@ -146,7 +130,8 @@ export default function MapScreen() {
         <SafeAreaView style={styles.list}>
           <FlatList
             contentContainerStyle={styles.listContent}
-            refreshControl={<PullRefreshControl refresh={refresh} />}
+            {...pull}
+          ListHeaderComponent={<PullSpinner active={refresh.refreshing} />}
             data={sorted}
             keyExtractor={(item) => String(item.id)}
             ListEmptyComponent={<Secondary>{t.map.empty}</Secondary>}
@@ -157,15 +142,19 @@ export default function MapScreen() {
 
       <SafeAreaView style={styles.top} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
-          <Pill label={mode === "map" ? t.map.list : t.map.mapView} onPress={() => setMode(mode === "map" ? "list" : "map")} />
-          <Pill label={activeFilterCount(filters) > 0 ? `${t.filters.open} · ${activeFilterCount(filters)}` : t.filters.open} onPress={() => router.push("/filters")} />
+          <Pill icon={mode === "map" ? "list" : "map"} label={mode === "map" ? t.map.list : t.map.mapView} onPress={() => setMode(mode === "map" ? "list" : "map")} />
+          <Pill icon="filter" label={activeFilterCount(filters) > 0 ? `${t.filters.open} · ${activeFilterCount(filters)}` : t.filters.open} onPress={() => router.push("/filters")} />
           {profile ? (
             <Pressable accessibilityRole="button" accessibilityLabel={t.notifications.open} onPress={() => router.push("/notifications")} style={styles.bell}>
               <Icon name="bell" size={20} color={colors.ink} />
-              {unread > 0 ? <View style={styles.bellDot} /> : null}
+              {unread > 0 ? (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unread > 9 ? "9+" : unread}</Text>
+                </View>
+              ) : null}
             </Pressable>
           ) : null}
-          {remote.data && remote.data.length > 0 ? <Pill label={`${t.map.remoteChip} · ${remote.data.length}`} onPress={() => router.push("/remote")} /> : null}
+          {remote.data && remote.data.length > 0 ? <Pill icon="globe" label={`${t.map.remoteChip} · ${remote.data.length}`} onPress={() => router.push("/remote")} /> : null}
         </View>
         {mode === "list" ? <SearchField value={query} onChange={setQuery} placeholder={t.map.searchList} /> : null}
         {nearby.isError ? <ErrorText>{t.map.loadError}</ErrorText> : null}
@@ -203,10 +192,11 @@ export default function MapScreen() {
 
 const dist = (changa: Changa, from: { lat: number; lng: number }): number => (changa.spec.area ? distanceM(from, changa.spec.area) : Number.MAX_SAFE_INTEGER);
 
-function Pill({ label, onPress }: { label: string; onPress: () => void }) {
+function Pill({ label, icon, onPress }: { label: string; icon: IconName; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.pill}>
-      <Text style={text.label}>{label}</Text>
+      <Icon name={icon} size={16} color={colors.ink} />
+      <Text style={styles.pillLabel}>{label}</Text>
     </Pressable>
   );
 }
@@ -218,11 +208,13 @@ const styles = StyleSheet.create({
   listContent: { padding: spacing.md, paddingTop: 140, paddingBottom: 96, gap: spacing.sm },
   top: { position: "absolute", top: 0, left: 0, right: 0, paddingHorizontal: spacing.md, gap: spacing.sm },
   topRow: { flexDirection: "row", gap: spacing.sm },
-  pill: { backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.line },
+  pill: { flexDirection: "row", alignItems: "center", gap: 6, height: 40, backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.line },
+  pillLabel: { ...text.label, includeFontPadding: false, textAlignVertical: "center" },
   empty: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
   preview: { position: "absolute", left: spacing.md, right: spacing.md, bottom: 88 },
   bell: { marginLeft: "auto", width: 42, height: 42, borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
-  bellDot: { position: "absolute", top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.brick, borderWidth: 1.5, borderColor: colors.white },
+  bellBadge: { position: "absolute", top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.brick, borderWidth: 1.5, borderColor: colors.white, alignItems: "center", justifyContent: "center" },
+  bellBadgeText: { color: colors.white, fontSize: 10, lineHeight: 12, fontFamily: fonts.bold, includeFontPadding: false },
   locate: { position: "absolute", right: spacing.md, bottom: 88, width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
   locateRaised: { bottom: 200 },
   refreshButton: { bottom: 144 },

@@ -50,12 +50,12 @@ export function createParams(deployment: Deployment, input: CreateInput) {
   } as const;
 }
 
-export function permitTypedData(deployment: Deployment, owner: Address, value: bigint, nonce: bigint, deadline: bigint) {
+export function permitTypedData(deployment: Deployment, owner: Address, value: bigint, nonce: bigint, deadline: bigint, spender: Address = deployment.escrow) {
   return {
     domain: { name: deployment.tokenName, version: deployment.tokenPermitVersion, chainId: deployment.chainId, verifyingContract: deployment.token },
     types: permitTypes,
     primaryType: "Permit" as const,
-    message: { owner, spender: deployment.escrow, value, nonce, deadline },
+    message: { owner, spender, value, nonce, deadline },
   };
 }
 
@@ -78,4 +78,10 @@ export function forwardTypedData(deployment: Deployment, from: Address, to: Addr
 
 export function relayBody(from: Address, to: Address, data: Hex, gas: bigint, deadline: number, signature: Hex) {
   return { from, to, value: "0", gas: gas.toString(), deadline, data, signature };
+}
+
+export function splitSignature(signature: Hex): { v: number; r: Hex; s: Hex } {
+  const clean = signature.slice(2);
+  const v = parseInt(clean.slice(128, 130), 16);
+  return { r: `0x${clean.slice(0, 64)}`, s: `0x${clean.slice(64, 128)}`, v: v < 27 ? v + 27 : v };
 }

@@ -22,6 +22,7 @@ export const TEMPLATES: Record<string, Template> = {
   cancelled: { title: "Changa cancelada", body: "Una de tus changas fue cancelada.", priority: "high" },
   settled: { title: "Pago liberado", body: "Se liberó el pago de una changa.", priority: "default" },
   reminder_start: { title: "Tu changa es pronto", body: "Tenés una changa en una hora.", priority: "high" },
+  dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Abrí la app ahora.", priority: "high" },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para actuar. Abrí la app ahora.", priority: "high" },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito.", priority: "high" },
   selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a changas.", priority: "default" },
@@ -93,6 +94,19 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
     } else if (event.name === "OrderSettled" && event.order_id !== null) {
       const payee = parse<{ payee?: string }>(event.args)?.payee;
       if (payee && isAddress(payee)) statements.push(queueNotification(db, payee, "settled", String(event.order_id)));
+    } else if (event.name === "CaseOpened" && event.order_id !== null) {
+      const claimant = parse<{ claimant?: string }>(event.args)?.claimant;
+      if (claimant && isAddress(claimant)) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+               SELECT CASE WHEN payer = ?1 THEN payee ELSE payer END, 'dispute_opened', CAST(order_id AS TEXT), 0, ${nowSql}
+               FROM order_parties WHERE order_id = ?2 AND payer IS NOT NULL AND payee IS NOT NULL`,
+            )
+            .bind(claimant.toLowerCase(), event.order_id),
+        );
+      }
     } else if (event.name === "JuryDrawn" && event.case_id !== null) {
       const drawn = parse<{ jurors?: string[]; commitEnd?: number | string; revealEnd?: number | string }>(event.args);
       const caseId = event.case_id;

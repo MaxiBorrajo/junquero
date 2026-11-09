@@ -72,6 +72,7 @@ export default function Profile() {
         <Button label={copied ? t.me.copied : t.me.copyAddress} variant="ghost" onPress={copy} />
       </View>
       {selfie === "rejected" || selfie === "none" ? <Button label={t.me.retakeSelfie} variant="secondary" onPress={() => router.push("/selfie")} /> : null}
+      <Button label={t.jury.title} variant="secondary" onPress={() => router.push("/jury")} />
       <Button label={t.me.edit} variant="secondary" onPress={() => router.push("/profile-setup")} />
     </Screen>
   );

@@ -8,6 +8,7 @@ import { encodeCheckIn, encodeDeliver, encodeReleaseQr, releaseTypedData, sendVi
 import { readForwarderNonce } from "../../chain/reader";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
 import { Stars } from "../../components/Stars";
+import { useMyCases } from "../../data/useCases";
 import { useOrder } from "../../data/useOrder";
 import { EvidenceGallery, EvidenceUploader, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
@@ -26,6 +27,8 @@ export default function OrderScreen() {
   const queryClient = useQueryClient();
   const order = useOrder(id);
   const evidence = useEvidence(id);
+  const myCases = useMyCases();
+  const myCase = (myCases.data?.asParty ?? []).find((item) => item.orderId === id);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
@@ -124,7 +127,7 @@ export default function OrderScreen() {
       {view === "payer-reviewing" ? (
         <>
           <Body>{t.order.reviewTitle}</Body>
-          <EvidenceGallery orderId={id} items={items} counterpart={counterpart} />
+          <EvidenceGallery orderId={id} items={items} />
           <Secondary>{`${t.order.autoRelease}`}</Secondary>
           {qr ? (
             <View style={styles.qr}>
@@ -137,13 +140,18 @@ export default function OrderScreen() {
             <>
               <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
-              <Button label={t.order.problem} variant="ghost" onPress={() => setMessage(t.order.problemSoon)} />
+              <Button label={t.order.problem} variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(id) } })} />
             </>
           )}
         </>
       ) : null}
 
-      {view === "disputed" ? <Body>{t.order.statusDisputed}</Body> : null}
+      {view === "disputed" ? (
+        <>
+          <Body>{t.order.statusDisputed}</Body>
+          {myCase ? <Button label={t.order.openCase} onPress={() => router.push({ pathname: "/case/[caseId]", params: { caseId: String(myCase.caseId) } })} /> : null}
+        </>
+      ) : null}
       {view === "settled" ? <Body>{t.order.released}</Body> : null}
       {view === "cancelled" ? <Body>{t.order.statusCancelled}</Body> : null}
       {message ? <Secondary>{message}</Secondary> : null}

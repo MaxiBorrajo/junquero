@@ -109,6 +109,26 @@ describe("what triggers a notification", () => {
     );
   });
 
+  it("tells the other party when a dispute with a jury is opened", async () => {
+    const ctx = setup();
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (3, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    ctx.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+       VALUES (20, 0, 1, '0x1', 'arbitration', '0x', 'CaseOpened', 3, 9, ?)`,
+    ).run(JSON.stringify({ claimant: owner.address }));
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).filter((r) => r.kind === "dispute_opened")).toMatchObject([{ address: stranger.address.toLowerCase(), ref: "3" }]);
+
+    const reverse = setup();
+    reverse.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (4, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    reverse.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+       VALUES (21, 0, 1, '0x2', 'arbitration', '0x', 'CaseOpened', 4, 10, ?)`,
+    ).run(JSON.stringify({ claimant: stranger.address }));
+    await processEvents(reverse.db, handlers, 100);
+    expect(rows(reverse).filter((r) => r.kind === "dispute_opened")).toMatchObject([{ address: owner.address.toLowerCase(), ref: "4" }]);
+  });
+
   it("notifies drawn jurors with reminders that vanish once they act or the case is decided", async () => {
     const ctx = setup();
     const now = Math.floor(Date.now() / 1000);

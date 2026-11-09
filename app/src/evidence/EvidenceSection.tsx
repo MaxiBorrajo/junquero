@@ -92,21 +92,22 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
   );
 }
 
-export function EvidenceGallery({ orderId, items, counterpart }: { orderId: number; items: EvidenceItem[]; counterpart: string }) {
+export function EvidenceGallery({ orderId, items }: { orderId: number; items: EvidenceItem[] }) {
   return (
     <View style={styles.box}>
       {items.map((item) => (
-        <EvidenceCard key={item.hash} orderId={orderId} item={item} counterpart={counterpart} />
+        <EvidenceCard key={item.hash} orderId={orderId} item={item} />
       ))}
     </View>
   );
 }
 
-function EvidenceCard({ orderId, item, counterpart }: { orderId: number; item: EvidenceItem; counterpart: string }) {
+function EvidenceCard({ orderId, item }: { orderId: number; item: EvidenceItem }) {
   const { api, address } = useSession();
   const { ensure } = useChatKey();
   const [uri, setUri] = useState<string | null>(null);
   const [meta, setMeta] = useState<EvidenceMeta | null>(null);
+  const [body, setBody] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -114,25 +115,27 @@ function EvidenceCard({ orderId, item, counterpart }: { orderId: number; item: E
       if (!item.wrappedKey || !address) return;
       try {
         const mine = await ensure();
-        const senderKey = item.uploader.toLowerCase() === address.toLowerCase() ? mine.publicKey : await fetchCounterpartKey(api, counterpart);
+        const senderKey = item.uploader.toLowerCase() === address.toLowerCase() ? mine.publicKey : await fetchCounterpartKey(api, item.uploader);
         if (!senderKey) return;
         const key = unwrapKey(item.wrappedKey, senderKey, mine);
         if (!key) return;
         const decodedMeta = decryptMeta(item.meta, key);
         if (alive) setMeta(decodedMeta);
-        if (item.kind !== "photo" || !decodedMeta) return;
+        if (!decodedMeta || (item.kind !== "photo" && !decodedMeta.mime.startsWith("text/"))) return;
         const plain = decryptFile(await api.bytes(`/me/orders/${orderId}/evidence/${item.hash}`), key);
-        if (plain && alive) setUri(`data:${decodedMeta.mime};base64,${toBase64(plain)}`);
+        if (!plain || !alive) return;
+        if (decodedMeta.mime.startsWith("text/")) setBody(new TextDecoder().decode(plain));
+        else setUri(`data:${decodedMeta.mime};base64,${toBase64(plain)}`);
       } catch {}
     })();
     return () => {
       alive = false;
     };
-  }, [api, address, ensure, counterpart, item, orderId]);
+  }, [api, address, ensure, item, orderId]);
 
   return (
     <View style={styles.card}>
-      {uri ? <Image source={{ uri }} style={styles.photo} contentFit="cover" /> : <View style={[styles.photo, styles.placeholder]} />}
+      {body !== null ? <Text style={text.body}>{body}</Text> : uri ? <Image source={{ uri }} style={styles.photo} contentFit="cover" /> : <View style={[styles.photo, styles.placeholder]} />}
       <Text style={text.secondary}>{meta ? meta.name : t.chat.unreadable}</Text>
     </View>
   );

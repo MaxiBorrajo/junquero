@@ -10,7 +10,9 @@ describe("rutas de las notificaciones", () => {
     }
     expect(routeForNotification("chat", "3")).toEqual({ pathname: "/messages" });
     expect(routeForNotification("selfie_rejected", "0")).toEqual({ pathname: "/profile" });
-    expect(routeForNotification("jury_drawn", "4")).toEqual({ pathname: "/my-changas" });
+    expect(routeForNotification("jury_drawn", "4")).toEqual({ pathname: "/jury/[caseId]", params: { caseId: "4" } });
+    expect(routeForNotification("jury_deadline", "7:commit")).toEqual({ pathname: "/jury/[caseId]", params: { caseId: "7" } });
+    expect(routeForNotification("dispute_opened", "3")).toEqual({ pathname: "/order/[orderId]", params: { orderId: "3" } });
   });
 
   it("ignora referencias inválidas", () => {

@@ -1,7 +1,9 @@
 export type AppRoute = { pathname: string; params?: Record<string, string> };
 
 export function routeForNotification(kind: string, ref: string): AppRoute {
-  if (!/^\d+$/.test(ref)) return { pathname: "/map" };
+  const id = ref.split(":")[0] ?? "";
+  if (!/^\d+$/.test(id)) return { pathname: "/map" };
+  if (kind === "jury_drawn" || kind === "jury_deadline") return { pathname: "/jury/[caseId]", params: { caseId: id } };
   switch (kind) {
     case "application_new":
       return { pathname: "/applications/[changaId]", params: { changaId: ref } };
@@ -12,6 +14,7 @@ export function routeForNotification(kind: string, ref: string): AppRoute {
     case "settled":
     case "cancelled":
     case "reminder_start":
+    case "dispute_opened":
       return { pathname: "/order/[orderId]", params: { orderId: ref } };
     case "chat":
       return { pathname: "/messages" };

@@ -108,3 +108,44 @@ describe("subida de evidencia", () => {
     expect(calls.some((url) => url.includes("evidence-files"))).toBe(false);
   });
 });
+
+import { shareWithJurors } from "../src/evidence/share";
+
+describe("compartir pruebas con el jurado", () => {
+  const jurorA = keyPairFromSeed(new Uint8Array(32).fill(5));
+  const jurorB = keyPairFromSeed(new Uint8Array(32).fill(6));
+
+  it("reenvía solo las pruebas propias, con la misma clave y para cada jurado que tiene clave", async () => {
+    const e = encryptEvidence(file, meta);
+    const wrappedForMe = wrapKey(e.key, alice.publicKey, alice);
+    const puts: { path: string; body: any }[] = [];
+    const api = createApi({
+      baseUrl: "https://x",
+      getToken: () => "t",
+      fetcher: async (url, init) => {
+        const path = url.replace("https://x", "");
+        if (path.endsWith("0xjurorb")) return new Response("{}", { status: 404 });
+        if (path.startsWith("/me/chat-keys/")) return new Response(JSON.stringify({ publicKey: publicKeyHex(jurorA) }), { status: 200 });
+        puts.push({ path, body: JSON.parse(init!.body as string) });
+        return new Response("{}", { status: 200 });
+      },
+    });
+    const items = [
+      { hash: "aa".repeat(32), uploader: "0xAAA0000000000000000000000000000000000001", kind: "photo", meta: "m", size: 1, createdAt: 1, wrappedKey: wrappedForMe },
+      { hash: "bb".repeat(32), uploader: "0xBBB0000000000000000000000000000000000002", kind: "photo", meta: "m", size: 1, createdAt: 1, wrappedKey: "x" },
+    ];
+    const sent = await shareWithJurors({ api, address: "0xaaa0000000000000000000000000000000000001", mine: alice, orderId: 3, items, jurors: ["0xjuror0000000000000000000000000000000001", "0xjurorb"] });
+    expect(sent).toBe(1);
+    expect(puts).toHaveLength(1);
+    expect(puts[0]!.path).toBe(`/me/orders/3/evidence/${"aa".repeat(32)}/keys`);
+    expect(puts[0]!.body.recipient).toBe("0xjuror0000000000000000000000000000000001");
+    expect(Array.from(unwrapKey(puts[0]!.body.wrapped, alice.publicKey, jurorA)!)).toEqual(Array.from(e.key));
+    expect(unwrapKey(puts[0]!.body.wrapped, alice.publicKey, jurorB)).toBeNull();
+  });
+
+  it("no hace nada sin pruebas propias o sin jurados", async () => {
+    const api = createApi({ baseUrl: "https://x", getToken: () => "t", fetcher: async () => new Response("{}", { status: 200 }) });
+    expect(await shareWithJurors({ api, address: "0xa", mine: alice, orderId: 1, items: [], jurors: ["0xj"] })).toBe(0);
+    expect(await shareWithJurors({ api, address: "0xa", mine: alice, orderId: 1, items: [{ hash: "a", uploader: "0xa", kind: "photo", meta: "", size: 1, createdAt: 1, wrappedKey: "x" }], jurors: [] })).toBe(0);
+  });
+});

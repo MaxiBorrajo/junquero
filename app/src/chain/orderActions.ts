@@ -30,6 +30,10 @@ export const encodeCheckIn = (orderId: bigint): Hex => encodeFunctionData({ abi:
 export const encodeConfirmArrival = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "confirmArrival", args: [orderId] });
 export const encodeCancel = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "cancel", args: [orderId] });
 export const encodeExtendReview = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "extendReview", args: [orderId] });
+export const NO_AUTH = { method: 0, nonce: 0n, deadline: 0n, signature: "0x" as Hex };
+
+export const encodeOpenDispute = (orderId: bigint, reasonHash: Hex, auth: { method: number; nonce: bigint; deadline: bigint; signature: Hex }): Hex =>
+  encodeFunctionData({ abi: orderAbi, functionName: "openDispute", args: [orderId, reasonHash, auth] });
 export const encodeRelease = (data: ReleaseData, payerSignature: Hex): Hex => encodeFunctionData({ abi: orderAbi, functionName: "release", args: [data, payerSignature] });
 
 export interface RelayDeps {
@@ -41,11 +45,12 @@ export interface RelayDeps {
   signTypedData: (typed: unknown) => Promise<Hex>;
 }
 
-export async function sendViaRelay(deps: RelayDeps, data: Hex, gas: bigint = ACTION_GAS): Promise<Hex> {
+export async function sendViaRelay(deps: RelayDeps, data: Hex, gas: bigint = ACTION_GAS, to?: Address): Promise<Hex> {
+  const target = to ?? deps.deployment.escrow;
   const deadline = deps.now() + FORWARD_VALIDITY_SECONDS;
   const nonce = await deps.readForwarderNonce();
-  const signature = await deps.signTypedData(forwardTypedData(deps.deployment, deps.account, deps.deployment.escrow, data, nonce, deadline, gas));
-  const { txHash } = await deps.api.send<{ txHash: Hex }>("POST", "/relay", relayBody(deps.account, deps.deployment.escrow, data, gas, deadline, signature));
+  const signature = await deps.signTypedData(forwardTypedData(deps.deployment, deps.account, target, data, nonce, deadline, gas));
+  const { txHash } = await deps.api.send<{ txHash: Hex }>("POST", "/relay", relayBody(deps.account, target, data, gas, deadline, signature));
   return txHash;
 }
 

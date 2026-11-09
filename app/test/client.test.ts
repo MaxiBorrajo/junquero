@@ -53,3 +53,17 @@ describe("api client", () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });
+
+describe("api client bytes", () => {
+  it("devuelve los bytes del cuerpo y manda el token", async () => {
+    const fetcher = vi.fn(async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+    const api = createApi({ baseUrl: "https://x", fetcher, getToken: () => "tok" });
+    expect(Array.from(await api.bytes("/f"))).toEqual([1, 2, 3]);
+    expect(((fetcher.mock.calls[0] as unknown as [string, RequestInit])[1].headers as Record<string, string>).Authorization).toBe("Bearer tok");
+  });
+
+  it("falla con ApiError si el servidor responde con error", async () => {
+    const api = createApi({ baseUrl: "https://x", fetcher: async () => new Response("{}", { status: 403 }), getToken: () => null });
+    await expect(api.bytes("/f")).rejects.toMatchObject({ status: 403 });
+  });
+});

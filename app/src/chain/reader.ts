@@ -28,3 +28,42 @@ export async function readFeeRule(): Promise<FeeRule> {
   ]);
   return { bps: BigInt(bps), floor: tokenConfig.feeFloor, cap: tokenConfig.feeCap };
 }
+
+import { orderAbi } from "./orderAbi";
+
+export interface OrderState {
+  payer: Address;
+  payee: Address;
+  status: number;
+  price: bigint;
+  deposited: bigint;
+  evidenceHash: `0x${string}`;
+  startsAt: number;
+  deadline: number;
+  deliveredAt: number;
+  checkedInAt: number;
+  arrivalConfirmed: boolean;
+  hasMilestones: boolean;
+  isGroup: boolean;
+  modality: number;
+}
+
+export async function readOrder(orderId: number): Promise<OrderState> {
+  const order = await readContract(config(), { address: deployment.escrow, abi: orderAbi, functionName: "getOrder", args: [BigInt(orderId)] });
+  return {
+    payer: order.payer,
+    payee: order.payee,
+    status: order.status,
+    price: order.price,
+    deposited: order.deposited,
+    evidenceHash: order.evidenceHash,
+    startsAt: order.startsAt,
+    deadline: order.deadline,
+    deliveredAt: order.deliveredAt,
+    checkedInAt: order.checkedInAt,
+    arrivalConfirmed: order.arrivalConfirmed,
+    hasMilestones: order.hasMilestones,
+    isGroup: order.isGroup,
+    modality: order.modality,
+  };
+}

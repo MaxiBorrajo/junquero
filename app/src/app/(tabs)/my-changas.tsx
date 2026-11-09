@@ -84,6 +84,9 @@ function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }
       <ChangaCard changa={changa} onPress={open} />
       <Text style={styles.status}>{statusLabel(changa.status)}</Text>
       {waiting ? <Secondary>{t.mine.waitingAgreement}</Secondary> : null}
+      {changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status) ? (
+        <Button label={t.mine.openOrder} variant="secondary" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: changa.spec.title } })} />
+      ) : null}
       {changa.status === "open" ? <Button label={t.mine.viewApplications} variant="secondary" onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} /> : null}
     </View>
   );
@@ -94,6 +97,9 @@ function AppliedItem({ application }: { application: MyApplication }) {
     <View style={styles.item}>
       <Text style={text.subtitle}>{statusLabel(application.status)}</Text>
       <Secondary>{application.message || " "}</Secondary>
+      {application.status === "chosen" && application.changa.orderId !== null ? (
+        <Button label={t.mine.openOrder} variant="secondary" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} />
+      ) : null}
       <Button label={t.mine.viewChanga} variant="ghost" onPress={() => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } })} />
     </View>
   );

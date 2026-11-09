@@ -40,6 +40,8 @@ async function processAndRun(env: Env, nowSeconds: number): Promise<void> {
   await runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY), options, nowSeconds);
 }
 
+export { ChatRoom } from "./chatRoom";
+
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {

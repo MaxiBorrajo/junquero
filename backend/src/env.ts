@@ -3,6 +3,7 @@ import type { Limiter } from "./guard";
 export interface Env {
   DB: D1Database;
   FILES: R2Bucket;
+  CHAT: DurableObjectNamespace;
   RPC_URL: string;
   RELAYER_KEY: `0x${string}`;
   AUTH_SECRET: string;

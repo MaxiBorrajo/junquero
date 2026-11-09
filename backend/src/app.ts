@@ -9,7 +9,9 @@ import {
   validateApplication,
   withdrawApplication,
 } from "./applications";
-import { issueToken, parseLogin, verifyLogin, verifyToken } from "./auth";
+import { buildChatKeyMessage, issueToken, parseLogin, TICKET_TTL_SECONDS, verifyLogin, verifyToken } from "./auth";
+import { listChats, markRead, resolveChatAccess } from "./chatAccess";
+import { recoverMessageAddress } from "viem";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
 import {
@@ -119,6 +121,7 @@ app.use("/orders/*", readGuard);
 app.use("/changas", readGuard);
 app.use("/changas/*", readGuard);
 app.use("/profiles/*", readGuard);
+app.use("/chat/*", readGuard);
 app.use("/files/*", limitBy((env) => env.FILE_LIMITER));
 app.use("/auth/*", limitBy((env) => env.AUTH_LIMITER));
 app.use("/me", requireAuth);
@@ -260,6 +263,111 @@ app.get("/files/:owner/:hash", async (c) => {
   const file = await readFile(c.env.DB, c.env.FILES, owner, hash, "public");
   if (!file) return c.json({ error: "not found" }, 404);
   return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, true) });
+});
+
+const CHAT_PAGE = 100;
+
+type ChatContext = Context<AppEnv>;
+
+async function chatFor(c: ChatContext, rawId: string) {
+  const applicationId = parseChangaId(rawId);
+  if (applicationId === null) return { response: c.json({ error: "invalid chat id" }, 400) } as const;
+  const result = await resolveChatAccess(c.env.DB, applicationId, c.get("address"));
+  if (!result.ok) return { response: c.json({ error: result.error }, result.status) } as const;
+  return { applicationId, access: result.access } as const;
+}
+
+const callRoom = (c: ChatContext, applicationId: number, path: string, init: RequestInit = {}) => {
+  const headers = new Headers(init.headers);
+  headers.set("x-address", c.get("address"));
+  headers.set("x-application-id", String(applicationId));
+  const stub = c.env.CHAT.get(c.env.CHAT.idFromName(String(applicationId)));
+  return stub.fetch(new Request(`https://chat${path}`, { ...init, headers }));
+};
+
+app.put("/me/chat-key", async (c) => {
+  const body = (await readJson(c)) as { publicKey?: unknown; signature?: unknown } | undefined;
+  const key = typeof body?.publicKey === "string" ? body.publicKey.toLowerCase() : "";
+  if (!/^[0-9a-f]{64}$/.test(key) || typeof body?.signature !== "string" || !/^0x[0-9a-fA-F]+$/.test(body.signature)) {
+    return c.json({ error: "publicKey (64 hex characters) and signature are required" }, 400);
+  }
+  let signer: string;
+  try {
+    signer = await recoverMessageAddress({
+      message: buildChatKeyMessage(c.get("address"), key),
+      signature: body.signature as `0x${string}`,
+    });
+  } catch {
+    return c.json({ error: "invalid signature" }, 400);
+  }
+  if (signer.toLowerCase() !== c.get("address")) return c.json({ error: "signature does not match your wallet" }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO chat_keys (address, public_key, created_at) VALUES (?, ?, ?)
+     ON CONFLICT(address) DO UPDATE SET public_key = excluded.public_key, created_at = excluded.created_at`,
+  )
+    .bind(c.get("address"), key, nowSeconds())
+    .run();
+  return c.json({ publicKey: key });
+});
+
+app.get("/me/chat-keys/:address", async (c) => {
+  const address = c.req.param("address").toLowerCase();
+  if (!ADDRESS.test(address)) return c.json({ error: "invalid address" }, 400);
+  const row = await c.env.DB.prepare("SELECT public_key FROM chat_keys WHERE address = ?").bind(address).first<{ public_key: string }>();
+  return row ? c.json({ address, publicKey: row.public_key }) : c.json({ error: "no chat key" }, 404);
+});
+
+app.get("/me/chats", async (c) => c.json({ chats: await listChats(c.env.DB, c.get("address"), OWN_CHANGAS_LIMIT) }));
+
+app.get("/me/chats/:id/messages", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  const params = new URLSearchParams({ after: c.req.query("after") ?? "0", limit: c.req.query("limit") ?? String(CHAT_PAGE) });
+  const room = await callRoom(c, chat.applicationId, `/history?${params}`);
+  const data = (await room.json()) as object;
+  return c.json({ ...data, writable: chat.access.writable }, room.status as 200 | 400);
+});
+
+app.post("/me/chats/:id/messages", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  const body = await readJson(c);
+  if (body === undefined) return c.json({ error: "invalid json" }, 400);
+  const room = await callRoom(c, chat.applicationId, "/send", { method: "POST", body: JSON.stringify(body) });
+  return c.json((await room.json()) as object, room.status as 200 | 201 | 400 | 403 | 429);
+});
+
+app.post("/me/chats/:id/read", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  const body = (await readJson(c)) as { seq?: unknown } | undefined;
+  if (!Number.isSafeInteger(body?.seq) || (body!.seq as number) < 0) return c.json({ error: "seq must be a non negative integer" }, 400);
+  await markRead(c.env.DB, chat.applicationId, c.get("address"), body!.seq as number);
+  return c.json({ ok: true });
+});
+
+app.post("/me/chats/:id/ticket", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  const { token, expiresAt } = await issueToken(c.env.AUTH_SECRET, c.get("address"), nowSeconds(), TICKET_TTL_SECONDS);
+  return c.json({ ticket: token, expiresAt });
+});
+
+app.get("/chat/:id/ws", async (c) => {
+  if (c.req.header("upgrade") !== "websocket") return c.json({ error: "expected a websocket" }, 426);
+  if (!c.env.AUTH_SECRET) return c.json({ error: "auth not configured" }, 503);
+  const address = await verifyToken(c.env.AUTH_SECRET, c.req.query("ticket") ?? "", nowSeconds());
+  if (!address) return c.json({ error: "unauthorized" }, 401);
+  const applicationId = parseChangaId(c.req.param("id"));
+  if (applicationId === null) return c.json({ error: "invalid chat id" }, 400);
+  const access = await resolveChatAccess(c.env.DB, applicationId, address);
+  if (!access.ok) return c.json({ error: access.error }, access.status);
+  const stub = c.env.CHAT.get(c.env.CHAT.idFromName(String(applicationId)));
+  return stub.fetch(
+    new Request("https://chat/ws", {
+      headers: { upgrade: "websocket", "x-address": address, "x-application-id": String(applicationId) },
+    }),
+  );
 });
 
 const parseChangaId = (value: string): number | null => {

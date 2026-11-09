@@ -92,6 +92,22 @@ Reglas: no se puede postular a la propia changa ni a una que no esté `open`; m�
 
 Estados: `active`, `withdrawn`, `chosen` (el indexador ve `OrderAgreed` con ese prestador) y `closed` (otra persona fue elegida o la orden se cerró).
 
+## Chat cifrado
+
+Hay un chat por postulación (el `id` de la postulación). El servidor guarda solo texto cifrado y no puede leerlo.
+
+Claves (lo que tiene que hacer la app):
+1. La clave de chat se deriva de la billetera: firmar con `personal_sign` el texto fijo `Junquero: clave de chat v1`, tomar `keccak256(firma)` como semilla de 32 bytes y generar el par con `crypto_box_seed_keypair` de libsodium. La firma de MetaMask es determinista, así que la misma billetera recupera la misma clave en otro teléfono.
+2. Publicar la clave pública con `PUT /me/chat-key` `{ publicKey (64 caracteres hexadecimales), signature }`, donde la firma es `personal_sign` de `Junquero: esta es mi clave de chat.\nBilletera: <dirección en minúsculas>\nClave: <publicKey en minúsculas>` (`buildChatKeyMessage` en `src/auth.ts`).
+3. Para escribirle a alguien, pedir su clave con `GET /me/chat-keys/:dirección`.
+4. Cada mensaje se cifra con `crypto_box_easy` usando un nonce aleatorio de 24 bytes. En la API, `nonce` y `body` (el texto cifrado) van en base64.
+
+API:
+- `GET /me/chats`: mis chats con título de la changa, contraparte, `writable`, último mensaje y si hay algo sin leer.
+- `GET /me/chats/:id/messages?after=<seq>&limit=` historial. `POST /me/chats/:id/messages` `{ nonce, body, clientId }` envía; `clientId` (8 a 64 caracteres) hace idempotentes los reintentos de la cola sin conexión (200 si ya existía). `POST /me/chats/:id/read` `{ seq }` marca leído.
+- Tiempo real: `POST /me/chats/:id/ticket` devuelve un ticket de 60 segundos; luego se abre un WebSocket a `/chat/:id/ws?ticket=...`. El cliente manda `{ t: "send", id, nonce, body }` y recibe `{ t: "ack", id, seq }` o `{ t: "error", id, status, error }`; todos los conectados reciben `{ t: "message", message }`. `{ t: "ping" }` responde `{ t: "pong" }`.
+- Reglas: solo las dos partes. Escribir requiere que la postulación esté `active` o `chosen` y que la changa no esté liquidada o cancelada; si no, el chat queda de solo lectura. Máximo 20 mensajes por minuto por persona y 8192 caracteres por mensaje.
+
 ## Cadena
 
 - `POST /relay`: pedido firmado para el Forwarder (ver `src/relay.ts`).

@@ -3,7 +3,38 @@ import { app } from "../src/app";
 import { buildLoginMessage } from "../src/auth";
 import type { Env } from "../src/env";
 import { createHash } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
+import { ChatRoomCore } from "../src/chatCore";
+import { ChatStore, type SqlLike } from "../src/chatStore";
 import { createFakeD1 } from "./fakeD1";
+
+function nodeSql(): SqlLike {
+  const db = new DatabaseSync(":memory:");
+  return {
+    exec(query, ...bindings) {
+      const statement = db.prepare(query);
+      if (/^\s*SELECT/i.test(query)) return { toArray: () => statement.all(...bindings) };
+      statement.run(...bindings);
+      return { toArray: () => [] };
+    },
+  };
+}
+
+export class FakeChatNamespace {
+  rooms = new Map<string, ChatRoomCore>();
+  broadcasts: string[] = [];
+  constructor(private readonly db: D1Database) {}
+  idFromName(name: string) {
+    return name;
+  }
+  get(id: string) {
+    if (!this.rooms.has(id)) {
+      this.rooms.set(id, new ChatRoomCore(new ChatStore(nodeSql()), this.db, (payload) => this.broadcasts.push(payload)));
+    }
+    const room = this.rooms.get(id)!;
+    return { fetch: (request: Request) => room.handleHttp(request, Math.floor(Date.now() / 1000)) };
+  }
+}
 
 export class FakeBucket {
   objects = new Map<string, { bytes: Uint8Array; contentType?: string }>();
@@ -38,6 +69,7 @@ export function setup(limiter = open) {
   const env = {
     DB: db,
     FILES: new FakeBucket(),
+    CHAT: new FakeChatNamespace(db),
     ADMIN_ADDRESSES: admin.address,
     FILE_LIMITER: limiter,
     AUTH_SECRET: "test-secret",
@@ -47,7 +79,7 @@ export function setup(limiter = open) {
     WRITE_LIMITER: limiter,
   } as unknown as Env;
   const call = (path: string, init?: RequestInit) => app.request(path, init, env);
-  return { db, raw, env, call, bucket: env.FILES as unknown as FakeBucket };
+  return { db, raw, env, call, bucket: env.FILES as unknown as FakeBucket, chat: env.CHAT as unknown as FakeChatNamespace };
 }
 
 export async function tokenFor(call: ReturnType<typeof setup>["call"], account = owner) {

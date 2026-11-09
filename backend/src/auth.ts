@@ -2,12 +2,16 @@ import { isAddress, isHex, recoverMessageAddress, type Address, type Hex } from 
 
 export const LOGIN_WINDOW_SECONDS = 300;
 export const TOKEN_TTL_SECONDS = 7 * 24 * 3600;
+export const TICKET_TTL_SECONDS = 60;
 
 export interface LoginRequest {
   address: Address;
   issuedAt: number;
   signature: Hex;
 }
+
+export const buildChatKeyMessage = (address: string, publicKeyHex: string): string =>
+  `Junquero: esta es mi clave de chat.\nBilletera: ${address.toLowerCase()}\nClave: ${publicKeyHex.toLowerCase()}`;
 
 export const buildLoginMessage = (address: string, issuedAt: number): string =>
   `Junquero: confirmo que esta billetera es mía.\nBilletera: ${address.toLowerCase()}\nEmitido: ${issuedAt}`;
@@ -51,8 +55,13 @@ const fromBase64Url = (text: string): Uint8Array | null => {
 const hmacKey = (secret: string, usage: "sign" | "verify") =>
   crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [usage]);
 
-export async function issueToken(secret: string, address: string, nowSeconds: number): Promise<{ token: string; expiresAt: number }> {
-  const expiresAt = nowSeconds + TOKEN_TTL_SECONDS;
+export async function issueToken(
+  secret: string,
+  address: string,
+  nowSeconds: number,
+  ttlSeconds = TOKEN_TTL_SECONDS,
+): Promise<{ token: string; expiresAt: number }> {
+  const expiresAt = nowSeconds + ttlSeconds;
   const payload = toBase64Url(encoder.encode(`${address.toLowerCase()}.${expiresAt}`));
   const signature = await crypto.subtle.sign("HMAC", await hmacKey(secret, "sign"), encoder.encode(payload));
   return { token: `${payload}.${toBase64Url(new Uint8Array(signature))}`, expiresAt };

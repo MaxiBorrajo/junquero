@@ -83,7 +83,7 @@ export function Button({
 export function Chip({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: IconName }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
-      {icon ? <Icon name={icon} size={16} color={selected ? colors.white : colors.brick} /> : null}
+      {icon ? <Icon name={icon} size={16} color={selected ? colors.white : text.label.color} /> : null}
       <Text style={[text.label, styles.chipLabel, selected && styles.chipOnLabel]}>{label}</Text>
     </Pressable>
   );

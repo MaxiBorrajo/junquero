@@ -61,8 +61,10 @@ describe("remote approval", () => {
   it("rejects the wrong signer, a stranger, a wrong state and a bad expiry", async () => {
     const w = await delivered();
     const body = await releaseBody(owner);
+    plainEvent(w.ctx.raw, "OrderSettled", 1, 104, { payee: stranger.address });
+    await processEvents(w.ctx.db, handlers, 100);
     expect((await w.ctx.call("/me/orders/1/release", authed(w.payer.body.token, "POST", body))).status).toBe(409);
-    plainEvent(w.ctx.raw, "OrderDelivered", 1, 103);
+    w.ctx.raw.prepare("UPDATE changas SET status = 'delivered'").run();
     await processEvents(w.ctx.db, handlers, 100);
     expect((await w.ctx.call("/me/orders/1/release", authed(w.worker.body.token, "POST", body))).status).toBe(403);
     expect((await w.ctx.call("/me/orders/1/release", authed(w.payer.body.token, "POST", await releaseBody(stranger)))).status).toBe(400);

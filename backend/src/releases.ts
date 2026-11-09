@@ -76,7 +76,7 @@ export async function submitRelease(db: D1Database, orderId: number, payer: stri
   if (!parties || !parties.payee) return { ok: false, status: 404, error: "order not found" };
   if (parties.payer !== payer) return { ok: false, status: 403, error: "only who published can approve" };
   const milestone = input.index !== null;
-  if (milestone ? parties.status !== "agreed" : parties.status !== "delivered") return { ok: false, status: 409, error: "the order is not waiting for approval" };
+  if (!(parties.status === "agreed" || (!milestone && parties.status === "delivered"))) return { ok: false, status: 409, error: "the order is not waiting for approval" };
   if (input.expiry < nowSeconds + MIN_RELEASE_SECONDS || input.expiry > nowSeconds + MAX_RELEASE_SECONDS) return { ok: false, status: 400, error: "expiry out of range" };
 
   const valid = milestone

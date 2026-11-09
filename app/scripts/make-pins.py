@@ -9,7 +9,7 @@ WHITE = (255, 255, 255, 255)
 CLEAR = (0, 0, 0, 0)
 
 
-JUNCO = Image.open("assets/images/junco.png").convert("RGBA")
+JUNCO = Image.open("assets/images/junco-pin.png").convert("RGBA")
 
 
 def glyph(image, ox, oy, size):

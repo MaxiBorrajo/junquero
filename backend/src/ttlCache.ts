@@ -26,6 +26,10 @@ export class TtlCache<T> {
     this.entries.set(key, { value, expiresAt: now + this.ttlMs });
   }
 
+  clear(): void {
+    this.entries.clear();
+  }
+
   private evict(now: number): void {
     for (const [key, entry] of this.entries) {
       if (entry.expiresAt <= now) this.entries.delete(key);

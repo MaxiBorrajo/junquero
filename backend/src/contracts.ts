@@ -39,3 +39,7 @@ export const indexedContracts: IndexedContract[] = Object.entries(abis).map(([na
 }));
 
 export const startBlock: number = deployment.startBlock;
+
+export const deployedTokenDecimals: ReadonlyMap<string, number> = new Map([
+  [(deployment.contracts as Record<string, { address: string }>).token.address.toLowerCase(), 6],
+]);

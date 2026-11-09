@@ -14,7 +14,9 @@
   ],
   "ratelimits": [
     { "name": "RELAY_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
-    { "name": "READ_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
+    { "name": "READ_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+    { "name": "AUTH_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+    { "name": "WRITE_LIMITER", "namespace_id": "1004", "simple": { "limit": 20, "period": 60 } }
   ],
   "vars": { "CONFIRMATIONS": "2", "BLOCK_CHUNK": "10", "CHUNKS_PER_RUN": "6", "TASK_BATCH": "40", "TASK_MAX_SENDS": "5" }
 }

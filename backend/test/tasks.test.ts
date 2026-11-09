@@ -61,7 +61,6 @@ function seedEvent(raw: Raw, name: string, column: "order_id" | "case_id", id: n
 const options: TaskOptions = {
   batchSize: 40,
   maxSends: 5,
-  eventScanLimit: 500,
   sentGraceSeconds: 120,
   unreadableRetrySeconds: 60,
 };
@@ -71,6 +70,11 @@ const schedule = (raw: Raw, kind: string, id: number) =>
     closed: number;
     next: number;
   };
+
+const run = async (db: D1Database, chain: TaskChain, taskOptions: TaskOptions, now: number) => {
+  await syncWatched(db, 500);
+  return runTasks(db, chain, taskOptions, now);
+};
 
 describe("action selection", () => {
   it("maps order states to actions", () => {
@@ -164,7 +168,7 @@ describe("runTasks", () => {
   it("does not touch the chain when nothing is due", async () => {
     const { db } = createFakeD1();
     const chain = new FakeTaskChain();
-    const result = await runTasks(db, chain, options, 100);
+    const result = await run(db, chain, options, 100);
     expect(result.checked).toBe(0);
     expect(chain.reads).toBe(0);
   });
@@ -177,7 +181,7 @@ describe("runTasks", () => {
     chain.orders.set(1, { status: DELIVERED, hasMilestones: false });
     chain.orders.set(2, { status: DELIVERED, hasMilestones: false });
     chain.ready.add("order:autoRelease:2");
-    const result = await runTasks(db, chain, options, 100);
+    const result = await run(db, chain, options, 100);
     expect(result.sent.map((item) => item.id)).toEqual([2]);
     expect(raw.prepare("SELECT item_id, action FROM task_log").all()).toEqual([{ item_id: 2, action: "autoRelease" }]);
     expect(schedule(raw, "order", 2).next).toBe(220);
@@ -189,13 +193,13 @@ describe("runTasks", () => {
     const chain = new FakeTaskChain();
     chain.orders.set(1, { status: DELIVERED, hasMilestones: false });
     chain.retryAt.set("order:autoRelease:1", 5000);
-    await runTasks(db, chain, options, 100);
+    await run(db, chain, options, 100);
     expect(schedule(raw, "order", 1).next).toBe(5000);
     chain.calls.length = 0;
-    await runTasks(db, chain, options, 4999);
+    await run(db, chain, options, 4999);
     expect(chain.calls).toHaveLength(0);
     chain.ready.add("order:autoRelease:1");
-    const result = await runTasks(db, chain, options, 5000);
+    const result = await run(db, chain, options, 5000);
     expect(result.sent).toHaveLength(1);
   });
 
@@ -204,13 +208,13 @@ describe("runTasks", () => {
     seedEvent(raw, "OrderCreated", "order_id", 1);
     const chain = new FakeTaskChain();
     chain.orders.set(1, { status: AGREED, hasMilestones: false });
-    await runTasks(db, chain, options, 100);
+    await run(db, chain, options, 100);
     expect(schedule(raw, "order", 1).next).toBe(NEVER);
     chain.calls.length = 0;
-    await runTasks(db, chain, options, 10_000_000);
+    await run(db, chain, options, 10_000_000);
     expect(chain.calls).toHaveLength(0);
     seedEvent(raw, "OrderAgreed", "order_id", 1);
-    await runTasks(db, chain, options, 10_000_001);
+    await run(db, chain, options, 10_000_001);
     expect(chain.calls).toEqual(["order:reclaim:1"]);
   });
 
@@ -221,7 +225,7 @@ describe("runTasks", () => {
     chain.orders.set(1, { status: AGREED, hasMilestones: true });
     chain.retryAt.set("order:autoReleaseMilestone:1", 900);
     chain.retryAt.set("order:reclaim:1", 700);
-    await runTasks(db, chain, options, 100);
+    await run(db, chain, options, 100);
     expect(schedule(raw, "order", 1).next).toBe(700);
   });
 
@@ -232,11 +236,11 @@ describe("runTasks", () => {
     const chain = new FakeTaskChain();
     chain.orders.set(1, { status: SETTLED, hasMilestones: false });
     chain.cases.set(1, { phase: 5 });
-    const first = await runTasks(db, chain, options, 100);
+    const first = await run(db, chain, options, 100);
     expect(first.closed).toBe(2);
     seedEvent(raw, "OrderSettled", "order_id", 1);
     chain.reads = 0;
-    const second = await runTasks(db, chain, options, 200);
+    const second = await run(db, chain, options, 200);
     expect(second.checked).toBe(0);
     expect(chain.reads).toBe(0);
   });
@@ -244,7 +248,7 @@ describe("runTasks", () => {
   it("retries unreadable items soon instead of dropping them", async () => {
     const { db, raw } = createFakeD1();
     seedEvent(raw, "OrderCreated", "order_id", 9);
-    await runTasks(db, new FakeTaskChain(), options, 100);
+    await run(db, new FakeTaskChain(), options, 100);
     expect(schedule(raw, "order", 9)).toEqual({ closed: 0, next: 160 });
   });
 
@@ -256,10 +260,10 @@ describe("runTasks", () => {
       chain.orders.set(id, { status: DELIVERED, hasMilestones: false });
       chain.ready.add(`order:autoRelease:${id}`);
     }
-    const result = await runTasks(db, chain, { ...options, maxSends: 2 }, 100);
+    const result = await run(db, chain, { ...options, maxSends: 2 }, 100);
     expect(result.sent).toHaveLength(2);
     expect(schedule(raw, "order", 3).next).toBe(100);
-    const next = await runTasks(db, chain, { ...options, maxSends: 2 }, 101);
+    const next = await run(db, chain, { ...options, maxSends: 2 }, 101);
     expect(next.sent.map((item) => item.id)).toEqual([3, 4]);
   });
 });

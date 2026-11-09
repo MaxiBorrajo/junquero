@@ -1,4 +1,5 @@
 import type { Hex } from "viem";
+import { processEvents, runStatements, type StreamEvent } from "./eventStream";
 
 export type TaskKind = "order" | "case";
 
@@ -22,7 +23,6 @@ export interface TaskChain {
 export interface TaskOptions {
   batchSize: number;
   maxSends: number;
-  eventScanLimit: number;
   sentGraceSeconds: number;
   unreadableRetrySeconds: number;
 }
@@ -38,9 +38,6 @@ export const ORDER_STATUS = { Agreed: 3, Delivered: 4, Settled: 6, Cancelled: 7,
 export const CASE_PHASE = { Response: 1, Seed: 2, Vote: 3, Resolved: 5, Decided: 6 };
 
 const QUIET_EVENTS = new Set(["SeedCommitted", "SeedRevealed", "VoteCommitted", "JurorPaid", "JurorSlashed", "Recused"]);
-const SYNC_KEY = "events_synced_pos";
-const POSITION_BASE = 1_000_000;
-const WRITE_BATCH = 50;
 
 export function orderActions(state: OrderState): string[] {
   if (state.status === ORDER_STATUS.Agreed) return state.hasMilestones ? ["autoReleaseMilestone", "reclaim"] : ["reclaim"];
@@ -62,63 +59,29 @@ export const isOrderClosed = (state: OrderState) =>
 
 export const isCaseClosed = (state: CaseState) => state.phase === CASE_PHASE.Resolved;
 
-interface EventRow {
-  block_number: number;
-  log_index: number;
-  name: string;
-  order_id: number | null;
-  case_id: number | null;
-}
-
-async function chunked(db: D1Database, statements: D1PreparedStatement[]) {
-  for (let start = 0; start < statements.length; start += WRITE_BATCH) {
-    await db.batch(statements.slice(start, start + WRITE_BATCH));
-  }
-}
-
-export async function syncWatched(db: D1Database, scanLimit: number): Promise<void> {
-  const mark = await db.prepare("SELECT value FROM meta WHERE key = ?").bind(SYNC_KEY).first<{ value: number }>();
-  const after = mark ? mark.value : -1;
-  const afterBlock = Math.floor(after / POSITION_BASE);
-  const afterIndex = after - afterBlock * POSITION_BASE;
-  const { results } = await db
-    .prepare(
-      `SELECT block_number, log_index, name, order_id, case_id FROM events
-       WHERE block_number > ? OR (block_number = ? AND log_index > ?)
-       ORDER BY block_number, log_index LIMIT ?`,
-    )
-    .bind(afterBlock, afterBlock, afterIndex, scanLimit)
-    .all<EventRow>();
-  if (!results.length) return;
-  const last = results[results.length - 1];
-
+export function watchedHandler(db: D1Database, events: StreamEvent[]): D1PreparedStatement[] {
   const added = new Set<string>();
   const touched = new Set<string>();
-  for (const row of results) {
+  for (const row of events) {
     if (row.name === "OrderCreated" && row.order_id !== null) added.add(`order:${row.order_id}`);
     if (row.name === "CaseOpened" && row.case_id !== null) added.add(`case:${row.case_id}`);
     if (QUIET_EVENTS.has(row.name)) continue;
     if (row.order_id !== null) touched.add(`order:${row.order_id}`);
     if (row.case_id !== null) touched.add(`case:${row.case_id}`);
   }
-
   const split = (key: string): [string, number] => {
     const [kind, id] = key.split(":");
     return [kind, Number(id)];
   };
-  const statements = [
-    ...[...added].map((key) =>
-      db.prepare("INSERT OR IGNORE INTO watched (kind, id) VALUES (?, ?)").bind(...split(key)),
-    ),
+  return [
+    ...[...added].map((key) => db.prepare("INSERT OR IGNORE INTO watched (kind, id) VALUES (?, ?)").bind(...split(key))),
     ...[...touched].map((key) =>
       db.prepare("UPDATE watched SET next_check_at = 0 WHERE kind = ? AND id = ? AND closed = 0").bind(...split(key)),
     ),
-    db
-      .prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
-      .bind(SYNC_KEY, last.block_number * POSITION_BASE + last.log_index),
   ];
-  await chunked(db, statements);
 }
+
+export const syncWatched = (db: D1Database, scanLimit: number) => processEvents(db, [watchedHandler], scanLimit);
 
 async function dueIds(db: D1Database, kind: TaskKind, now: number, limit: number): Promise<number[]> {
   const { results } = await db
@@ -147,7 +110,6 @@ export async function runTasks(
   options: TaskOptions,
   nowSeconds: number,
 ): Promise<TaskResult> {
-  await syncWatched(db, options.eventScanLimit);
   const result: TaskResult = { checked: 0, closed: 0, sent: [] };
 
   const orderIds = await dueIds(db, "order", nowSeconds, options.batchSize);
@@ -209,6 +171,6 @@ export async function runTasks(
     }
     updates.push(schedule(db, item.kind, item.id, false, deferred ? nowSeconds : nextCheckAt));
   }
-  await chunked(db, updates);
+  await runStatements(db, updates);
   return result;
 }

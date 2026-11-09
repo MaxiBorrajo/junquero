@@ -92,6 +92,21 @@ Reglas: no se puede postular a la propia changa ni a una que no esté `open`; m�
 
 Estados: `active`, `withdrawn`, `chosen` (el indexador ve `OrderAgreed` con ese prestador) y `closed` (otra persona fue elegida o la orden se cerró).
 
+## Evidencia privada
+
+Son las pruebas de entrega (fotos, videos, documentos tomados desde la app). El archivo se cifra en la app y el servidor guarda solo texto cifrado, sin poder abrirlo. Solo las dos partes de la orden las ven; el jurado ve únicamente lo que una de las partes le comparte.
+
+Cómo se arma (lo que tiene que hacer la app):
+1. Cifrar el archivo con una clave simétrica nueva (por ejemplo `crypto_secretbox` de libsodium). El `hash` es el SHA-256 del archivo **cifrado**.
+2. Subirlo con `PUT /me/evidence-files` (mismos encabezados que `/me/files`, `Content-Type: application/octet-stream`, hasta 30 MB, 300 MB por cuenta).
+3. Registrarlo con `POST /me/orders/:orderId/evidence` `{ hash, kind: "photo" | "video" | "document", meta, signature }`. `meta` es un texto en base64 (hasta 2048 caracteres) con los datos de la captura (hora y ubicación) **cifrados con la misma clave**. `signature` es `personal_sign` de `Junquero: firmo esta prueba de la changa <orderId>.\nArchivo: <hash>\nDatos: <sha256 de meta>` (`buildEvidenceMessage` en `src/auth.ts`), así la hora y la ubicación quedan atadas a la billetera. Solo se acepta con la orden acordada, entregada o en disputa, y de hasta 15 pruebas por persona y orden.
+4. Compartir la clave: `PUT /me/orders/:orderId/evidence/:hash/keys` `{ recipient, wrapped }`, donde `wrapped` es la clave simétrica cifrada con la clave de chat del destinatario (`crypto_box`, ver Chat cifrado). El destinatario puede ser la otra parte, uno mismo (para recuperar la prueba en otro teléfono) o un jurado sorteado en un caso de esa orden.
+5. Leer: `GET /me/orders/:orderId/evidence` lista las pruebas con su `wrappedKey` para quien consulta; `GET /me/orders/:orderId/evidence/:hash` baja el archivo cifrado. Un jurado solo ve las pruebas para las que alguien le dejó una clave.
+
+El hash que va a la cadena en `deliver(orderId, evidenceHash)` lo arma la app a partir de los hashes de las pruebas (propuesta: `keccak256` de los hashes ordenados y concatenados). El servidor no lo calcula.
+
+Quién es solicitante, prestador y jurado sale de los eventos de la cadena (`OrderCreated`, `OrderAgreed`, `OrderReserved`, `CaseOpened`, `JuryDrawn`).
+
 ## Chat cifrado
 
 Hay un chat por postulación (el `id` de la postulación). El servidor guarda solo texto cifrado y no puede leerlo.

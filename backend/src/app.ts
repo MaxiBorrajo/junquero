@@ -16,6 +16,7 @@ import { queueNotification, registerToken, removeToken } from "./notifications";
 import { isExpoToken } from "./push";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
+import { canDownload, listEvidence, parseEvidence, registerEvidence, resolveEvidenceAccess, shareKey } from "./evidence";
 import {
   fileHeaders,
   deleteFile,
@@ -281,6 +282,62 @@ app.delete("/me/push-token", async (c) => {
   if (!isExpoToken(body?.token)) return c.json({ error: "token must be an Expo push token" }, 400);
   const removed = await removeToken(c.env.DB, c.get("address"), body!.token as string);
   return removed ? c.json({ ok: true }) : c.json({ error: "token not found" }, 404);
+});
+
+const parseOrderId = (value: string): number | null => {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+};
+
+async function evidenceFor(c: Context<AppEnv>, rawOrderId: string) {
+  const orderId = parseOrderId(rawOrderId);
+  if (orderId === null) return { response: c.json({ error: "invalid order id" }, 400) } as const;
+  const result = await resolveEvidenceAccess(c.env.DB, orderId, c.get("address"));
+  if (!result.ok) return { response: c.json({ error: result.error }, result.status) } as const;
+  return { orderId, access: result.access } as const;
+}
+
+app.put("/me/evidence-files", async (c) => {
+  const upload = parseUpload(c.req.raw.headers, "evidence");
+  if (!upload.ok) return c.json({ error: upload.error }, upload.status);
+  const outcome = await storeFile(c.env.DB, c.env.FILES, c.get("address"), "evidence", upload.value, c.req.raw.body, nowSeconds());
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  return c.json({ hash: upload.value.hash }, outcome.created ? 201 : 200);
+});
+
+app.post("/me/orders/:orderId/evidence", async (c) => {
+  const found = await evidenceFor(c, c.req.param("orderId"));
+  if ("response" in found) return found.response;
+  const parsed = parseEvidence(await readJson(c));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const outcome = await registerEvidence(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  return c.json({ hash: parsed.value.hash }, outcome.created ? 201 : 200);
+});
+
+app.get("/me/orders/:orderId/evidence", async (c) => {
+  const found = await evidenceFor(c, c.req.param("orderId"));
+  if ("response" in found) return found.response;
+  return c.json({ role: found.access.role, evidence: await listEvidence(c.env.DB, found.orderId, c.get("address"), found.access) });
+});
+
+app.get("/me/orders/:orderId/evidence/:hash", async (c) => {
+  const found = await evidenceFor(c, c.req.param("orderId"));
+  if ("response" in found) return found.response;
+  const hash = c.req.param("hash").toLowerCase();
+  const item = /^[0-9a-f]{64}$/.test(hash) ? await canDownload(c.env.DB, found.orderId, hash, c.get("address"), found.access) : null;
+  const file = item ? await readFile(c.env.DB, c.env.FILES, item.uploader, hash, "evidence") : null;
+  if (!file) return c.json({ error: "not found" }, 404);
+  return new Response(file.object.body, { headers: fileHeaders("application/octet-stream", file.size, false) });
+});
+
+app.put("/me/orders/:orderId/evidence/:hash/keys", async (c) => {
+  const found = await evidenceFor(c, c.req.param("orderId"));
+  if ("response" in found) return found.response;
+  const hash = c.req.param("hash").toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hash)) return c.json({ error: "invalid hash" }, 400);
+  const outcome = await shareKey(c.env.DB, found.orderId, hash, c.get("address"), found.access, await readJson(c), nowSeconds());
+  return outcome.ok ? c.json({ ok: true }) : c.json({ error: outcome.error }, outcome.status);
 });
 
 const CHAT_PAGE = 100;

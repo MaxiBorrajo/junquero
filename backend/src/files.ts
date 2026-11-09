@@ -14,6 +14,9 @@ export const PUBLIC_MIME = new Set([
 ]);
 export const SELFIE_MIME = new Set(["image/jpeg", "image/png"]);
 export const MAX_PUBLIC_BYTES = 25 * 1024 * 1024;
+export const MAX_EVIDENCE_BYTES = 30 * 1024 * 1024;
+export const MAX_EVIDENCE_BYTES_PER_OWNER = 300 * 1024 * 1024;
+export const EVIDENCE_MIME = new Set(["application/octet-stream"]);
 export const MAX_SELFIE_BYTES = 2 * 1024 * 1024;
 export const MAX_FILES_PER_OWNER = 200;
 export const MAX_BYTES_PER_OWNER = 200 * 1024 * 1024;
@@ -22,7 +25,7 @@ const HEX32 = /^[0-9a-f]{64}$/;
 const INLINE_MIME = /^(image\/|video\/|application\/pdf$|text\/plain$)/;
 const DELETE_BATCH = 100;
 
-export type FileKind = "public" | "selfie";
+export type FileKind = "public" | "selfie" | "evidence";
 
 export interface FileRow {
   owner: string;
@@ -46,13 +49,14 @@ export function parseUpload(headers: Headers, kind: FileKind): UploadParse {
   const hash = (headers.get("x-content-sha256") ?? "").toLowerCase();
   if (!HEX32.test(hash)) return { ok: false, status: 400, error: "x-content-sha256 must be 64 hex characters" };
   const mime = (headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
-  const allowed = kind === "selfie" ? SELFIE_MIME : PUBLIC_MIME;
+  const allowed = kind === "selfie" ? SELFIE_MIME : kind === "evidence" ? EVIDENCE_MIME : PUBLIC_MIME;
   if (!allowed.has(mime)) return { ok: false, status: 415, error: "file type not allowed" };
   const length = headers.get("content-length");
   if (length === null) return { ok: false, status: 411, error: "content-length is required" };
   const size = Number(length);
   if (!Number.isSafeInteger(size) || size <= 0) return { ok: false, status: 400, error: "invalid content-length" };
-  if (size > (kind === "selfie" ? MAX_SELFIE_BYTES : MAX_PUBLIC_BYTES)) return { ok: false, status: 413, error: "file is too large" };
+  const maxBytes = kind === "selfie" ? MAX_SELFIE_BYTES : kind === "evidence" ? MAX_EVIDENCE_BYTES : MAX_PUBLIC_BYTES;
+  if (size > maxBytes) return { ok: false, status: 413, error: "file is too large" };
   return { ok: true, value: { hash, mime, size } };
 }
 
@@ -76,11 +80,13 @@ export async function storeFile(
   if (existing) return existing.kind === kind ? { ok: true, created: false } : { ok: false, status: 400, error: "hash already used for another kind of file" };
   if (!body) return { ok: false, status: 400, error: "empty body" };
 
+  const isEvidence = kind === "evidence";
   const usage = await db
-    .prepare("SELECT COUNT(*) AS total, COALESCE(SUM(size), 0) AS bytes FROM files WHERE owner = ?")
-    .bind(owner)
+    .prepare("SELECT COUNT(*) AS total, COALESCE(SUM(size), 0) AS bytes FROM files WHERE owner = ? AND (kind = 'evidence') = ?")
+    .bind(owner, isEvidence ? 1 : 0)
     .first<{ total: number; bytes: number }>();
-  if ((usage?.total ?? 0) >= MAX_FILES_PER_OWNER || (usage?.bytes ?? 0) + upload.size > MAX_BYTES_PER_OWNER) {
+  const byteLimit = isEvidence ? MAX_EVIDENCE_BYTES_PER_OWNER : MAX_BYTES_PER_OWNER;
+  if ((usage?.total ?? 0) >= MAX_FILES_PER_OWNER || (usage?.bytes ?? 0) + upload.size > byteLimit) {
     return { ok: false, status: 429, error: "storage quota reached" };
   }
 

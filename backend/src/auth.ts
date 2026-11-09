@@ -13,6 +13,9 @@ export interface LoginRequest {
 export const buildChatKeyMessage = (address: string, publicKeyHex: string): string =>
   `Junquero: esta es mi clave de chat.\nBilletera: ${address.toLowerCase()}\nClave: ${publicKeyHex.toLowerCase()}`;
 
+export const buildEvidenceMessage = (orderId: number, fileHash: string, metaHash: string): string =>
+  `Junquero: firmo esta prueba de la changa ${orderId}.\nArchivo: ${fileHash.toLowerCase()}\nDatos: ${metaHash.toLowerCase()}`;
+
 export const buildLoginMessage = (address: string, issuedAt: number): string =>
   `Junquero: confirmo que esta billetera es mía.\nBilletera: ${address.toLowerCase()}\nEmitido: ${issuedAt}`;
 

@@ -38,7 +38,8 @@ export const ORDER_STATUS = { Agreed: 3, Delivered: 4, Settled: 6, Cancelled: 7,
 export const CASE_PHASE = { Response: 1, Seed: 2, Vote: 3, Resolved: 5, Decided: 6 };
 
 const QUIET_EVENTS = new Set(["SeedCommitted", "SeedRevealed", "VoteCommitted", "JurorPaid", "JurorSlashed", "Recused"]);
-const SYNC_KEY = "events_synced_rowid";
+const SYNC_KEY = "events_synced_pos";
+const POSITION_BASE = 1_000_000;
 const WRITE_BATCH = 50;
 
 export function orderActions(state: OrderState): string[] {
@@ -62,7 +63,8 @@ export const isOrderClosed = (state: OrderState) =>
 export const isCaseClosed = (state: CaseState) => state.phase === CASE_PHASE.Resolved;
 
 interface EventRow {
-  rowid: number;
+  block_number: number;
+  log_index: number;
   name: string;
   order_id: number | null;
   case_id: number | null;
@@ -76,12 +78,19 @@ async function chunked(db: D1Database, statements: D1PreparedStatement[]) {
 
 export async function syncWatched(db: D1Database, scanLimit: number): Promise<void> {
   const mark = await db.prepare("SELECT value FROM meta WHERE key = ?").bind(SYNC_KEY).first<{ value: number }>();
-  const after = mark ? mark.value : 0;
+  const after = mark ? mark.value : -1;
+  const afterBlock = Math.floor(after / POSITION_BASE);
+  const afterIndex = after - afterBlock * POSITION_BASE;
   const { results } = await db
-    .prepare("SELECT rowid, name, order_id, case_id FROM events WHERE rowid > ? ORDER BY rowid LIMIT ?")
-    .bind(after, scanLimit)
+    .prepare(
+      `SELECT block_number, log_index, name, order_id, case_id FROM events
+       WHERE block_number > ? OR (block_number = ? AND log_index > ?)
+       ORDER BY block_number, log_index LIMIT ?`,
+    )
+    .bind(afterBlock, afterBlock, afterIndex, scanLimit)
     .all<EventRow>();
   if (!results.length) return;
+  const last = results[results.length - 1];
 
   const added = new Set<string>();
   const touched = new Set<string>();
@@ -106,7 +115,7 @@ export async function syncWatched(db: D1Database, scanLimit: number): Promise<vo
     ),
     db
       .prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
-      .bind(SYNC_KEY, results[results.length - 1].rowid),
+      .bind(SYNC_KEY, last.block_number * POSITION_BASE + last.log_index),
   ];
   await chunked(db, statements);
 }

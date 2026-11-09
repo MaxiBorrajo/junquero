@@ -73,10 +73,16 @@ app.use("/orders/*", readGuard);
 
 interface EventRecord {
   args: string;
+  tx_hash: string;
+  log_index: number;
   [key: string]: unknown;
 }
 
-const present = (row: EventRecord) => ({ ...row, args: JSON.parse(row.args) });
+const present = (row: EventRecord) => ({
+  ...row,
+  id: `${row.tx_hash}:${row.log_index}`,
+  args: JSON.parse(row.args),
+});
 
 const parseLimit = (value: string | undefined): number => {
   const parsed = Number(value);

@@ -25,8 +25,8 @@ export interface IndexResult {
 const INSERT_BATCH = 50;
 
 const INSERT_EVENT = `INSERT OR IGNORE INTO events
-  (id, block_number, block_timestamp, tx_hash, log_index, contract, address, name, order_id, case_id, args)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 const UPSERT_CURSOR = `INSERT INTO sync_state (id, last_block) VALUES (1, ?)
   ON CONFLICT(id) DO UPDATE SET last_block = excluded.last_block WHERE excluded.last_block > sync_state.last_block`;
@@ -72,11 +72,10 @@ async function store(db: D1Database, rows: EventRow[], lastBlock: number): Promi
       db
         .prepare(INSERT_EVENT)
         .bind(
-          row.id,
           row.block_number,
+          row.log_index,
           row.block_timestamp,
           row.tx_hash,
-          row.log_index,
           row.contract,
           row.address,
           row.name,

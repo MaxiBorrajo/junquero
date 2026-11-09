@@ -53,9 +53,9 @@ let nextEvent = 0;
 function seedEvent(raw: Raw, name: string, column: "order_id" | "case_id", id: number) {
   nextEvent += 1;
   raw.prepare(
-    `INSERT INTO events (id, block_number, block_timestamp, tx_hash, log_index, contract, address, name, ${column}, args)
-     VALUES (?, 1, 1, ?, 0, 'x', '0x', ?, ?, '{}')`,
-  ).run(`${name}:${id}:${nextEvent}`, `0x${nextEvent}`, name, id);
+    `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, ${column}, args)
+     VALUES (?, 0, 1, ?, 'x', '0x', ?, ?, '{}')`,
+  ).run(nextEvent, `0x${nextEvent}`, name, id);
 }
 
 const options: TaskOptions = {
@@ -136,6 +136,18 @@ describe("syncWatched", () => {
     seedEvent(raw, "VerdictReached", "case_id", 1);
     await syncWatched(db, 500);
     expect(schedule(raw, "case", 1).next).toBe(0);
+  });
+
+  it("does not skip events that share a block when scanning one at a time", async () => {
+    const { db, raw } = createFakeD1();
+    for (let logIndex = 0; logIndex < 3; logIndex++) {
+      raw.prepare(
+        `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, args)
+         VALUES (500, ?, 1, '0x1', 'x', '0x', 'OrderCreated', ?, '{}')`,
+      ).run(logIndex, logIndex + 1);
+    }
+    for (let pass = 0; pass < 3; pass++) await syncWatched(db, 1);
+    expect(raw.prepare("SELECT id FROM watched ORDER BY id").all()).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
   });
 
   it("processes a large backlog in slices without skipping events", async () => {

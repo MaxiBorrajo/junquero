@@ -11,7 +11,6 @@ export interface RawLog {
 }
 
 export interface EventRow {
-  id: string;
   block_number: number;
   block_timestamp: number;
   tx_hash: string;
@@ -47,7 +46,6 @@ export function decodeLog(
 
   const fields = (args ?? {}) as Record<string, unknown>;
   return {
-    id: `${log.transactionHash}:${log.logIndex}`,
     block_number: Number(log.blockNumber),
     block_timestamp: timestamp,
     tx_hash: log.transactionHash,

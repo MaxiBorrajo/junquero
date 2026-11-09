@@ -9,21 +9,12 @@ WHITE = (255, 255, 255, 255)
 CLEAR = (0, 0, 0, 0)
 
 
-def glyph(draw, ox, oy, size, fill):
-    u = size / 48
+JUNCO = Image.open("assets/images/junco.png").convert("RGBA")
 
-    def p(x, y):
-        return (ox + x * u * SCALE, oy + y * u * SCALE)
 
-    def stem(points, width):
-        draw.line([p(x, y) for x, y in points], fill=fill, width=int(width * u * SCALE), joint="curve")
-
-    stem([(24, 46), (24, 16)], 4.2)
-    draw.ellipse((*p(19.5, 1), *p(28.5, 22)), fill=fill)
-    stem([(12, 46), (13, 36), (16, 27)], 4)
-    draw.ellipse((*p(9.5, 15), *p(18.5, 31)), fill=fill)
-    stem([(36, 46), (35, 36), (32, 27)], 4)
-    draw.ellipse((*p(29.5, 15), *p(38.5, 31)), fill=fill)
+def glyph(image, ox, oy, size):
+    mark = JUNCO.resize((size * SCALE, size * SCALE), Image.LANCZOS)
+    image.alpha_composite(mark, (ox, oy))
 
 
 def pill(path, body, W):
@@ -32,7 +23,7 @@ def pill(path, body, W):
     d.rounded_rectangle((0, 0, W * SCALE - 1, H * SCALE - 1), radius=H * SCALE // 2, fill=WHITE)
     b = 3 * SCALE
     d.rounded_rectangle((b, b, W * SCALE - 1 - b, H * SCALE - 1 - b), radius=H * SCALE // 2 - b, fill=body)
-    glyph(d, 9 * SCALE, 8 * SCALE, 28, WHITE)
+    glyph(im, 9 * SCALE, 8 * SCALE, 28)
     im.resize((W, H), Image.LANCZOS).save(path)
 
 

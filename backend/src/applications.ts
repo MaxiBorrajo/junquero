@@ -1,5 +1,6 @@
 import { isAddress } from "viem";
 import type { EventHandler, StreamEvent } from "./eventStream";
+import { parseMilestones, type Milestone, type Spec } from "./spec";
 
 export const MAX_ACTIVE_PER_CHANGA = 50;
 export const MAX_ACTIVE_PER_APPLICANT = 30;
@@ -10,6 +11,7 @@ export interface ApplicationInput {
   amount: string | null;
   message: string;
   attachments: { hash: string; name: string; mime: string; size: number }[];
+  plan: { milestones: Milestone[]; advance: boolean } | null;
 }
 
 export type ApplicationResult = { ok: true; value: ApplicationInput } | { ok: false; error: string };
@@ -21,6 +23,7 @@ export interface ApplicationRow {
   amount: string | null;
   message: string;
   attachments: string;
+  plan: string | null;
   status: string;
   created_at: number;
   updated_at: number;
@@ -63,7 +66,16 @@ export function validateApplication(input: unknown): ApplicationResult {
     if (!Number.isInteger(size) || (size as number) < 1 || (size as number) > 100 * 1024 * 1024) return { ok: false, error: "invalid attachment" };
     parsed.push({ hash, name, mime, size: size as number });
   }
-  return { ok: true, value: { amount, message, attachments: parsed } };
+  let plan: ApplicationInput["plan"] = null;
+  if (raw.plan !== undefined && raw.plan !== null) {
+    const body = raw.plan as Record<string, unknown>;
+    if (typeof body !== "object" || Object.keys(body).some((key) => key !== "milestones" && key !== "advance")) return { ok: false, error: "invalid plan" };
+    const milestones = parseMilestones(body.milestones);
+    if (typeof milestones === "string") return { ok: false, error: milestones };
+    if (body.advance !== undefined && typeof body.advance !== "boolean") return { ok: false, error: "advance must be true or false" };
+    plan = { milestones, advance: body.advance === true };
+  }
+  return { ok: true, value: { amount, message, attachments: parsed, plan } };
 }
 
 export const presentApplication = (row: ApplicationRow) => ({
@@ -73,6 +85,7 @@ export const presentApplication = (row: ApplicationRow) => ({
   amount: row.amount,
   message: row.message,
   attachments: JSON.parse(row.attachments),
+  plan: row.plan ? (JSON.parse(row.plan) as ApplicationInput["plan"]) : null,
   status: row.status,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -80,7 +93,7 @@ export const presentApplication = (row: ApplicationRow) => ({
 
 export type SubmitOutcome =
   | { ok: true; created: boolean; row: ApplicationRow }
-  | { ok: false; status: 403 | 404 | 409 | 429; error: string };
+  | { ok: false; status: 400 | 403 | 404 | 409 | 429; error: string };
 
 export async function submitApplication(
   db: D1Database,
@@ -91,12 +104,21 @@ export async function submitApplication(
   requireVerified: boolean,
 ): Promise<SubmitOutcome> {
   const changa = await db
-    .prepare("SELECT owner, status, order_id FROM changas WHERE id = ?")
+    .prepare("SELECT owner, status, order_id, spec, amount FROM changas WHERE id = ?")
     .bind(changaId)
-    .first<{ owner: string; status: string; order_id: number | null }>();
+    .first<{ owner: string; status: string; order_id: number | null; spec: string; amount: string | null }>();
   if (!changa || changa.order_id === null) return { ok: false, status: 404, error: "changa not found" };
   if (changa.status !== "open") return { ok: false, status: 409, error: "changa is not open" };
   if (changa.owner === applicant) return { ok: false, status: 403, error: "you cannot apply to your own changa" };
+
+  if (input.plan) {
+    const spec = JSON.parse(changa.spec) as Spec;
+    const total = input.plan.milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n);
+    if (!spec.milestones || changa.amount === null || total !== BigInt(changa.amount)) {
+      return { ok: false, status: 400, error: "the proposed plan must add up to the published amount" };
+    }
+    if (input.amount !== null && BigInt(input.amount) !== BigInt(changa.amount)) return { ok: false, status: 400, error: "a plan cannot be combined with a different amount" };
+  }
 
   if (requireVerified) {
     const profile = await db.prepare("SELECT selfie_status FROM profiles WHERE address = ?").bind(applicant).first<{ selfie_status: string }>();
@@ -123,12 +145,12 @@ export async function submitApplication(
 
   await db
     .prepare(
-      `INSERT INTO applications (changa_id, applicant, amount, message, attachments, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+      `INSERT INTO applications (changa_id, applicant, amount, message, attachments, plan, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
        ON CONFLICT(changa_id, applicant) DO UPDATE SET amount = excluded.amount, message = excluded.message,
-         attachments = excluded.attachments, status = 'active', updated_at = excluded.updated_at`,
+         attachments = excluded.attachments, plan = excluded.plan, status = 'active', updated_at = excluded.updated_at`,
     )
-    .bind(changaId, applicant, input.amount, input.message, JSON.stringify(input.attachments), nowSeconds, nowSeconds)
+    .bind(changaId, applicant, input.amount, input.message, JSON.stringify(input.attachments), input.plan ? JSON.stringify(input.plan) : null, nowSeconds, nowSeconds)
     .run();
   const row = await db
     .prepare("SELECT * FROM applications WHERE changa_id = ? AND applicant = ?")
@@ -146,9 +168,12 @@ export async function withdrawApplication(db: D1Database, changaId: number, appl
 }
 
 export async function listForOwner(db: D1Database, changaId: number, owner: string) {
-  const changa = await db.prepare("SELECT owner FROM changas WHERE id = ?").bind(changaId).first<{ owner: string }>();
+  const changa = await db
+    .prepare("SELECT c.owner AS owner, p.payer AS coordinator FROM changas c LEFT JOIN order_parties p ON p.order_id = c.order_id WHERE c.id = ?")
+    .bind(changaId)
+    .first<{ owner: string; coordinator: string | null }>();
   if (!changa) return { status: 404 as const };
-  if (changa.owner !== owner) return { status: 403 as const };
+  if ((changa.coordinator ?? changa.owner) !== owner) return { status: 403 as const };
   const { results } = await db
     .prepare(
       `SELECT a.*, p.name, p.selfie_status, p.work_lat_e3, p.work_lng_e3

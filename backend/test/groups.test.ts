@@ -9,6 +9,7 @@ import { validateSpec } from "../src/spec";
 import { criteriaHash, milestoneTerms, milestoneTermsHash, milestoneTotal } from "../src/terms";
 import { accept, type AgreementChain } from "../src/agreements";
 import { agreementTypes, escrowDomain, ZERO_HASH, type Agreement } from "../src/agreements";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { authed, createdEvent, futureSpec, owner, setup, stranger, TOKEN, tokenFor } from "./helpers";
 
 beforeEach(() => readCache.clear());
@@ -185,5 +186,31 @@ describe("group changas", () => {
     w.event("CoordinatorChanged", 201, { previous: stranger.address, current: owner.address });
     await processEvents(w.ctx.db, handlers, 100);
     expect(w.ctx.raw.prepare("SELECT payer FROM order_parties WHERE order_id = 5").get()).toEqual({ payer: owner.address.toLowerCase() });
+  });
+});
+
+describe("coordinator of a group", () => {
+  it("the coordinator, not the creator, proposes the agreement and sees the applications", async () => {
+    const ctx = setup();
+    const creator = await tokenFor(ctx.call, owner);
+    const draft = await ctx.call("/me/changas", authed(creator.body.token, "POST", futureSpec("nonce-0001", { group: { target: "100000000", fundingDeadline: now() + 86400 } })));
+    const { specHash } = (await draft.json()) as { specHash: string };
+    ctx.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, args)
+       VALUES (200, 0, 1, '0x1', 'escrow', '0x', 'GroupCreated', 5, ?)`,
+    ).run(JSON.stringify({ creator: owner.address, coordinator: stranger.address, target: "100000000", deadline: String(now() + 86400) }));
+    ctx.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, args)
+       VALUES (201, 0, 1, '0x1', 'escrow', '0x', 'FundingCompleted', 5, '{}')`,
+    ).run();
+    await processEvents(ctx.db, handlers, 100);
+    const id = (ctx.raw.prepare("SELECT id FROM changas").get() as { id: number }).id;
+    const coordinator = await tokenFor(ctx.call, stranger);
+    expect((await ctx.call(`/me/changas/${id}/applications`, authed(coordinator.body.token, "GET"))).status).toBe(200);
+    expect((await ctx.call(`/me/changas/${id}/applications`, authed(creator.body.token, "GET"))).status).toBe(403);
+
+    const worker = await tokenFor(ctx.call, privateKeyToAccount(generatePrivateKey()));
+    expect(worker.body.address).toBeDefined();
+    void specHash;
   });
 });

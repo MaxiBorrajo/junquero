@@ -48,6 +48,7 @@ export interface AgreementRow {
   payer_signature: string;
   status: string;
   tx_hash: string | null;
+  plan: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -119,7 +120,8 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
     .bind(orderId)
     .first<ChangaForOrder>();
   if (!changa) return { ok: false, status: 404, error: "order not found" };
-  if (changa.owner !== payer) return { ok: false, status: 403, error: "only the owner can propose an agreement" };
+  const coordinator = await db.prepare("SELECT payer FROM order_parties WHERE order_id = ?").bind(orderId).first<{ payer: string | null }>();
+  if ((coordinator?.payer ?? changa.owner) !== payer) return { ok: false, status: 403, error: "only the owner can propose an agreement" };
   if (changa.status !== "open") return { ok: false, status: 409, error: "the changa is not open" };
   if (input.expiry < nowSeconds + MIN_PROPOSAL_SECONDS || input.expiry > nowSeconds + MAX_PROPOSAL_SECONDS) {
     return { ok: false, status: 400, error: "expiry out of range" };
@@ -128,9 +130,9 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
   const payee = input.payee.toLowerCase();
   if (payee === payer) return { ok: false, status: 400, error: "payee cannot be the owner" };
   const application = await db
-    .prepare("SELECT amount FROM applications WHERE changa_id = ? AND applicant = ? AND status = 'active'")
+    .prepare("SELECT amount, plan FROM applications WHERE changa_id = ? AND applicant = ? AND status = 'active'")
     .bind(changa.id, payee)
-    .first<{ amount: string | null }>();
+    .first<{ amount: string | null; plan: string | null }>();
   if (!application) return { ok: false, status: 400, error: "payee has no active application" };
 
   const expected = application.amount ?? changa.amount;
@@ -138,8 +140,10 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
   if (changa.amount !== null && BigInt(input.price) > BigInt(changa.amount)) return { ok: false, status: 400, error: "price exceeds the deposit" };
 
   const spec = JSON.parse(changa.spec) as Spec;
-  const terms = milestoneTerms(spec, changa.spec_hash as Hex);
-  if (terms && (input.price !== changa.amount || BigInt(input.price) !== milestoneTotal(spec))) {
+  const applied = application.plan ? (JSON.parse(application.plan) as { milestones: Spec["milestones"]; advance: boolean }) : null;
+  const terms = milestoneTerms(applied ? { milestones: applied.milestones, advance: applied.advance } : spec, changa.spec_hash as Hex);
+  const planTotal = applied ? (applied.milestones ?? []).reduce((sum, item) => sum + BigInt(item.amount), 0n) : milestoneTotal(spec);
+  if (terms && (input.price !== changa.amount || BigInt(input.price) !== planTotal)) {
     return { ok: false, status: 400, error: "with milestones the price must be the published amount, equal to the sum of the milestones" };
   }
 
@@ -154,6 +158,7 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
     payer_signature: input.signature,
     status: "pending",
     tx_hash: null,
+    plan: applied ? application.plan : null,
     created_at: nowSeconds,
     updated_at: nowSeconds,
   };
@@ -164,13 +169,13 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
 
   await db
     .prepare(
-      `INSERT INTO agreements (order_id, payer, payee, price, spec_hash, terms_hash, expiry, payer_signature, status, tx_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?)
+      `INSERT INTO agreements (order_id, payer, payee, price, spec_hash, terms_hash, expiry, payer_signature, status, tx_hash, plan, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, ?)
        ON CONFLICT(order_id) DO UPDATE SET payee = excluded.payee, price = excluded.price, spec_hash = excluded.spec_hash,
          terms_hash = excluded.terms_hash, expiry = excluded.expiry, payer_signature = excluded.payer_signature,
-         status = 'pending', tx_hash = NULL, updated_at = excluded.updated_at`,
+         status = 'pending', tx_hash = NULL, plan = excluded.plan, updated_at = excluded.updated_at`,
     )
-    .bind(orderId, payer, payee, input.price, row.spec_hash, row.terms_hash, input.expiry, input.signature, nowSeconds, nowSeconds)
+    .bind(orderId, payer, payee, input.price, row.spec_hash, row.terms_hash, input.expiry, input.signature, row.plan, nowSeconds, nowSeconds)
     .run();
   await queueNotification(db, payee, "agreement_proposed", String(orderId), 0, nowSeconds).run();
   return { ok: true, row };
@@ -191,7 +196,8 @@ export async function accept(db: D1Database, chain: AgreementChain, orderId: num
   if (!claimed.meta.changes) return { ok: false, status: 409, error: "the agreement is not pending" };
 
   const changa = await db.prepare("SELECT spec FROM changas WHERE order_id = ?").bind(orderId).first<{ spec: string }>();
-  const terms = changa ? milestoneTerms(JSON.parse(changa.spec) as Spec, row.spec_hash as Hex) : null;
+  const planned = row.plan ? (JSON.parse(row.plan) as { milestones: Spec["milestones"]; advance: boolean }) : null;
+  const terms = changa ? milestoneTerms(planned ? { milestones: planned.milestones, advance: planned.advance } : (JSON.parse(changa.spec) as Spec), row.spec_hash as Hex) : null;
   const outcome = await chain.agree(agreement, row.payer_signature as Hex, signature, terms ?? undefined);
   if (!outcome.ok) {
     await db.prepare("UPDATE agreements SET status = 'pending', updated_at = ? WHERE order_id = ?").bind(nowSeconds, orderId).run();
@@ -221,6 +227,7 @@ export const presentAgreement = (row: AgreementRow, nowSeconds: number) => ({
   expiry: row.expiry,
   status: row.status === "pending" && nowSeconds > row.expiry ? "expired" : row.status,
   txHash: row.tx_hash,
+  plan: row.plan ? JSON.parse(row.plan) : null,
 });
 
 export async function listMine(db: D1Database, address: string, nowSeconds: number) {

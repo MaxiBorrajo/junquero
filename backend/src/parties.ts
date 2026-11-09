@@ -41,6 +41,15 @@ export const partiesHandler: EventHandler = (db: D1Database, events: StreamEvent
             .bind(event.order_id, coordinator.toLowerCase()),
         );
       }
+    } else if ((event.name === "Contributed" || event.name === "ContributionWithdrawn") && event.order_id !== null) {
+      const contributor = parse<{ contributor?: string }>(event.args)?.contributor;
+      if (contributor && isAddress(contributor)) {
+        statements.push(
+          event.name === "Contributed"
+            ? db.prepare("INSERT OR IGNORE INTO group_contributors (order_id, address) VALUES (?, ?)").bind(event.order_id, contributor.toLowerCase())
+            : db.prepare("DELETE FROM group_contributors WHERE order_id = ? AND address = ?").bind(event.order_id, contributor.toLowerCase()),
+        );
+      }
     } else if (event.name === "ReservationWithdrawn" && event.order_id !== null) {
       statements.push(db.prepare("UPDATE order_parties SET payee = NULL WHERE order_id = ?").bind(event.order_id));
     } else if (event.name === "CaseOpened" && event.order_id !== null && event.case_id !== null) {

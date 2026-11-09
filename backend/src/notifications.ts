@@ -22,6 +22,7 @@ export const TEMPLATES: Record<string, Template> = {
   cancelled: { title: "Changa cancelada", body: "Una de tus changas fue cancelada.", priority: "high" },
   settled: { title: "Pago liberado", body: "Se liberó el pago de una changa.", priority: "default" },
   reminder_start: { title: "Tu changa es pronto", body: "Tenés una changa en una hora.", priority: "high" },
+  release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí la app para confirmar.", priority: "high" },
   dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Abrí la app ahora.", priority: "high" },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para actuar. Abrí la app ahora.", priority: "high" },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito.", priority: "high" },

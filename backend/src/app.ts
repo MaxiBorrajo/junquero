@@ -34,6 +34,8 @@ import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, upsertProfile, validateProfile } from "./profiles";
 import { listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
 import { casesFor } from "./cases";
+import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
+import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
@@ -557,6 +559,63 @@ app.post("/me/orders/:orderId/agreement", async (c) => {
 });
 
 app.get("/me/cases", async (c) => c.json(await casesFor(c.env.DB, c.get("address"))));
+
+app.post("/me/orders/:orderId/release", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const parsed = parseRelease(await readJson(c));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const result = await submitRelease(c.env.DB, orderId, c.get("address"), parsed.value, nowSeconds());
+  return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
+});
+
+app.get("/me/orders/:orderId/release", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const result = await readRelease(c.env.DB, orderId, c.get("address"), nowSeconds());
+  return result.ok ? c.json({ release: result.release }) : c.json({ error: result.error }, result.status);
+});
+
+app.delete("/me/orders/:orderId/release", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const result = await cancelRelease(c.env.DB, orderId, c.get("address"));
+  return result.ok ? c.json({ ok: true }) : c.json({ error: result.error }, result.status);
+});
+
+app.get("/me/contributions", async (c) => {
+  const { results } = await c.env.DB
+    .prepare(
+      `SELECT g.order_id AS orderId, c.id AS changaId, c.spec_hash AS specHash, c.status AS status, json_extract(c.spec, '$.title') AS title
+       FROM group_contributors g LEFT JOIN changas c ON c.order_id = g.order_id WHERE g.address = ? ORDER BY g.order_id DESC LIMIT 50`,
+    )
+    .bind(c.get("address"))
+    .all();
+  return c.json({ contributions: results });
+});
+
+app.post("/me/reports", async (c) => {
+  const result = await createReport(c.env.DB, c.get("address"), await readJson(c), nowSeconds());
+  return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
+});
+
+app.get("/admin/reports", async (c) => c.json({ reports: await listReports(c.env.DB, c.req.query("status") === "resolved" ? "resolved" : "open", parseLimit(c.req.query("limit"), 50, 100)) }));
+
+app.post("/admin/reports/:id", async (c) => {
+  const id = parseChangaId(c.req.param("id"));
+  const body = (await readJson(c)) as { action?: unknown; reason?: unknown } | undefined;
+  if (id === null || (body?.action !== "dismiss" && body?.action !== "hide")) return c.json({ error: "action must be dismiss or hide" }, 400);
+  const parsed = parseReason(body.reason);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const report = await resolveReport(c.env.DB, id, c.get("address"), body.action, nowSeconds());
+  if (!report) return c.json({ error: "report not found" }, 404);
+  if (body.action === "hide" && report.kind === "changa") {
+    await setHidden(c.env.DB, Number(report.target), true);
+    readCache.clear();
+  }
+  await logAction(c.env.DB, c.get("address"), body.action === "hide" ? "report_hide" : "report_dismissed", `${report.kind}:${report.target}`, parsed.reason, nowSeconds()).run();
+  return c.json({ ok: true });
+});
 
 app.get("/me/agreements", async (c) => c.json({ agreements: await listAgreements(c.env.DB, c.get("address"), nowSeconds()) }));
 

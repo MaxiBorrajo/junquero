@@ -33,8 +33,12 @@ export interface Spec {
   attachments: Attachment[];
   milestones?: Milestone[];
   advance?: boolean;
+  materials?: Materials;
   group?: GroupPlan;
 }
+
+export type Materials = "payer" | "advance" | "worker";
+const MATERIALS = new Set<string>(["payer", "advance", "worker"]);
 
 export interface Milestone {
   name: string;
@@ -51,7 +55,7 @@ export interface GroupPlan {
 export type SpecResult = { ok: true; spec: Spec; canonical: string; hash: Hex } | { ok: false; error: string };
 
 const ALLOWED_KEYS = new Set([
-  "v", "title", "description", "category", "modality", "nonce", "area", "startsAt", "deadline", "durationMin", "evidence", "attachments", "milestones", "advance", "group",
+  "v", "title", "description", "category", "modality", "nonce", "area", "startsAt", "deadline", "durationMin", "evidence", "attachments", "milestones", "advance", "materials", "group",
 ]);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -94,7 +98,7 @@ const AMOUNT = /^[1-9][0-9]{0,38}$/;
 export const MIN_MILESTONES = 2;
 export const MAX_MILESTONES = 20;
 
-function parseMilestones(value: unknown): Milestone[] | string {
+export function parseMilestones(value: unknown): Milestone[] | string {
   if (!Array.isArray(value) || value.length < MIN_MILESTONES || value.length > MAX_MILESTONES) return `milestones must be a list of ${MIN_MILESTONES} to ${MAX_MILESTONES}`;
   const parsed: Milestone[] = [];
   for (const item of value) {
@@ -200,6 +204,10 @@ export function validateSpec(input: unknown, nowSeconds: number): SpecResult {
   if (input.advance !== undefined) {
     if (input.advance !== true || spec.milestones === undefined) return { ok: false, error: "advance is only valid as true together with milestones" };
     spec.advance = true;
+  }
+  if (input.materials !== undefined) {
+    if (typeof input.materials !== "string" || !MATERIALS.has(input.materials)) return { ok: false, error: "materials must be payer, advance or worker" };
+    spec.materials = input.materials as Materials;
   }
   if (input.group !== undefined) {
     const group = parseGroup(input.group, nowSeconds);

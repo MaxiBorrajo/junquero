@@ -17,7 +17,7 @@ import { queueNotification, registerToken, removeToken } from "./notifications";
 import { isExpoToken } from "./push";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
-import { canDownload, listEvidence, parseEvidence, registerEvidence, resolveEvidenceAccess, shareKey } from "./evidence";
+import { canDownload, listEvidence, parseEvidence, parseEvidenceBatch, registerEvidence, registerEvidenceBatch, resolveEvidenceAccess, shareKey } from "./evidence";
 import {
   fileHeaders,
   deleteFile,
@@ -378,6 +378,16 @@ app.post("/me/orders/:orderId/evidence", async (c) => {
   const outcome = await registerEvidence(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
   return c.json({ hash: parsed.value.hash }, outcome.created ? 201 : 200);
+});
+
+app.post("/me/orders/:orderId/evidence/batch", async (c) => {
+  const found = await evidenceFor(c, c.req.param("orderId"));
+  if ("response" in found) return found.response;
+  const parsed = parseEvidenceBatch(await readJson(c));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const outcome = await registerEvidenceBatch(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
+  if (!outcome.ok) return c.json({ error: outcome.error, index: outcome.index }, outcome.status);
+  return c.json({ hashes: outcome.hashes }, 201);
 });
 
 app.get("/me/orders/:orderId/evidence", async (c) => {

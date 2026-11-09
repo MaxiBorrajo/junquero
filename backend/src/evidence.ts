@@ -1,8 +1,9 @@
 import { recoverMessageAddress } from "viem";
-import { buildEvidenceMessage } from "./auth";
+import { buildEvidenceBatchMessage, buildEvidenceMessage } from "./auth";
 
 export const EVIDENCE_STATUSES = new Set(["agreed", "delivered", "disputed"]);
-export const MAX_ITEMS_PER_UPLOADER = 15;
+export const MAX_ITEMS_PER_UPLOADER = 40;
+export const MAX_BATCH_ITEMS = 20;
 export const MAX_META_CHARS = 2048;
 export const MAX_WRAPPED_CHARS = 512;
 export const KINDS = new Set(["photo", "video", "document"]);
@@ -98,10 +99,19 @@ export async function registerEvidence(
   access: EvidenceAccess,
   nowSeconds: number,
 ): Promise<RegisterOutcome> {
+  const denied = deniedUpload(access);
+  if (denied) return denied;
+  if ((await signerOf(orderId, input)) !== uploader) return { ok: false, status: 400, error: "signature does not match your wallet" };
+  return insertEvidence(db, orderId, uploader, input, null, nowSeconds);
+}
+
+function deniedUpload(access: EvidenceAccess): RegisterOutcome | null {
   if (access.role === "juror") return { ok: false, status: 403, error: "jurors cannot upload evidence" };
   if (!EVIDENCE_STATUSES.has(access.status)) return { ok: false, status: 409, error: "the order does not accept evidence in its current state" };
-  if ((await signerOf(orderId, input)) !== uploader) return { ok: false, status: 400, error: "signature does not match your wallet" };
+  return null;
+}
 
+async function insertEvidence(db: D1Database, orderId: number, uploader: string, input: EvidenceInput, batch: string | null, nowSeconds: number): Promise<RegisterOutcome> {
   const file = await db
     .prepare("SELECT size FROM files WHERE owner = ? AND hash = ? AND kind = 'evidence'")
     .bind(uploader, input.hash)
@@ -119,11 +129,67 @@ export async function registerEvidence(
 
   await db.batch([
     db
-      .prepare("INSERT INTO evidence (order_id, hash, uploader, kind, meta, signature, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(orderId, input.hash, uploader, input.kind, input.meta, input.signature, file.size, nowSeconds),
+      .prepare("INSERT INTO evidence (order_id, hash, uploader, kind, meta, signature, size, created_at, batch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(orderId, input.hash, uploader, input.kind, input.meta, input.signature, file.size, nowSeconds, batch),
     db.prepare("UPDATE files SET linked = 1 WHERE owner = ? AND hash = ?").bind(uploader, input.hash),
   ]);
   return { ok: true, created: true };
+}
+
+export interface EvidenceBatchInput {
+  items: { hash: string; kind: string; meta: string }[];
+  signature: string;
+}
+
+export type BatchParse = { ok: true; value: EvidenceBatchInput } | { ok: false; error: string };
+
+export function parseEvidenceBatch(body: unknown): BatchParse {
+  if (typeof body !== "object" || body === null) return { ok: false, error: "body must be an object" };
+  const raw = body as Record<string, unknown>;
+  if (typeof raw.signature !== "string" || !SIGNATURE.test(raw.signature)) return { ok: false, error: "invalid signature" };
+  if (!Array.isArray(raw.items) || raw.items.length < 1 || raw.items.length > MAX_BATCH_ITEMS) return { ok: false, error: `items must have between 1 and ${MAX_BATCH_ITEMS} entries` };
+  const items: EvidenceBatchInput["items"] = [];
+  const seen = new Set<string>();
+  for (const entry of raw.items) {
+    const parsed = parseEvidence({ ...(entry as object), signature: raw.signature });
+    if (!parsed.ok) return parsed;
+    if (seen.has(parsed.value.hash)) return { ok: false, error: "duplicated hash in the batch" };
+    seen.add(parsed.value.hash);
+    items.push({ hash: parsed.value.hash, kind: parsed.value.kind, meta: parsed.value.meta });
+  }
+  return { ok: true, value: { items, signature: raw.signature } };
+}
+
+export async function batchSigner(orderId: number, input: EvidenceBatchInput): Promise<{ signer: string | null; digest: string }> {
+  const entries = await Promise.all(input.items.map(async (item) => ({ fileHash: item.hash, metaHash: await metaDigest(item.meta) })));
+  const digest = entries.map((entry) => `${entry.fileHash}:${entry.metaHash}`).join(",");
+  try {
+    const signer = await recoverMessageAddress({ message: buildEvidenceBatchMessage(orderId, entries), signature: input.signature as `0x${string}` });
+    return { signer: signer.toLowerCase(), digest };
+  } catch {
+    return { signer: null, digest };
+  }
+}
+
+export type BatchOutcome = { ok: true; hashes: string[] } | { ok: false; status: 400 | 403 | 404 | 409 | 429; error: string; index?: number };
+
+export async function registerEvidenceBatch(
+  db: D1Database,
+  orderId: number,
+  uploader: string,
+  input: EvidenceBatchInput,
+  access: EvidenceAccess,
+  nowSeconds: number,
+): Promise<BatchOutcome> {
+  const denied = deniedUpload(access);
+  if (denied && !denied.ok) return denied;
+  const { signer, digest } = await batchSigner(orderId, input);
+  if (signer !== uploader) return { ok: false, status: 400, error: "signature does not match your wallet" };
+  for (const [index, item] of input.items.entries()) {
+    const outcome = await insertEvidence(db, orderId, uploader, { ...item, signature: input.signature }, digest, nowSeconds);
+    if (!outcome.ok) return { ...outcome, index };
+  }
+  return { ok: true, hashes: input.items.map((item) => item.hash) };
 }
 
 interface EvidenceRow {
@@ -134,6 +200,7 @@ interface EvidenceRow {
   signature: string;
   size: number;
   created_at: number;
+  batch: string | null;
   wrapped: string | null;
 }
 
@@ -141,7 +208,7 @@ export async function listEvidence(db: D1Database, orderId: number, address: str
   const { results } = await db
     .prepare(
       `SELECT e.hash AS hash, e.uploader AS uploader, e.kind AS kind, e.meta AS meta, e.signature AS signature,
-              e.size AS size, e.created_at AS created_at, k.wrapped AS wrapped
+              e.size AS size, e.created_at AS created_at, e.batch AS batch, k.wrapped AS wrapped
        FROM evidence e LEFT JOIN evidence_keys k
          ON k.order_id = e.order_id AND k.hash = e.hash AND k.recipient = ?
        WHERE e.order_id = ? ORDER BY e.created_at, e.hash`,
@@ -158,6 +225,7 @@ export async function listEvidence(db: D1Database, orderId: number, address: str
       signature: row.signature,
       size: row.size,
       createdAt: row.created_at,
+      batch: row.batch,
       wrappedKey: row.wrapped,
     }));
 }

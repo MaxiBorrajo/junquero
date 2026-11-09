@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { readCache } from "../src/app";
 import { applicationsHandler } from "../src/applications";
-import { buildEvidenceMessage } from "../src/auth";
+import { buildEvidenceBatchMessage, buildEvidenceMessage } from "../src/auth";
 import { createChangasHandler } from "../src/changas";
 import { MAX_ITEMS_PER_UPLOADER, metaDigest } from "../src/evidence";
 import { processEvents } from "../src/eventStream";
@@ -200,5 +200,88 @@ describe("sharing keys", () => {
     expect((await put({ recipient: owner.address, wrapped }, "zz")).status).toBe(400);
     const stored = ctx.raw.prepare("SELECT recipient FROM evidence_keys ORDER BY recipient").all() as any[];
     expect(stored).toHaveLength(2);
+  });
+});
+
+describe("registering a batch with one signature", () => {
+  const batchBody = async (hashes: string[], account = stranger, order = 1) => {
+    const entries = await Promise.all(hashes.map(async (hash) => ({ fileHash: hash, metaHash: await metaDigest(meta) })));
+    const signature = await account.signMessage({ message: buildEvidenceBatchMessage(order, entries) });
+    return { items: hashes.map((hash) => ({ hash, kind: "photo", meta })), signature };
+  };
+
+  it("registers every item with a single signature and keeps the batch for later checks", async () => {
+    const ctx = setup();
+    const { payer, payee } = await agreed(ctx);
+    const first = await uploaded(ctx, payee, 3);
+    const second = await uploaded(ctx, payee, 5);
+    const third = await uploaded(ctx, payee, 7);
+    const body = await batchBody([first.hash, second.hash, third.hash]);
+    const response = await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", body));
+    expect(response.status).toBe(201);
+    expect(((await response.json()) as { hashes: string[] }).hashes).toEqual([first.hash, second.hash, third.hash]);
+
+    const listed = await ctx.call("/me/orders/1/evidence", authed(payer, "GET"));
+    const items = ((await listed.json()) as { evidence: { hash: string; signature: string; batch: string | null }[] }).evidence;
+    expect(items).toHaveLength(3);
+    expect(new Set(items.map((item) => item.signature)).size).toBe(1);
+    expect(items[0]!.batch).toContain(first.hash);
+    expect(items[0]!.batch).toContain(third.hash);
+  });
+
+  it("is idempotent when the same batch is sent again", async () => {
+    const ctx = setup();
+    const { payee } = await agreed(ctx);
+    const one = await uploaded(ctx, payee, 3);
+    const body = await batchBody([one.hash]);
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", body))).status).toBe(201);
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", body))).status).toBe(201);
+    expect((ctx.raw.prepare("SELECT COUNT(*) AS n FROM evidence").get() as { n: number }).n).toBe(1);
+  });
+
+  it("rejects a signature from another wallet or over different items", async () => {
+    const ctx = setup();
+    const { payee } = await agreed(ctx);
+    const one = await uploaded(ctx, payee, 3);
+    const two = await uploaded(ctx, payee, 5);
+    const foreign = await batchBody([one.hash, two.hash], juror);
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", foreign))).status).toBe(400);
+
+    const signedForOne = await batchBody([one.hash]);
+    const tampered = { ...signedForOne, items: [...signedForOne.items, { hash: two.hash, kind: "photo", meta }] };
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", tampered))).status).toBe(400);
+    expect((ctx.raw.prepare("SELECT COUNT(*) AS n FROM evidence").get() as { n: number }).n).toBe(0);
+  });
+
+  it("rejects empty, duplicated and oversized batches", async () => {
+    const ctx = setup();
+    const { payee } = await agreed(ctx);
+    const one = await uploaded(ctx, payee, 3);
+    const signature = `0x${"11".repeat(65)}`;
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", { items: [], signature }))).status).toBe(400);
+    const dup = { items: [{ hash: one.hash, kind: "photo", meta }, { hash: one.hash, kind: "photo", meta }], signature };
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", dup))).status).toBe(400);
+    const many = { items: Array.from({ length: 21 }, (_, i) => ({ hash: sha256(new Uint8Array([i])), kind: "photo", meta })), signature };
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", many))).status).toBe(400);
+  });
+
+  it("reports which item failed when its file was never uploaded", async () => {
+    const ctx = setup();
+    const { payee } = await agreed(ctx);
+    const one = await uploaded(ctx, payee, 3);
+    const missing = sha256(cipher(9));
+    const body = await batchBody([one.hash, missing]);
+    const response = await ctx.call("/me/orders/1/evidence/batch", authed(payee, "POST", body));
+    expect(response.status).toBe(404);
+    expect(((await response.json()) as { index: number }).index).toBe(1);
+  });
+
+  it("does not let jurors or strangers upload evidence in batch", async () => {
+    const ctx = setup();
+    const { payee } = await agreed(ctx);
+    const one = await uploaded(ctx, payee, 3);
+    const outsider = await tokenFor(ctx.call, juror);
+    const body = await batchBody([one.hash], juror);
+    expect((await ctx.call("/me/orders/1/evidence/batch", authed(outsider.body.token, "POST", body))).status).toBe(403);
   });
 });

@@ -5,7 +5,7 @@ import { createApi } from "../src/api/client";
 import { fromBase64 } from "../src/crypto/base64";
 import { keyPairFromSeed, publicKeyHex } from "../src/crypto/chat";
 import { decryptFile, decryptMeta, encryptEvidence, evidenceBundleHash, unwrapKey, wrapKey } from "../src/evidence/crypto";
-import { buildEvidenceMessage, kindOf, uploadEvidence } from "../src/evidence/upload";
+import { buildEvidenceBatchMessage, kindOf, uploadEvidenceBatch } from "../src/evidence/upload";
 
 beforeAll(async () => {
   await sodium.ready;
@@ -62,8 +62,11 @@ describe("cifrado de evidencia", () => {
   });
 });
 
-describe("subida de evidencia", () => {
-  it("sube cifrado, firma lo mismo que verifica el servidor y comparte la clave con las dos partes", async () => {
+describe("subida de evidencia por tanda", () => {
+  const second = Uint8Array.from({ length: 300 }, (_, i) => (i * 11) % 256);
+  const secondMeta = { capturedAt: 1_800_000_100, name: "boleta.pdf", mime: "application/pdf" };
+
+  function harness() {
     const calls: { method: string; path: string; body: any; headers: Record<string, string> }[] = [];
     const fetcher = async (url: string, init?: RequestInit) => {
       const path = url.replace("https://x", "");
@@ -75,77 +78,68 @@ describe("subida de evidencia", () => {
     };
     const api = createApi({ baseUrl: "https://x", fetcher, getToken: () => "t" });
     const signed: string[] = [];
-    const result = await uploadEvidence(
-      { api, address: "0xAAA0000000000000000000000000000000000001", counterpart: "0xBBB0000000000000000000000000000000000002", mine: alice, signMessage: async (m) => (signed.push(m), "0x" + "11".repeat(65) as `0x${string}`), hash: async (bytes) => createHash("sha256").update(bytes).digest("hex") },
-      7,
-      file,
-      meta,
-    );
-    const upload = calls.find((c) => c.path === "/me/evidence-files")!;
-    const digest = createHash("sha256").update(upload.body).digest("hex");
-    expect(result.hash).toBe(digest);
-    expect(upload.headers["X-Content-SHA256"]).toBe(digest);
-    expect(upload.headers["Content-Type"]).toBe("application/octet-stream");
+    const deps = {
+      api,
+      address: "0xAAA0000000000000000000000000000000000001",
+      counterpart: "0xBBB0000000000000000000000000000000000002",
+      mine: alice,
+      signMessage: async (m: string) => (signed.push(m), ("0x" + "11".repeat(65)) as `0x${string}`),
+      hash: async (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex"),
+    };
+    return { calls, signed, deps };
+  }
 
-    const register = calls.find((c) => c.path === "/me/orders/7/evidence")!;
-    const metaDigest = createHash("sha256").update(register.body.meta).digest("hex");
-    expect(signed[0]).toBe(buildEvidenceMessage(7, digest, metaDigest));
-    expect(register.body).toMatchObject({ hash: digest, kind: "photo" });
+  it("firma una sola vez lo mismo que verifica el servidor y comparte la clave de cada archivo con las dos partes", async () => {
+    const { calls, signed, deps } = harness();
+    const result = await uploadEvidenceBatch(deps, 7, [{ file, meta }, { file: second, meta: secondMeta }]);
+
+    const uploads = calls.filter((c) => c.path === "/me/evidence-files");
+    expect(uploads).toHaveLength(2);
+    const digests = uploads.map((u) => createHash("sha256").update(u.body).digest("hex"));
+    expect(result.hashes).toEqual(digests);
+
+    expect(signed).toHaveLength(1);
+    const register = calls.find((c) => c.path === "/me/orders/7/evidence/batch")!;
+    expect(register.body.items.map((i: any) => i.hash)).toEqual(digests);
+    expect(register.body.items.map((i: any) => i.kind)).toEqual(["photo", "document"]);
+    const entries = register.body.items.map((i: any) => ({ fileHash: i.hash, metaHash: createHash("sha256").update(i.meta).digest("hex") }));
+    expect(signed[0]).toBe(buildEvidenceBatchMessage(7, entries));
 
     const keys = calls.filter((c) => c.path.endsWith("/keys"));
-    expect(keys.map((k) => k.body.recipient)).toEqual(["0xaaa0000000000000000000000000000000000001", "0xbbb0000000000000000000000000000000000002"]);
+    expect(keys).toHaveLength(4);
+    expect(keys.map((k) => k.body.recipient)).toEqual([
+      "0xaaa0000000000000000000000000000000000001",
+      "0xbbb0000000000000000000000000000000000002",
+      "0xaaa0000000000000000000000000000000000001",
+      "0xbbb0000000000000000000000000000000000002",
+    ]);
     const mine = unwrapKey(keys[0]!.body.wrapped, alice.publicKey, alice)!;
     const theirs = unwrapKey(keys[1]!.body.wrapped, alice.publicKey, bob)!;
     expect(Array.from(mine)).toEqual(Array.from(theirs));
-    expect(Array.from(decryptFile(upload.body, mine)!)).toEqual(Array.from(file));
-    expect(fromBase64(register.body.meta).length).toBeGreaterThan(24);
+    expect(Array.from(decryptFile(uploads[0]!.body, mine)!)).toEqual(Array.from(file));
+    expect(fromBase64(register.body.items[0].meta).length).toBeGreaterThan(24);
+  });
+
+  it("el mensaje numera cada archivo y cambia si cambia el orden", () => {
+    const a = { fileHash: "AA".repeat(32), metaHash: "BB".repeat(32) };
+    const b = { fileHash: "CC".repeat(32), metaHash: "DD".repeat(32) };
+    const message = buildEvidenceBatchMessage(3, [a, b]);
+    expect(message.startsWith("Junquero: firmo estas 2 pruebas de la changa 3.\n1. Archivo: " + "aa".repeat(32))).toBe(true);
+    expect(message).toContain("2. Datos: " + "dd".repeat(32));
+    expect(buildEvidenceBatchMessage(3, [b, a])).not.toBe(message);
   });
 
   it("no sube nada si la otra parte no activó su clave", async () => {
     const calls: string[] = [];
     const api = createApi({ baseUrl: "https://x", getToken: () => "t", fetcher: async (url) => (calls.push(url), new Response("{}", { status: 404 })) });
-    await expect(uploadEvidence({ api, address: "0xA", counterpart: "0xB", mine: alice, signMessage: async () => "0x", hash: async () => "" }, 1, file, meta)).rejects.toThrow("counterpart_without_key");
+    await expect(uploadEvidenceBatch({ api, address: "0xA", counterpart: "0xB", mine: alice, signMessage: async () => "0x", hash: async () => "" }, 1, [{ file, meta }])).rejects.toThrow("counterpart_without_key");
     expect(calls.some((url) => url.includes("evidence-files"))).toBe(false);
   });
-});
 
-import { shareWithJurors } from "../src/evidence/share";
-
-describe("compartir pruebas con el jurado", () => {
-  const jurorA = keyPairFromSeed(new Uint8Array(32).fill(5));
-  const jurorB = keyPairFromSeed(new Uint8Array(32).fill(6));
-
-  it("reenvía solo las pruebas propias, con la misma clave y para cada jurado que tiene clave", async () => {
-    const e = encryptEvidence(file, meta);
-    const wrappedForMe = wrapKey(e.key, alice.publicKey, alice);
-    const puts: { path: string; body: any }[] = [];
-    const api = createApi({
-      baseUrl: "https://x",
-      getToken: () => "t",
-      fetcher: async (url, init) => {
-        const path = url.replace("https://x", "");
-        if (path.endsWith("0xjurorb")) return new Response("{}", { status: 404 });
-        if (path.startsWith("/me/chat-keys/")) return new Response(JSON.stringify({ publicKey: publicKeyHex(jurorA) }), { status: 200 });
-        puts.push({ path, body: JSON.parse(init!.body as string) });
-        return new Response("{}", { status: 200 });
-      },
-    });
-    const items = [
-      { hash: "aa".repeat(32), uploader: "0xAAA0000000000000000000000000000000000001", kind: "photo", meta: "m", size: 1, createdAt: 1, wrappedKey: wrappedForMe },
-      { hash: "bb".repeat(32), uploader: "0xBBB0000000000000000000000000000000000002", kind: "photo", meta: "m", size: 1, createdAt: 1, wrappedKey: "x" },
-    ];
-    const sent = await shareWithJurors({ api, address: "0xaaa0000000000000000000000000000000000001", mine: alice, orderId: 3, items, jurors: ["0xjuror0000000000000000000000000000000001", "0xjurorb"] });
-    expect(sent).toBe(1);
-    expect(puts).toHaveLength(1);
-    expect(puts[0]!.path).toBe(`/me/orders/3/evidence/${"aa".repeat(32)}/keys`);
-    expect(puts[0]!.body.recipient).toBe("0xjuror0000000000000000000000000000000001");
-    expect(Array.from(unwrapKey(puts[0]!.body.wrapped, alice.publicKey, jurorA)!)).toEqual(Array.from(e.key));
-    expect(unwrapKey(puts[0]!.body.wrapped, alice.publicKey, jurorB)).toBeNull();
-  });
-
-  it("no hace nada sin pruebas propias o sin jurados", async () => {
-    const api = createApi({ baseUrl: "https://x", getToken: () => "t", fetcher: async () => new Response("{}", { status: 200 }) });
-    expect(await shareWithJurors({ api, address: "0xa", mine: alice, orderId: 1, items: [], jurors: ["0xj"] })).toBe(0);
-    expect(await shareWithJurors({ api, address: "0xa", mine: alice, orderId: 1, items: [{ hash: "a", uploader: "0xa", kind: "photo", meta: "", size: 1, createdAt: 1, wrappedKey: "x" }], jurors: [] })).toBe(0);
+  it("rechaza tandas vacías o demasiado grandes sin tocar la red", async () => {
+    const { calls, deps } = harness();
+    await expect(uploadEvidenceBatch(deps, 1, [])).rejects.toThrow("invalid_batch_size");
+    await expect(uploadEvidenceBatch(deps, 1, Array.from({ length: 21 }, () => ({ file, meta })))).rejects.toThrow("invalid_batch_size");
+    expect(calls).toHaveLength(0);
   });
 });

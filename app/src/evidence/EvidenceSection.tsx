@@ -15,9 +15,10 @@ import { readBytes, sha256Hex } from "../lib/files";
 import { pickDocuments, pickMedia, takeMedia, type PickedFile } from "../lib/pick";
 import { useSession } from "../session/SessionProvider";
 import { wagmiAdapter } from "../wallet/appkit";
+import { isRejection } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
 import { decryptFile, decryptMeta, unwrapKey, type EvidenceMeta } from "./crypto";
-import { uploadEvidence } from "./upload";
+import { MAX_BATCH_ITEMS, uploadEvidenceBatch } from "./upload";
 
 export function useEvidence(orderId: number) {
   const { api } = useSession();
@@ -47,43 +48,41 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
     }
   };
 
-  const send = async (uri: string, name: string, mime: string) => {
-    if (!address) return;
+  const send = async (picked: PickedFile[]) => {
+    if (!address || picked.length === 0) return;
     setBusy(true);
     setError(null);
     try {
       const mine = await ensure();
-      const bytes = await readBytes(uri);
-      const meta: EvidenceMeta = { capturedAt: Math.floor(Date.now() / 1000), name, mime, ...(await place()) };
-      await uploadEvidence(
+      const where = await place();
+      const files = [];
+      for (const item of picked.slice(0, MAX_BATCH_ITEMS)) {
+        files.push({ file: await readBytes(item.uri), meta: { capturedAt: Math.floor(Date.now() / 1000), name: item.name, mime: item.mime, ...where } as EvidenceMeta });
+      }
+      await uploadEvidenceBatch(
         { api, address, counterpart, mine, signMessage: (message) => signMessage(wagmiAdapter.wagmiConfig, { message }), hash: sha256Hex },
         orderId,
-        bytes,
-        meta,
+        files,
       );
       await queryClient.invalidateQueries({ queryKey: ["evidence", orderId] });
     } catch (failure) {
       const status = (failure as { status?: number }).status;
-      setError((failure as Error).message === "counterpart_without_key" ? t.order.evidenceNoKey : status === 403 || status === 409 ? t.order.evidenceSyncing : t.order.evidenceFailed);
+      setError((failure as Error).message === "counterpart_without_key" ? t.order.evidenceNoKey : status === 403 || status === 409 ? t.order.evidenceSyncing : isRejection(failure) ? t.order.evidenceCancelled : t.order.evidenceFailed);
     } finally {
       setBusy(false);
     }
   };
 
-  const sendAll = async (files: PickedFile[]) => {
-    for (const file of files) await send(file.uri, file.name, file.mime);
-  };
-
   return (
     <View style={styles.box}>
       <Button label={t.order.addPhoto} variant="secondary" onPress={() => setSheet(true)} loading={busy} />
-      <Button label={t.order.addFile} variant="ghost" onPress={async () => sendAll(await pickDocuments())} disabled={busy} />
+      <Button label={t.order.addFile} variant="ghost" onPress={async () => send(await pickDocuments())} disabled={busy} />
       <ChoiceSheet
         visible={sheet}
         onClose={() => setSheet(false)}
         choices={[
-          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then(sendAll) },
-          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(10).then(sendAll) },
+          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then(send) },
+          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(10).then(send) },
         ]}
       />
       {busy ? <Secondary>{t.order.evidenceUploading}</Secondary> : null}

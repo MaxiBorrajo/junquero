@@ -16,6 +16,16 @@ export const buildChatKeyMessage = (address: string, publicKeyHex: string): stri
 export const buildEvidenceMessage = (orderId: number, fileHash: string, metaHash: string): string =>
   `Junquero: firmo esta prueba de la changa ${orderId}.\nArchivo: ${fileHash.toLowerCase()}\nDatos: ${metaHash.toLowerCase()}`;
 
+export interface EvidenceEntry {
+  fileHash: string;
+  metaHash: string;
+}
+
+export const buildEvidenceBatchMessage = (orderId: number, entries: EvidenceEntry[]): string =>
+  `Junquero: firmo estas ${entries.length} pruebas de la changa ${orderId}.\n${entries
+    .map((entry, index) => `${index + 1}. Archivo: ${entry.fileHash.toLowerCase()}\n${index + 1}. Datos: ${entry.metaHash.toLowerCase()}`)
+    .join("\n")}`;
+
 export const buildLoginMessage = (address: string, issuedAt: number): string =>
   `Junquero: confirmo que esta billetera es mía.\nBilletera: ${address.toLowerCase()}\nEmitido: ${issuedAt}`;
 

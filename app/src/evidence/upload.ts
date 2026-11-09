@@ -4,8 +4,17 @@ import type { ChatKeyPair } from "../crypto/chat";
 import { fetchCounterpartKey } from "../crypto/keyManager";
 import { encryptEvidence, wrapKey, type EvidenceMeta } from "./crypto";
 
-export const buildEvidenceMessage = (orderId: number, fileHash: string, metaHash: string): string =>
-  `Junquero: firmo esta prueba de la changa ${orderId}.\nArchivo: ${fileHash.toLowerCase()}\nDatos: ${metaHash.toLowerCase()}`;
+export interface EvidenceEntry {
+  fileHash: string;
+  metaHash: string;
+}
+
+export const buildEvidenceBatchMessage = (orderId: number, entries: EvidenceEntry[]): string =>
+  `Junquero: firmo estas ${entries.length} pruebas de la changa ${orderId}.\n${entries
+    .map((entry, index) => `${index + 1}. Archivo: ${entry.fileHash.toLowerCase()}\n${index + 1}. Datos: ${entry.metaHash.toLowerCase()}`)
+    .join("\n")}`;
+
+export const MAX_BATCH_ITEMS = 20;
 
 export type EvidenceKind = "photo" | "video" | "document";
 
@@ -20,28 +29,46 @@ export interface UploadDeps {
   hash: (bytes: Uint8Array) => Promise<string>;
 }
 
-export interface UploadedEvidence {
-  hash: string;
+export interface EvidenceFile {
+  file: Uint8Array;
+  meta: EvidenceMeta;
 }
 
-export async function uploadEvidence(deps: UploadDeps, orderId: number, file: Uint8Array, meta: EvidenceMeta): Promise<UploadedEvidence> {
-  const hash = deps.hash;
+export interface UploadedEvidence {
+  hashes: string[];
+}
+
+export async function uploadEvidenceBatch(deps: UploadDeps, orderId: number, files: EvidenceFile[]): Promise<UploadedEvidence> {
+  if (files.length === 0 || files.length > MAX_BATCH_ITEMS) throw new Error("invalid_batch_size");
   const counterpartKey = await fetchCounterpartKey(deps.api, deps.counterpart);
   if (!counterpartKey) throw new Error("counterpart_without_key");
 
-  const encrypted = encryptEvidence(file, meta);
-  const fileHash = await hash(encrypted.cipher);
-  await deps.api.upload("/me/evidence-files", encrypted.cipher, {
-    "Content-Type": "application/octet-stream",
-    "Content-Length": String(encrypted.cipher.byteLength),
-    "X-Content-SHA256": fileHash,
+  const prepared: { key: Uint8Array; fileHash: string; metaHash: string; meta: string; kind: EvidenceKind }[] = [];
+  for (const item of files) {
+    const encrypted = encryptEvidence(item.file, item.meta);
+    const fileHash = await deps.hash(encrypted.cipher);
+    await deps.api.upload("/me/evidence-files", encrypted.cipher, {
+      "Content-Type": "application/octet-stream",
+      "Content-Length": String(encrypted.cipher.byteLength),
+      "X-Content-SHA256": fileHash,
+    });
+    prepared.push({ key: encrypted.key, fileHash, metaHash: await deps.hash(new TextEncoder().encode(encrypted.meta)), meta: encrypted.meta, kind: kindOf(item.meta.mime) });
+  }
+
+  const signature = await deps.signMessage(buildEvidenceBatchMessage(orderId, prepared.map(({ fileHash, metaHash }) => ({ fileHash, metaHash }))));
+  await deps.api.send("POST", `/me/orders/${orderId}/evidence/batch`, {
+    items: prepared.map((item) => ({ hash: item.fileHash, kind: item.kind, meta: item.meta })),
+    signature,
   });
 
-  const metaHash = await hash(new TextEncoder().encode(encrypted.meta));
-  const signature = await deps.signMessage(buildEvidenceMessage(orderId, fileHash, metaHash));
-  await deps.api.send("POST", `/me/orders/${orderId}/evidence`, { hash: fileHash, kind: kindOf(meta.mime), meta: encrypted.meta, signature });
+  for (const item of prepared) {
+    await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.address.toLowerCase(), wrapped: wrapKey(item.key, deps.mine.publicKey, deps.mine) });
+    await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.counterpart.toLowerCase(), wrapped: wrapKey(item.key, counterpartKey, deps.mine) });
+  }
+  return { hashes: prepared.map((item) => item.fileHash) };
+}
 
-  await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${fileHash}/keys`, { recipient: deps.address.toLowerCase(), wrapped: wrapKey(encrypted.key, deps.mine.publicKey, deps.mine) });
-  await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${fileHash}/keys`, { recipient: deps.counterpart.toLowerCase(), wrapped: wrapKey(encrypted.key, counterpartKey, deps.mine) });
-  return { hash: fileHash };
+export async function uploadEvidence(deps: UploadDeps, orderId: number, file: Uint8Array, meta: EvidenceMeta): Promise<{ hash: string }> {
+  const { hashes } = await uploadEvidenceBatch(deps, orderId, [{ file, meta }]);
+  return { hash: hashes[0]! };
 }

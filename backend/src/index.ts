@@ -1,17 +1,23 @@
 import { Hono } from "hono";
+import { createMiddleware } from "hono/factory";
 import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { indexedContracts, startBlock } from "./contracts";
+import { allowed, clientKey, type Limiter } from "./guard";
 import { readCursor, runIndexerRounds, type ChainClient } from "./indexer";
 import { relay, type RelayPolicy } from "./relay";
 import { createRelayChain, relayTargets } from "./relayChain";
 import { createTaskChain } from "./taskChain";
+import { isPurgeMinute, purgeOldLogs } from "./maintenance";
 import { runTasks } from "./tasks";
+import { TtlCache } from "./ttlCache";
 
 interface Env {
   DB: D1Database;
   RPC_URL: string;
   RELAYER_KEY: `0x${string}`;
+  RELAY_LIMITER: Limiter;
+  READ_LIMITER: Limiter;
   CONFIRMATIONS: string;
   BLOCK_CHUNK: string;
   CHUNKS_PER_RUN: string;
@@ -20,6 +26,8 @@ interface Env {
 }
 
 const MAX_BLOCKS_WITH_LOGS = 30;
+const READ_CACHE_MS = 10_000;
+const READ_CACHE_ENTRIES = 200;
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
@@ -38,10 +46,30 @@ const relayPolicy: RelayPolicy = {
   minDeadlineSeconds: 60,
   maxPerWindow: 30,
   windowSeconds: 3600,
-  minRelayerBalance: 1_000_000_000_000n,
 };
 
 const app = new Hono<{ Bindings: Env }>();
+const readCache = new TtlCache<unknown>(READ_CACHE_MS, READ_CACHE_ENTRIES);
+
+const readGuard = createMiddleware<{ Bindings: Env }>(async (c, next) => {
+  if (!(await allowed(c.env.READ_LIMITER, clientKey(c.req.raw.headers)))) {
+    return c.json({ error: "too many requests" }, 429);
+  }
+  await next();
+});
+
+async function cachedRead(url: string, produce: () => Promise<unknown>): Promise<unknown> {
+  const now = Date.now();
+  const hit = readCache.get(url, now);
+  if (hit !== undefined) return hit;
+  const value = await produce();
+  readCache.set(url, value, now);
+  return value;
+}
+
+app.use("/health", readGuard);
+app.use("/events", readGuard);
+app.use("/orders/*", readGuard);
 
 interface EventRecord {
   args: string;
@@ -61,6 +89,9 @@ app.get("/health", async (c) => {
 });
 
 app.post("/relay", async (c) => {
+  if (!(await allowed(c.env.RELAY_LIMITER, clientKey(c.req.raw.headers)))) {
+    return c.json({ error: "too many requests" }, 429);
+  }
   let body: unknown;
   try {
     body = await c.req.json();
@@ -77,12 +108,15 @@ app.post("/relay", async (c) => {
 app.get("/orders/:id/timeline", async (c) => {
   const orderId = Number(c.req.param("id"));
   if (!Number.isInteger(orderId) || orderId < 0) return c.json({ error: "invalid order id" }, 400);
-  const { results } = await c.env.DB.prepare(
-    "SELECT * FROM events WHERE order_id = ? ORDER BY block_number, log_index",
-  )
-    .bind(orderId)
-    .all<EventRecord>();
-  return c.json({ orderId, events: results.map(present) });
+  const body = await cachedRead(c.req.url, async () => {
+    const { results } = await c.env.DB.prepare(
+      "SELECT * FROM events WHERE order_id = ? ORDER BY block_number, log_index",
+    )
+      .bind(orderId)
+      .all<EventRecord>();
+    return { orderId, events: results.map(present) };
+  });
+  return c.json(body);
 });
 
 app.get("/events", async (c) => {
@@ -101,17 +135,20 @@ app.get("/events", async (c) => {
     values.push(before);
   }
   const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-  const { results } = await c.env.DB.prepare(
-    `SELECT * FROM events ${where} ORDER BY block_number DESC, log_index DESC LIMIT ?`,
-  )
-    .bind(...values, parseLimit(c.req.query("limit")))
-    .all<EventRecord>();
-  return c.json({ events: results.map(present) });
+  const body = await cachedRead(c.req.url, async () => {
+    const { results } = await c.env.DB.prepare(
+      `SELECT * FROM events ${where} ORDER BY block_number DESC, log_index DESC LIMIT ?`,
+    )
+      .bind(...values, parseLimit(c.req.query("limit")))
+      .all<EventRecord>();
+    return { events: results.map(present) };
+  });
+  return c.json(body);
 });
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const client = chainClient(env.RPC_URL);
     const options = {
       contracts: indexedContracts,
@@ -120,6 +157,7 @@ export default {
       chunk: Number(env.BLOCK_CHUNK),
       maxBlocksWithLogs: MAX_BLOCKS_WITH_LOGS,
     };
+    if (isPurgeMinute(event.scheduledTime)) ctx.waitUntil(purgeOldLogs(env.DB, Math.floor(event.scheduledTime / 1000)));
     ctx.waitUntil(runIndexerRounds(env.DB, client, options, Number(env.CHUNKS_PER_RUN)));
     if (env.RELAYER_KEY) {
       const taskOptions = {

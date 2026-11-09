@@ -21,19 +21,21 @@ export interface RelayPolicy {
   minDeadlineSeconds: number;
   maxPerWindow: number;
   windowSeconds: number;
-  minRelayerBalance: bigint;
 }
 
+export type EstimateResult = { ok: true; gas: bigint } | { ok: false; reason: "invalid_request" | "revert" };
+
 export interface RelayChain {
-  verify(request: ForwardRequest): Promise<boolean>;
-  estimate(request: ForwardRequest): Promise<bigint>;
-  send(request: ForwardRequest): Promise<Hex>;
-  relayerBalance(): Promise<bigint>;
+  estimate(request: ForwardRequest): Promise<EstimateResult>;
+  send(request: ForwardRequest, gas: bigint): Promise<Hex>;
 }
 
 export type RelayResult =
   | { ok: true; txHash: Hex }
   | { ok: false; status: number; error: string };
+
+const GAS_MARGIN_NUMERATOR = 12n;
+const GAS_MARGIN_DENOMINATOR = 10n;
 
 const fail = (status: number, error: string): RelayResult => ({ ok: false, status, error });
 
@@ -106,16 +108,24 @@ export async function relay(
   const used = await recentCount(db, request.from, nowSeconds - policy.windowSeconds);
   if (used >= policy.maxPerWindow) return fail(429, "rate limit reached");
 
-  if ((await chain.relayerBalance()) < policy.minRelayerBalance) return fail(503, "relayer out of funds");
-  if (!(await chain.verify(request))) return fail(400, "invalid signature, nonce or deadline");
-
+  let estimate: EstimateResult;
   try {
-    await chain.estimate(request);
+    estimate = await chain.estimate(request);
   } catch {
-    return fail(422, "transaction would revert");
+    return fail(503, "chain unavailable");
+  }
+  if (!estimate.ok) {
+    return estimate.reason === "invalid_request"
+      ? fail(400, "invalid signature, nonce or deadline")
+      : fail(422, "transaction would revert");
   }
 
-  const txHash = await chain.send(request);
+  let txHash: Hex;
+  try {
+    txHash = await chain.send(request, (estimate.gas * GAS_MARGIN_NUMERATOR) / GAS_MARGIN_DENOMINATOR);
+  } catch {
+    return fail(503, "relayer unavailable");
+  }
   await db
     .prepare("INSERT INTO relay_log (from_address, target, selector, tx_hash, created_at) VALUES (?, ?, ?, ?, ?)")
     .bind(request.from.toLowerCase(), request.to.toLowerCase(), slice(request.data, 0, 4), txHash, nowSeconds)

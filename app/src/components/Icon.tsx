@@ -23,6 +23,7 @@ export const icons = {
   pin: [path("M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"), { kind: "circle", cx: 12, cy: 10, r: 3 }],
   minus: [path("M5 12h14")],
   plus: [path("M5 12h14"), path("M12 5v14")],
+  expand: [path("M8 3H5a2 2 0 0 0-2 2v3"), path("M21 8V5a2 2 0 0 0-2-2h-3"), path("M3 16v3a2 2 0 0 0 2 2h3"), path("M16 21h3a2 2 0 0 0 2-2v-3")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 6v6l4 2")],
 } as const satisfies Record<string, readonly Shape[]>;
 

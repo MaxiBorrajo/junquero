@@ -38,7 +38,7 @@ export function toFeatures(changas: Changa[]): GeoJSON.FeatureCollection<GeoJSON
     features.push({
       type: "Feature",
       id: changa.id,
-      properties: { id: changa.id, specHash: changa.specHash, label: `US$ ${formatAmount(changa.amount)}` },
+      properties: { id: changa.id, specHash: changa.specHash, category: changa.spec.category, label: `US$ ${formatAmount(changa.amount)}` },
       geometry: { type: "Point", coordinates: [area.lng, area.lat] },
     });
   }

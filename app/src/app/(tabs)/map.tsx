@@ -19,7 +19,26 @@ import { colors, radius, spacing, text } from "../../theme";
 
 type Mode = "map" | "list";
 
-const PIN_IMAGES = { "jq-price": require("../../../assets/images/pin.png"), "jq-price-on": require("../../../assets/images/pin-selected.png") };
+const PIN_IMAGES = {
+  "pin-0": require("../../../assets/images/pin-0.png"),
+  "pin-on-0": require("../../../assets/images/pin-on-0.png"),
+  "pin-1": require("../../../assets/images/pin-1.png"),
+  "pin-on-1": require("../../../assets/images/pin-on-1.png"),
+  "pin-2": require("../../../assets/images/pin-2.png"),
+  "pin-on-2": require("../../../assets/images/pin-on-2.png"),
+  "pin-3": require("../../../assets/images/pin-3.png"),
+  "pin-on-3": require("../../../assets/images/pin-on-3.png"),
+  "pin-4": require("../../../assets/images/pin-4.png"),
+  "pin-on-4": require("../../../assets/images/pin-on-4.png"),
+  "pin-5": require("../../../assets/images/pin-5.png"),
+  "pin-on-5": require("../../../assets/images/pin-on-5.png"),
+  "pin-6": require("../../../assets/images/pin-6.png"),
+  "pin-on-6": require("../../../assets/images/pin-on-6.png"),
+  "pin-7": require("../../../assets/images/pin-7.png"),
+  "pin-on-7": require("../../../assets/images/pin-on-7.png"),
+  "pin-8": require("../../../assets/images/pin-8.png"),
+  "pin-on-8": require("../../../assets/images/pin-on-8.png"),
+};
 
 export default function MapScreen() {
   const { profile } = useSession();
@@ -79,13 +98,13 @@ export default function MapScreen() {
               type="symbol"
               filter={["!", ["has", "point_count"]]}
               layout={{
-                "icon-image": ["case", ["==", ["get", "id"], selected ?? -1], "jq-price-on", "jq-price"],
-                "icon-text-fit": "width",
-                "icon-text-fit-padding": [0, 14, 0, 14],
+                "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["to-string", ["get", "category"]]],
+                "icon-size": 0.85,
                 "icon-allow-overlap": true,
                 "text-field": ["get", "label"],
-                "text-size": 14,
+                "text-size": 12,
                 "text-font": ["Noto Sans Bold"],
+                "text-offset": [1.1, 0],
                 "text-allow-overlap": true,
                 "symbol-sort-key": ["case", ["==", ["get", "id"], selected ?? -1], 1, 0],
               }}

@@ -6,10 +6,10 @@ import { colors, radius, spacing, text } from "../theme";
 
 const SIZE = 104;
 
-export function AttachmentTile({ name, mime, uri, onRemove }: { name: string; mime: string; uri?: string; onRemove: () => void }) {
+export function AttachmentTile({ name, mime, uri, onRemove, onOpen }: { name: string; mime: string; uri?: string; onRemove: () => void; onOpen?: () => void }) {
   const image = mime.startsWith("image/") && uri;
   return (
-    <View style={styles.tile}>
+    <Pressable accessibilityRole="button" onPress={onOpen} disabled={!onOpen} style={styles.tile}>
       {image ? (
         <Image source={{ uri }} style={styles.fill} contentFit="cover" />
       ) : (
@@ -23,7 +23,7 @@ export function AttachmentTile({ name, mime, uri, onRemove }: { name: string; mi
       <Pressable accessibilityRole="button" accessibilityLabel={t.publish.remove} hitSlop={8} onPress={onRemove} style={styles.remove}>
         <Icon name="close" size={16} color={colors.white} />
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 

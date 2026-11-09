@@ -1,6 +1,9 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Icon } from "../../components/Icon";
+import { ImageViewer } from "../../components/ImageViewer";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
 import { API_URL } from "../../config";
 import { useChangaBySpec } from "../../data/useChangas";
@@ -10,6 +13,8 @@ import { formatDate, formatDuration } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
+
+const fileUrl = (owner: string, hash: string): string => `${API_URL}/files/${owner}/${hash.replace(/^0x/, "")}`;
 
 const BLOCK_TEXT: Record<ApplyBlock, string | null> = {
   anonymous: t.detail.needAccount,
@@ -23,6 +28,7 @@ export default function ChangaDetail() {
   const { specHash } = useLocalSearchParams<{ specHash: string }>();
   const { address, profile } = useSession();
   const query = useChangaBySpec(String(specHash));
+  const [viewing, setViewing] = useState<string | null>(null);
 
   if (query.isLoading) {
     return (
@@ -108,16 +114,24 @@ export default function ChangaDetail() {
             {spec.attachments
               .filter((file) => file.mime.startsWith("image/"))
               .map((file) => (
-                <Image key={file.hash} source={{ uri: `${API_URL}/files/${changa.owner}/${file.hash.replace(/^0x/, "")}` }} style={styles.thumb} contentFit="cover" />
+                <Pressable key={file.hash} accessibilityRole="imagebutton" onPress={() => setViewing(fileUrl(changa.owner, file.hash))}>
+                  <Image source={{ uri: fileUrl(changa.owner, file.hash) }} style={styles.thumb} contentFit="cover" />
+                </Pressable>
               ))}
           </View>
           {spec.attachments
             .filter((file) => !file.mime.startsWith("image/"))
             .map((file) => (
-              <Secondary key={file.hash}>{file.name}</Secondary>
+              <Pressable key={file.hash} accessibilityRole="link" onPress={() => void Linking.openURL(fileUrl(changa.owner, file.hash))} style={styles.fileRow}>
+                <Icon name="file" size={20} color={colors.brick} />
+                <Text style={[text.body, styles.fileName]} numberOfLines={1}>
+                  {file.name}
+                </Text>
+              </Pressable>
             ))}
         </Section>
       ) : null}
+      <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
       {groupButton && changa.status === "open" ? groupButton : null}
       {block !== "anonymous" && block !== "own" ? <Button label={t.report.changa} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } })} /> : null}
       {block && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
@@ -138,5 +152,7 @@ const styles = StyleSheet.create({
   amountBox: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
   section: { gap: spacing.xs },
   gallery: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  fileRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
+  fileName: { flex: 1, color: colors.brick },
   thumb: { width: 96, height: 96, borderRadius: radius.sm },
 });

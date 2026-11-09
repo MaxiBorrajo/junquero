@@ -98,7 +98,7 @@ function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }
   const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
   return (
     <View style={styles.item}>
-      <ChangaCard changa={changa} onPress={open} />
+      <ChangaCard changa={changa} onPress={changa.status === "draft" ? () => undefined : open} />
       <Text style={styles.status}>{statusLabel(changa.status)}</Text>
       {waiting ? <Secondary>{t.mine.waitingAgreement}</Secondary> : null}
       {changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status) ? (

@@ -1,6 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
+import { ChoiceSheet } from "../../components/ChoiceSheet";
+import { ImageViewer } from "../../components/ImageViewer";
 import type { Attachment } from "../../api/types";
 import { AttachmentTile } from "../../components/AttachmentTile";
 import { Body, Button, ErrorText, Secondary } from "../../components/ui";
@@ -19,6 +21,8 @@ export default function PublishFiles() {
   const { api } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheet, setSheet] = useState(false);
+  const [viewing, setViewing] = useState<string | null>(null);
   const room = ATTACHMENTS_MAX - draft.attachments.length;
 
   const upload = async (files: PickedFile[]) => {
@@ -44,6 +48,12 @@ export default function PublishFiles() {
   const fromGallery = async () => upload(await pickMedia(room));
   const fromDocuments = async () => upload(await pickDocuments());
 
+  const open = (mime: string, uri?: string) => {
+    if (!uri) return;
+    if (mime.startsWith("image/")) setViewing(uri);
+    else void Linking.openURL(uri).catch(() => undefined);
+  };
+
   const remove = (hash: string) => update((d) => ({ ...d, attachments: d.attachments.filter((item) => item.hash !== hash) }));
 
   return (
@@ -51,12 +61,20 @@ export default function PublishFiles() {
       <Body>{t.publish.filesWarning}</Body>
       <View style={styles.grid}>
         {draft.attachments.map((file) => (
-          <AttachmentTile key={file.hash} name={file.name} mime={file.mime} uri={previewFor(file.hash)} onRemove={() => remove(file.hash)} />
+          <AttachmentTile key={file.hash} name={file.name} mime={file.mime} uri={previewFor(file.hash)} onRemove={() => remove(file.hash)} onOpen={() => open(file.mime, previewFor(file.hash))} />
         ))}
       </View>
+      <ChoiceSheet
+        visible={sheet}
+        onClose={() => setSheet(false)}
+        choices={[
+          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void fromCamera() },
+          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void fromGallery() },
+        ]}
+      />
+      <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
       {room <= 0 ? <Secondary>{t.publish.maxFiles}</Secondary> : null}
-      <Button label={t.publish.takePhoto} variant="secondary" onPress={fromCamera} loading={busy} disabled={room <= 0} />
-      <Button label={t.publish.addPhotos} variant="secondary" onPress={fromGallery} disabled={busy || room <= 0} />
+      <Button label={t.publish.addPhotos} variant="secondary" onPress={() => setSheet(true)} loading={busy} disabled={room <= 0} />
       <Button label={t.publish.addDocument} variant="secondary" onPress={fromDocuments} disabled={busy || room <= 0} />
       {error ? <ErrorText>{error}</ErrorText> : null}
     </WizardStep>

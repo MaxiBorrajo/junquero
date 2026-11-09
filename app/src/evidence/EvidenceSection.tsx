@@ -1,6 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
@@ -9,10 +7,12 @@ import { signMessage } from "wagmi/actions";
 import { toBase64 } from "../crypto/base64";
 import { fetchCounterpartKey } from "../crypto/keyManager";
 import { useChatKey } from "../chat/ChatKeyProvider";
+import { ChoiceSheet } from "../components/ChoiceSheet";
 import { Button, ErrorText, Secondary } from "../components/ui";
 import type { EvidenceItem } from "../data/useOrder";
 import { t } from "../i18n";
 import { readBytes, sha256Hex } from "../lib/files";
+import { pickDocuments, pickMedia, takeMedia, type PickedFile } from "../lib/pick";
 import { useSession } from "../session/SessionProvider";
 import { wagmiAdapter } from "../wallet/appkit";
 import { colors, radius, spacing, text } from "../theme";
@@ -34,6 +34,7 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheet, setSheet] = useState(false);
 
   const place = async (): Promise<{ lat?: number; lng?: number }> => {
     try {
@@ -69,24 +70,22 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
     }
   };
 
-  const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return;
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7 });
-    const asset = result.canceled ? null : result.assets[0];
-    if (asset) await send(asset.uri, asset.fileName ?? "foto.jpg", asset.mimeType ?? "image/jpeg");
-  };
-
-  const pickFile = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
-    const asset = result.canceled ? null : result.assets[0];
-    if (asset) await send(asset.uri, asset.name, asset.mimeType ?? "application/octet-stream");
+  const sendAll = async (files: PickedFile[]) => {
+    for (const file of files) await send(file.uri, file.name, file.mime);
   };
 
   return (
     <View style={styles.box}>
-      <Button label={t.order.addPhoto} variant="secondary" onPress={takePhoto} loading={busy} />
-      <Button label={t.order.addFile} variant="ghost" onPress={pickFile} disabled={busy} />
+      <Button label={t.order.addPhoto} variant="secondary" onPress={() => setSheet(true)} loading={busy} />
+      <Button label={t.order.addFile} variant="ghost" onPress={async () => sendAll(await pickDocuments())} disabled={busy} />
+      <ChoiceSheet
+        visible={sheet}
+        onClose={() => setSheet(false)}
+        choices={[
+          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then(sendAll) },
+          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(10).then(sendAll) },
+        ]}
+      />
       {busy ? <Secondary>{t.order.evidenceUploading}</Secondary> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>

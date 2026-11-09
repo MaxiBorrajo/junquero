@@ -106,7 +106,7 @@ export function Field({ label, hint, error, ...input }: TextInputProps & { label
   return (
     <View style={styles.field}>
       <Text style={text.label}>{label}</Text>
-      <TextInput placeholderTextColor={colors.muted} style={[styles.input, error ? styles.inputError : null]} {...input} />
+      <TextInput placeholderTextColor={colors.muted} style={[styles.input, input.multiline ? styles.multiline : null, error ? styles.inputError : null]} {...input} />
       {error ? <Text style={styles.fieldError}>{error}</Text> : hint ? <Text style={text.secondary}>{hint}</Text> : null}
     </View>
   );
@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
   errorText: { ...text.body, color: colors.error, flex: 1 },
   field: { gap: spacing.xs },
   input: { ...text.body, backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, minHeight: 52 },
+  multiline: { minHeight: 132, paddingTop: spacing.md, textAlignVertical: "top" },
   inputError: { borderColor: colors.error },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },

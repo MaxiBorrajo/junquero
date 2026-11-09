@@ -12,6 +12,8 @@ import {
 import { buildChatKeyMessage, issueToken, parseLogin, TICKET_TTL_SECONDS, verifyLogin, verifyToken } from "./auth";
 import { listChats, markRead, resolveChatAccess } from "./chatAccess";
 import { recoverMessageAddress } from "viem";
+import { queueNotification, registerToken, removeToken } from "./notifications";
+import { isExpoToken } from "./push";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
 import {
@@ -253,6 +255,7 @@ app.post("/admin/selfies/:address", async (c) => {
   if (!reviewed) return c.json({ error: "no pending selfie" }, 404);
   const stored = await pendingSelfieHash(c.env.DB, address);
   if (stored) await deleteFile(c.env.DB, c.env.FILES, address, stored.hash);
+  await queueNotification(c.env.DB, address, body.approved ? "selfie_approved" : "selfie_rejected", "selfie").run();
   return c.json({ selfieStatus: body.approved ? "approved" : "rejected" });
 });
 
@@ -263,6 +266,21 @@ app.get("/files/:owner/:hash", async (c) => {
   const file = await readFile(c.env.DB, c.env.FILES, owner, hash, "public");
   if (!file) return c.json({ error: "not found" }, 404);
   return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, true) });
+});
+
+app.put("/me/push-token", async (c) => {
+  const body = (await readJson(c)) as { token?: unknown; platform?: unknown } | undefined;
+  if (!isExpoToken(body?.token)) return c.json({ error: "token must be an Expo push token" }, 400);
+  const platform = body?.platform === "ios" ? "ios" : "android";
+  await registerToken(c.env.DB, c.get("address"), body!.token as string, platform, nowSeconds());
+  return c.json({ ok: true });
+});
+
+app.delete("/me/push-token", async (c) => {
+  const body = (await readJson(c)) as { token?: unknown } | undefined;
+  if (!isExpoToken(body?.token)) return c.json({ error: "token must be an Expo push token" }, 400);
+  const removed = await removeToken(c.env.DB, c.get("address"), body!.token as string);
+  return removed ? c.json({ ok: true }) : c.json({ error: "token not found" }, 404);
 });
 
 const CHAT_PAGE = 100;
@@ -395,6 +413,10 @@ app.put("/me/applications/:changaId", async (c) => {
   );
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
   await linkFiles(c.env.DB, c.get("address"), attached.map((item) => item.hash));
+  if (outcome.created) {
+    const changa = await c.env.DB.prepare("SELECT owner FROM changas WHERE id = ?").bind(changaId).first<{ owner: string }>();
+    if (changa) await queueNotification(c.env.DB, changa.owner, "application_new", String(changaId)).run();
+  }
   return c.json({ application: presentApplication(outcome.row) }, outcome.created ? 201 : 200);
 });
 

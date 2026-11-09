@@ -7,6 +7,7 @@ import { processEvents } from "./eventStream";
 import { runIndexerRounds, type ChainClient } from "./indexer";
 import { purgeOrphanFiles } from "./files";
 import { isPurgeMinute, purgeOldLogs } from "./maintenance";
+import { deliverDue, notificationsHandler, purgeSentNotifications } from "./notifications";
 import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { createTaskChain } from "./taskChain";
@@ -29,7 +30,7 @@ function chainClient(rpcUrl: string): ChainClient {
 const changasHandler = createChangasHandler(deployedTokenDecimals);
 
 async function processAndRun(env: Env, nowSeconds: number): Promise<void> {
-  await processEvents(env.DB, [watchedHandler, changasHandler, applicationsHandler], EVENT_SCAN_LIMIT);
+  await processEvents(env.DB, [watchedHandler, changasHandler, applicationsHandler, notificationsHandler], EVENT_SCAN_LIMIT);
   if (!env.RELAYER_KEY) return;
   const options = {
     batchSize: Number(env.TASK_BATCH),
@@ -47,7 +48,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const nowSeconds = Math.floor(event.scheduledTime / 1000);
     if (isPurgeMinute(event.scheduledTime)) {
-      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds)]));
+      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds), purgeSentNotifications(env.DB, nowSeconds, 7 * 24 * 3600)]));
     }
     const options = {
       contracts: indexedContracts,
@@ -57,6 +58,7 @@ export default {
       maxBlocksWithLogs: MAX_BLOCKS_WITH_LOGS,
     };
     ctx.waitUntil(runIndexerRounds(env.DB, chainClient(env.RPC_URL), options, Number(env.CHUNKS_PER_RUN)));
+    ctx.waitUntil(deliverDue(env.DB, (url, init) => fetch(url, init), nowSeconds).catch((error) => console.error("push failed", error)));
     ctx.waitUntil(processAndRun(env, nowSeconds).catch((error) => console.error("processing failed", error)));
   },
 };

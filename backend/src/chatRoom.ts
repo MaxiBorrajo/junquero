@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { ChatRoomCore } from "./chatCore";
 import { ChatStore } from "./chatStore";
 import type { Env } from "./env";
+import { queueNotification } from "./notifications";
 
 interface SocketIdentity {
   address: string;
@@ -16,9 +17,19 @@ export class ChatRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     const store = new ChatStore(ctx.storage.sql);
-    this.core = new ChatRoomCore(store, env.DB, (payload) => {
-      for (const socket of ctx.getWebSockets()) socket.send(payload);
-    });
+    this.core = new ChatRoomCore(
+      store,
+      env.DB,
+      (payload) => {
+        for (const socket of ctx.getWebSockets()) socket.send(payload);
+      },
+      async (applicationId, _sender, counterpart) => {
+        const online = ctx
+          .getWebSockets()
+          .some((socket) => (socket.deserializeAttachment() as SocketIdentity | null)?.address === counterpart);
+        if (!online) await queueNotification(env.DB, counterpart, "chat", String(applicationId)).run();
+      },
+    );
   }
 
   async fetch(request: Request): Promise<Response> {

@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { ChatRoomCore } from "../src/chatCore";
 import { ChatStore, type SqlLike } from "../src/chatStore";
+import { queueNotification } from "../src/notifications";
 import { createFakeD1 } from "./fakeD1";
 
 function nodeSql(): SqlLike {
@@ -29,7 +30,14 @@ export class FakeChatNamespace {
   }
   get(id: string) {
     if (!this.rooms.has(id)) {
-      this.rooms.set(id, new ChatRoomCore(new ChatStore(nodeSql()), this.db, (payload) => this.broadcasts.push(payload)));
+      this.rooms.set(id, new ChatRoomCore(
+          new ChatStore(nodeSql()),
+          this.db,
+          (payload) => this.broadcasts.push(payload),
+          async (applicationId, _sender, counterpart) => {
+            await queueNotification(this.db, counterpart, "chat", String(applicationId)).run();
+          },
+        ));
     }
     const room = this.rooms.get(id)!;
     return { fetch: (request: Request) => room.handleHttp(request, Math.floor(Date.now() / 1000)) };

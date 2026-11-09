@@ -11,7 +11,7 @@ export class ChatRoomCore {
     private readonly store: ChatStore,
     private readonly db: D1Database,
     private readonly broadcast: (payload: string) => void,
-    private readonly onNewMessage: (applicationId: number, sender: string) => Promise<void> = async () => {},
+    private readonly onNewMessage: (applicationId: number, sender: string, counterpart: string) => Promise<void> = async () => {},
   ) {}
 
   async send(applicationId: number, address: string, input: SendInput, nowSeconds: number): Promise<SendOutcome> {
@@ -24,7 +24,7 @@ export class ChatRoomCore {
     if (!result.duplicate) {
       this.broadcast(JSON.stringify({ t: "message", message: result.message }));
       await recordMessage(this.db, applicationId, address, result.message.seq, nowSeconds);
-      await this.onNewMessage(applicationId, address);
+      await this.onNewMessage(applicationId, address, access.access.counterpart);
     }
     return { status: result.duplicate ? 200 : 201, body: { message: result.message, duplicate: result.duplicate } };
   }

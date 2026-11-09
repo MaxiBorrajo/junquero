@@ -108,6 +108,14 @@ API:
 - Tiempo real: `POST /me/chats/:id/ticket` devuelve un ticket de 60 segundos; luego se abre un WebSocket a `/chat/:id/ws?ticket=...`. El cliente manda `{ t: "send", id, nonce, body }` y recibe `{ t: "ack", id, seq }` o `{ t: "error", id, status, error }`; todos los conectados reciben `{ t: "message", message }`. `{ t: "ping" }` responde `{ t: "pong" }`.
 - Reglas: solo las dos partes. Escribir requiere que la postulación esté `active` o `chosen` y que la changa no esté liquidada o cancelada; si no, el chat queda de solo lectura. Máximo 20 mensajes por minuto por persona y 8192 caracteres por mensaje.
 
+## Notificaciones push
+
+- `PUT /me/push-token` `{ token: "ExponentPushToken[...]", platform: "android" | "ios" }` registra el dispositivo (hasta 5 por cuenta; un token que pasa a otra cuenta se mueve). `DELETE /me/push-token` `{ token }` lo quita.
+- Los avisos salen por el servicio de Expo, en lotes de hasta 100, desde la tarea de cada minuto. Llevan texto genérico y solo `{ kind, ref }` como datos: nunca direcciones, montos ni texto del chat.
+- Los dispara el indexador al ver el evento (acordada, entrega registrada, cancelación, pago liberado, jurado sorteado y recordatorios de plazo del jurado, que se cancelan si el jurado ya actuó o el caso se resolvió), el recordatorio de una hora antes del inicio de la changa, una nueva postulación, la revisión de la selfie y un mensaje de chat cuando la otra persona no tiene conexión abierta. Un aviso de chat por conversación hasta que se envíe; los siguientes mensajes no generan otro hasta entonces.
+- Si una persona no tiene dispositivos, el aviso se descarta. Un token que Expo informa como `DeviceNotRegistered` se borra. Ante una falla del servicio se reintenta hasta 5 veces. Los enviados se borran a los 7 días.
+- Los textos están en `TEMPLATES` de `src/notifications.ts`.
+
 ## Cadena
 
 - `POST /relay`: pedido firmado para el Forwarder (ver `src/relay.ts`).

@@ -11,7 +11,7 @@ import {
 } from "./applications";
 import { buildChatKeyMessage, issueToken, parseLogin, TICKET_TTL_SECONDS, verifyLogin, verifyToken } from "./auth";
 import { listChats, markRead, resolveChatAccess } from "./chatAccess";
-import { recoverMessageAddress } from "viem";
+import { isHex, recoverMessageAddress } from "viem";
 import { queueNotification, registerToken, removeToken } from "./notifications";
 import { isExpoToken } from "./push";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
@@ -31,6 +31,8 @@ import type { Env } from "./env";
 import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, upsertProfile, validateProfile } from "./profiles";
+import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
+import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
 import { createRelayChain, relayTargets } from "./relayChain";
 import { validateSpec } from "./spec";
@@ -493,6 +495,39 @@ app.get("/me/changas/:changaId/applications", async (c) => {
   if (result.status === 404) return c.json({ error: "changa not found" }, 404);
   if (result.status === 403) return c.json({ error: "only the owner can see the applications" }, 403);
   return c.json({ applications: result.rows.map(presentForOwner) });
+});
+
+app.post("/me/orders/:orderId/agreement", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const body = await readJson(c);
+  if (body === undefined) return c.json({ error: "invalid json" }, 400);
+  const parsed = validateProposal(body);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const result = await propose(c.env.DB, c.get("address"), orderId, parsed.value, nowSeconds());
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json({ agreement: presentAgreement(result.row, nowSeconds()) }, 201);
+});
+
+app.get("/me/agreements", async (c) => c.json({ agreements: await listAgreements(c.env.DB, c.get("address"), nowSeconds()) }));
+
+app.post("/me/orders/:orderId/agreement/accept", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  if (!c.env.RELAYER_KEY) return c.json({ error: "relayer not configured" }, 503);
+  const body = (await readJson(c)) as { signature?: unknown } | undefined;
+  if (!body || typeof body.signature !== "string" || !isHex(body.signature)) return c.json({ error: "invalid signature" }, 400);
+  const result = await acceptAgreement(c.env.DB, createAgreementChain(c.env.RPC_URL, c.env.RELAYER_KEY), orderId, c.get("address"), body.signature, nowSeconds());
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json({ txHash: result.txHash });
+});
+
+app.delete("/me/orders/:orderId/agreement", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const result = await cancelAgreement(c.env.DB, orderId, c.get("address"), nowSeconds());
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json({ ok: true });
 });
 
 app.get("/changas", async (c) => {

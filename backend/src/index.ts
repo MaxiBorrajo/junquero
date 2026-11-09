@@ -1,4 +1,5 @@
 import { app } from "./app";
+import { purgeAgreements } from "./agreements";
 import { applicationsHandler } from "./applications";
 import { partiesHandler } from "./parties";
 import { createChangasHandler, purgeStaleDrafts } from "./changas";
@@ -49,7 +50,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const nowSeconds = Math.floor(event.scheduledTime / 1000);
     if (isPurgeMinute(event.scheduledTime)) {
-      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds), purgeSentNotifications(env.DB, nowSeconds, 7 * 24 * 3600)]));
+      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds), purgeSentNotifications(env.DB, nowSeconds, 7 * 24 * 3600), purgeAgreements(env.DB, nowSeconds)]));
     }
     const options = {
       contracts: indexedContracts,

@@ -15,6 +15,7 @@ interface Template {
 
 export const TEMPLATES: Record<string, Template> = {
   application_new: { title: "Nueva postulación", body: "Alguien se postuló a tu changa.", priority: "high" },
+  agreement_proposed: { title: "Te eligieron", body: "Te eligieron para una changa. Confirmá el acuerdo.", priority: "high" },
   agreed: { title: "Changa acordada", body: "Quedó acordada. Abrí la app para ver los detalles.", priority: "high" },
   chat: { title: "Mensaje nuevo", body: "Tenés un mensaje nuevo.", priority: "default" },
   delivered: { title: "Entrega registrada", body: "Revisá el trabajo: si no respondés a tiempo, se aprueba solo.", priority: "high" },

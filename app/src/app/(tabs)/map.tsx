@@ -1,19 +1,26 @@
-import { Camera, GeoJSONSource, Images, Layer, Map, type CameraRef, type GeoJSONSourceRef, type MapRef, type PressEvent, type ViewStateChangeEvent } from "@maplibre/maplibre-react-native";
+import { Camera, GeoJSONSource, Images, Layer, Map, NativeUserLocation, type CameraRef, type GeoJSONSourceRef, type MapRef, type PressEvent, type ViewStateChangeEvent } from "@maplibre/maplibre-react-native";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { NativeSyntheticEvent } from "react-native";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Changa } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
+import { Icon } from "../../components/Icon";
+import { PullRefreshControl } from "../../components/PullRefreshControl";
+import { SearchField } from "../../components/SearchField";
 import { Button, ErrorText, Secondary } from "../../components/ui";
 import { DEFAULT_CENTER, MAP_STYLE_URL } from "../../config";
 import { useFilters } from "../../data/filterStore";
+import { countUnread, useLastSeen, useNotifications } from "../../data/useNotifications";
 import { useChangasInBounds, useRemoteChangas } from "../../data/useChangas";
 import { activeFilterCount } from "../../lib/filters";
 import { t } from "../../i18n";
 import { roundBounds, toFeatures, type Bounds } from "../../lib/changaMap";
 import { distanceM } from "../../lib/geo";
+import { matchesQuery } from "../../lib/search";
+import { useManualRefresh } from "../../lib/useManualRefresh";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
 
@@ -47,6 +54,11 @@ export default function MapScreen() {
   const [center, setCenter] = useState(start);
   const [mode, setMode] = useState<Mode>("map");
   const [selected, setSelected] = useState<number | null>(null);
+  const [located, setLocated] = useState(false);
+  const [query, setQuery] = useState("");
+  const notifications = useNotifications();
+  const lastSeen = useLastSeen();
+  const unread = countUnread(notifications.data ?? [], lastSeen.data ?? 0);
   const camera = useRef<CameraRef>(null);
   const source = useRef<GeoJSONSourceRef>(null);
   const map = useRef<MapRef>(null);
@@ -54,6 +66,7 @@ export default function MapScreen() {
   const filters = useFilters();
   const nearby = useChangasInBounds(bounds, filters);
   const remote = useRemoteChangas(filters);
+  const refresh = useManualRefresh([() => nearby.refetch(), () => remote.refetch()]);
   const changas = nearby.data ?? [];
   const features = useMemo(() => toFeatures(changas), [changas]);
   const selectedChanga = selected === null ? null : (changas.find((item) => item.id === selected) ?? null);
@@ -81,15 +94,32 @@ export default function MapScreen() {
     setSelected(Number(properties.id));
   }, []);
 
+  const goToMyLocation = useCallback(async () => {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (!permission.granted) return;
+    try {
+      const position = (await Location.getLastKnownPositionAsync()) ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+      setLocated(true);
+      camera.current?.easeTo({ center: [position.coords.longitude, position.coords.latitude], zoom: 14, duration: 500 });
+    } catch {}
+  }, []);
+
   const open = (changa: Changa) => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
-  const sorted = useMemo(() => [...changas].sort((a, b) => dist(a, center) - dist(b, center)), [changas, center]);
+  const sorted = useMemo(
+    () =>
+      changas
+        .filter((item) => matchesQuery(query, [item.spec.title, item.spec.description, t.publish.categories[item.spec.category]]))
+        .sort((a, b) => dist(a, center) - dist(b, center)),
+    [changas, center, query],
+  );
 
   return (
     <View style={styles.root}>
       {mode === "map" ? (
-        <Map ref={map} style={styles.map} mapStyle={MAP_STYLE_URL} onRegionDidChange={onRegionChange} onPress={onMapPress}>
+        <Map ref={map} style={styles.map} mapStyle={MAP_STYLE_URL} logo={false} compass={false} attributionPosition={{ bottom: 78, left: 8 }} onRegionDidChange={onRegionChange} onPress={onMapPress}>
           <Camera ref={camera} initialViewState={{ center: [start.lng, start.lat], zoom: 13 }} />
           <Images images={PIN_IMAGES} />
+          {located ? <NativeUserLocation /> : null}
           <GeoJSONSource ref={source} id="changas" data={features} cluster clusterRadius={50}>
             <Layer id="clusters" type="circle" filter={["has", "point_count"]} paint={{ "circle-color": colors.brick, "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 30, 30], "circle-stroke-color": colors.white, "circle-stroke-width": 2 }} />
             <Layer id="cluster-count" type="symbol" filter={["has", "point_count"]} layout={{ "text-field": ["get", "point_count_abbreviated"], "text-size": 14, "text-font": ["Noto Sans Bold"] }} paint={{ "text-color": colors.white }} />
@@ -116,6 +146,7 @@ export default function MapScreen() {
         <SafeAreaView style={styles.list}>
           <FlatList
             contentContainerStyle={styles.listContent}
+            refreshControl={<PullRefreshControl refresh={refresh} />}
             data={sorted}
             keyExtractor={(item) => String(item.id)}
             ListEmptyComponent={<Secondary>{t.map.empty}</Secondary>}
@@ -128,8 +159,15 @@ export default function MapScreen() {
         <View style={styles.topRow} pointerEvents="box-none">
           <Pill label={mode === "map" ? t.map.list : t.map.mapView} onPress={() => setMode(mode === "map" ? "list" : "map")} />
           <Pill label={activeFilterCount(filters) > 0 ? `${t.filters.open} · ${activeFilterCount(filters)}` : t.filters.open} onPress={() => router.push("/filters")} />
+          {profile ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={t.notifications.open} onPress={() => router.push("/notifications")} style={styles.bell}>
+              <Icon name="bell" size={20} color={colors.ink} />
+              {unread > 0 ? <View style={styles.bellDot} /> : null}
+            </Pressable>
+          ) : null}
           {remote.data && remote.data.length > 0 ? <Pill label={`${t.map.remoteChip} · ${remote.data.length}`} onPress={() => router.push("/remote")} /> : null}
         </View>
+        {mode === "list" ? <SearchField value={query} onChange={setQuery} placeholder={t.map.searchList} /> : null}
         {nearby.isError ? <ErrorText>{t.map.loadError}</ErrorText> : null}
         {mode === "map" && nearby.isSuccess && changas.length === 0 ? (
           <View style={styles.empty}>
@@ -142,6 +180,18 @@ export default function MapScreen() {
         <View style={styles.preview}>
           <ChangaCard changa={selectedChanga} distanceM={selectedChanga.spec.area ? distanceM(center, selectedChanga.spec.area) : undefined} onPress={() => open(selectedChanga)} />
         </View>
+      ) : null}
+
+      {mode === "map" ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={t.map.refresh} onPress={refresh.onRefresh} style={[styles.locate, selectedChanga ? styles.refreshRaised : styles.refreshButton]}>
+          {refresh.refreshing ? <ActivityIndicator color={colors.brick} /> : <Icon name="refresh" size={22} color={colors.brick} />}
+        </Pressable>
+      ) : null}
+
+      {mode === "map" ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={t.map.myLocation} onPress={goToMyLocation} style={[styles.locate, selectedChanga ? styles.locateRaised : null]}>
+          <Icon name="locate" size={24} color={colors.brick} />
+        </Pressable>
       ) : null}
 
       <View style={styles.publish}>
@@ -165,11 +215,17 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.map },
   map: { flex: 1 },
   list: { flex: 1, backgroundColor: colors.background },
-  listContent: { padding: spacing.md, paddingTop: 72, paddingBottom: 96, gap: spacing.sm },
+  listContent: { padding: spacing.md, paddingTop: 140, paddingBottom: 96, gap: spacing.sm },
   top: { position: "absolute", top: 0, left: 0, right: 0, paddingHorizontal: spacing.md, gap: spacing.sm },
   topRow: { flexDirection: "row", gap: spacing.sm },
   pill: { backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.line },
   empty: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
   preview: { position: "absolute", left: spacing.md, right: spacing.md, bottom: 88 },
+  bell: { marginLeft: "auto", width: 42, height: 42, borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
+  bellDot: { position: "absolute", top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.brick, borderWidth: 1.5, borderColor: colors.white },
+  locate: { position: "absolute", right: spacing.md, bottom: 88, width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
+  locateRaised: { bottom: 200 },
+  refreshButton: { bottom: 144 },
+  refreshRaised: { bottom: 256 },
   publish: { position: "absolute", left: spacing.md, right: spacing.md, bottom: spacing.md },
 });

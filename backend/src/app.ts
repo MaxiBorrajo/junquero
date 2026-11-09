@@ -17,6 +17,7 @@ import { queueNotification, registerToken, removeToken } from "./notifications";
 import { isExpoToken } from "./push";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
+import { activitySummary, listNotifications } from "./activity";
 import { canDownload, listEvidence, parseEvidence, parseEvidenceBatch, registerEvidence, registerEvidenceBatch, resolveEvidenceAccess, shareKey } from "./evidence";
 import {
   fileHeaders,
@@ -640,6 +641,10 @@ app.post("/admin/reports/:id", async (c) => {
   await logAction(c.env.DB, c.get("address"), body.action === "hide" ? "report_hide" : "report_dismissed", `${report.kind}:${report.target}`, parsed.reason, nowSeconds()).run();
   return c.json({ ok: true });
 });
+
+app.get("/me/activity", async (c) => c.json(await activitySummary(c.env.DB, c.get("address"))));
+
+app.get("/me/notifications", async (c) => c.json({ notifications: await listNotifications(c.env.DB, c.get("address"), nowSeconds()) }));
 
 app.get("/me/agreements", async (c) => c.json({ agreements: await listAgreements(c.env.DB, c.get("address"), nowSeconds()) }));
 

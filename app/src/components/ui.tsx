@@ -4,24 +4,25 @@ import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSh
 import { SafeAreaView } from "react-native-safe-area-context";
 import { t } from "../i18n";
 import { colors, radius, spacing, text } from "../theme";
+import type { PullRefresh } from "../lib/useManualRefresh";
 import { Icon } from "./Icon";
+import { PullRefreshControl } from "./PullRefreshControl";
 
 export function BackButton() {
-  if (!router.canGoBack()) return null;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} onPress={() => router.back()} style={styles.back}>
+    <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} style={styles.back}>
       <Icon name="back" size={22} color={colors.ink} />
     </Pressable>
   );
 }
 
-export function Screen({ children, scroll = true, footer, back = true }: { children: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean }) {
+export function Screen({ children, scroll = true, footer, back = true, refresh }: { children: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean; refresh?: PullRefresh }) {
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         {back ? <BackButton /> : null}
         {scroll ? (
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={refresh ? <PullRefreshControl refresh={refresh} /> : undefined}>
             {children}
           </ScrollView>
         ) : (

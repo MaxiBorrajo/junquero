@@ -24,6 +24,11 @@ export const icons = {
   minus: [path("M5 12h14")],
   plus: [path("M5 12h14"), path("M12 5v14")],
   expand: [path("M8 3H5a2 2 0 0 0-2 2v3"), path("M21 8V5a2 2 0 0 0-2-2h-3"), path("M3 16v3a2 2 0 0 0 2 2h3"), path("M16 21h3a2 2 0 0 0 2-2v-3")],
+  search: [{ kind: "circle", cx: 11, cy: 11, r: 8 }, path("m21 21-4.3-4.3")],
+  locate: [{ kind: "circle", cx: 12, cy: 12, r: 7 }, { kind: "circle", cx: 12, cy: 12, r: 2 }, path("M2 12h3"), path("M19 12h3"), path("M12 2v3"), path("M12 19v3")],
+  bell: [path("M10.268 21a2 2 0 0 0 3.464 0"), path("M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326")],
+  chevron: [path("m9 18 6-6-6-6")],
+  refresh: [path("M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"), path("M21 3v5h-5"), path("M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"), path("M8 16H3v5")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 6v6l4 2")],
 } as const satisfies Record<string, readonly Shape[]>;
 

@@ -199,15 +199,15 @@ export const presentForOwner = (row: ApplicationRow & ApplicantProfileRow) => ({
 export async function listMine(db: D1Database, applicant: string, limit: number) {
   const { results } = await db
     .prepare(
-      `SELECT a.*, c.spec_hash, c.order_id, c.status AS changa_status
+      `SELECT a.*, c.spec_hash, c.order_id, c.status AS changa_status, json_extract(c.spec, '$.title') AS changa_title
        FROM applications a JOIN changas c ON c.id = a.changa_id
        WHERE a.applicant = ? ORDER BY a.id DESC LIMIT ?`,
     )
     .bind(applicant, limit)
-    .all<ApplicationRow & { spec_hash: string; order_id: number | null; changa_status: string }>();
+    .all<ApplicationRow & { spec_hash: string; order_id: number | null; changa_status: string; changa_title: string | null }>();
   return results.map((row) => ({
     ...presentApplication(row),
-    changa: { specHash: row.spec_hash, orderId: row.order_id, status: row.changa_status },
+    changa: { specHash: row.spec_hash, orderId: row.order_id, status: row.changa_status, title: row.changa_title ?? "" },
   }));
 }
 

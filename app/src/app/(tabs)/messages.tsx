@@ -6,7 +6,9 @@ import type { ChatSummary, PublicProfile } from "../../api/types";
 import { loadPreview } from "../../chat/preview";
 import { secureKeyStorage } from "../../crypto/secureKeyStorage";
 import { Button, Secondary, Title } from "../../components/ui";
+import { PullRefreshControl } from "../../components/PullRefreshControl";
 import { t } from "../../i18n";
+import { useManualRefresh } from "../../lib/useManualRefresh";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
 
@@ -62,6 +64,8 @@ export default function Messages() {
     queryFn: async () => (await api.get<{ chats: ChatSummary[] }>("/me/chats")).chats,
   });
 
+  const refresh = useManualRefresh([() => chats.refetch()]);
+
   if (!address) {
     return (
       <SafeAreaView style={styles.screen}>
@@ -81,6 +85,7 @@ export default function Messages() {
       </View>
       <FlatList
         contentContainerStyle={styles.list}
+        refreshControl={<PullRefreshControl refresh={refresh} />}
         data={chats.data ?? []}
         keyExtractor={(item) => String(item.applicationId)}
         ListEmptyComponent={<Secondary>{t.chat.empty}</Secondary>}

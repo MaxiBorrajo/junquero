@@ -88,7 +88,7 @@ export interface Application {
 }
 
 export interface MyApplication extends Application {
-  changa: { specHash: string; orderId: number | null; status: ChangaStatus };
+  changa: { specHash: string; orderId: number | null; status: ChangaStatus; title: string };
 }
 
 export interface ReceivedApplication extends Application {

@@ -4,9 +4,13 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
+import { PullRefreshControl } from "../../components/PullRefreshControl";
+import { SearchField } from "../../components/SearchField";
 import { Button, Chip, Row, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyApplications, useMyChangas, useMyContributions } from "../../data/useMine";
 import { t } from "../../i18n";
+import { matchesQuery } from "../../lib/search";
+import { useManualRefresh } from "../../lib/useManualRefresh";
 import { statusLabel } from "../../lib/status";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
@@ -16,10 +20,14 @@ type Tab = "published" | "applied" | "contributions";
 export default function MyChangas() {
   const { address } = useSession();
   const [tab, setTab] = useState<Tab>("published");
+  const [queries, setQueries] = useState<Record<Tab, string>>({ published: "", applied: "", contributions: "" });
+  const query = queries[tab];
   const published = useMyChangas();
   const applied = useMyApplications();
   const agreements = useMyAgreements();
   const contributions = useMyContributions();
+
+  const refresh = useManualRefresh([() => published.refetch(), () => applied.refetch(), () => agreements.refetch(), () => contributions.refetch()]);
 
   if (!address) {
     return (
@@ -45,6 +53,7 @@ export default function MyChangas() {
           <Chip label={t.mine.applied} selected={tab === "applied"} onPress={() => setTab("applied")} />
           <Chip label={t.mine.contributions} selected={tab === "contributions"} onPress={() => setTab("contributions")} />
         </Row>
+        <SearchField value={query} onChange={(value) => setQueries((current) => ({ ...current, [tab]: value }))} placeholder={t.mine.search} />
         {toConfirm.map((item) => (
           <AgreementBanner key={item.orderId} agreement={item} />
         ))}
@@ -52,7 +61,8 @@ export default function MyChangas() {
       {tab === "published" ? (
         <FlatList
           contentContainerStyle={styles.list}
-          data={published.data ?? []}
+          refreshControl={<PullRefreshControl refresh={refresh} />}
+          data={(published.data ?? []).filter((item) => matchesQuery(query, [item.spec.title, item.spec.description, t.publish.categories[item.spec.category], statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyPublished}</Secondary>}
           renderItem={({ item }) => <PublishedItem changa={item} waiting={item.orderId !== null && waiting.has(item.orderId)} />}
@@ -60,7 +70,8 @@ export default function MyChangas() {
       ) : tab === "contributions" ? (
         <FlatList
           contentContainerStyle={styles.list}
-          data={contributions.data ?? []}
+          refreshControl={<PullRefreshControl refresh={refresh} />}
+          data={(contributions.data ?? []).filter((item) => matchesQuery(query, [item.title, statusLabel(item.status ?? "")]))}
           keyExtractor={(item) => String(item.orderId)}
           ListEmptyComponent={<Secondary>{t.contributions.empty}</Secondary>}
           renderItem={({ item }) => (
@@ -75,7 +86,8 @@ export default function MyChangas() {
       ) : (
         <FlatList
           contentContainerStyle={styles.list}
-          data={applied.data ?? []}
+          refreshControl={<PullRefreshControl refresh={refresh} />}
+          data={(applied.data ?? []).filter((item) => matchesQuery(query, [item.changa.title, item.message, statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyApplied}</Secondary>}
           renderItem={({ item }) => <AppliedItem application={item} />}
@@ -96,15 +108,17 @@ function AgreementBanner({ agreement }: { agreement: AgreementRecord }) {
 
 function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }) {
   const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
+  const hasOrder = changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status);
+  const action =
+    changa.status === "open"
+      ? { label: t.mine.viewApplications, onPress: () => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } }) }
+      : hasOrder
+        ? { label: t.mine.openOrder, onPress: () => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: changa.spec.title } }) }
+        : undefined;
   return (
     <View style={styles.item}>
-      <ChangaCard changa={changa} onPress={changa.status === "draft" ? () => undefined : open} />
-      <Text style={styles.status}>{statusLabel(changa.status)}</Text>
+      <ChangaCard changa={changa} status={changa.status} action={action} onPress={changa.status === "draft" ? () => undefined : open} />
       {waiting ? <Secondary>{t.mine.waitingAgreement}</Secondary> : null}
-      {changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status) ? (
-        <Button label={t.mine.openOrder} variant="secondary" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: changa.spec.title } })} />
-      ) : null}
-      {changa.status === "open" ? <Button label={t.mine.viewApplications} variant="secondary" onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} /> : null}
     </View>
   );
 }

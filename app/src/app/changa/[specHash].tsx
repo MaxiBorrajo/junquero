@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Icon } from "../../components/Icon";
 import { ImageViewer } from "../../components/ImageViewer";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -110,25 +110,22 @@ export default function ChangaDetail() {
       ) : null}
       {spec.attachments.length > 0 ? (
         <Section label={t.detail.attachments}>
-          <View style={styles.gallery}>
-            {spec.attachments
-              .filter((file) => file.mime.startsWith("image/"))
-              .map((file) => (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
+            {spec.attachments.map((file) =>
+              file.mime.startsWith("image/") ? (
                 <Pressable key={file.hash} accessibilityRole="imagebutton" onPress={() => setViewing(fileUrl(changa.owner, file.hash))}>
                   <Image source={{ uri: fileUrl(changa.owner, file.hash) }} style={styles.thumb} contentFit="cover" />
                 </Pressable>
-              ))}
-          </View>
-          {spec.attachments
-            .filter((file) => !file.mime.startsWith("image/"))
-            .map((file) => (
-              <Pressable key={file.hash} accessibilityRole="link" onPress={() => void Linking.openURL(fileUrl(changa.owner, file.hash))} style={styles.fileRow}>
-                <Icon name="file" size={20} color={colors.brick} />
-                <Text style={[text.body, styles.fileName]} numberOfLines={1}>
-                  {file.name}
-                </Text>
-              </Pressable>
-            ))}
+              ) : (
+                <Pressable key={file.hash} accessibilityRole="link" onPress={() => void Linking.openURL(fileUrl(changa.owner, file.hash))} style={[styles.thumb, styles.fileTile]}>
+                  <Icon name="file" size={28} color={colors.brick} />
+                  <Text style={[text.secondary, styles.fileName]} numberOfLines={2}>
+                    {file.name}
+                  </Text>
+                </Pressable>
+              ),
+            )}
+          </ScrollView>
         </Section>
       ) : null}
       <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
@@ -151,8 +148,8 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 const styles = StyleSheet.create({
   amountBox: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
   section: { gap: spacing.xs },
-  gallery: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  fileRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
-  fileName: { flex: 1, color: colors.brick },
-  thumb: { width: 96, height: 96, borderRadius: radius.sm },
+  gallery: { gap: spacing.sm },
+  fileTile: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", gap: spacing.xs, padding: spacing.sm },
+  fileName: { textAlign: "center", color: colors.brick, fontSize: 12 },
+  thumb: { width: 120, height: 120, borderRadius: radius.md },
 });

@@ -7,7 +7,7 @@ import { circlePolygon, type LatLng } from "../lib/geo";
 import { colors, radius } from "../theme";
 
 export function ZonePicker({ center, radiusM, onChange }: { center: LatLng; radiusM: number; onChange: (center: LatLng) => void }) {
-  const area = useMemo(() => circlePolygon(center, radiusM), [center, radiusM]);
+  const area = useMemo(() => circlePolygon(center, Math.max(radiusM, 1)), [center, radiusM]);
   const zoom = Math.max(8, 15 - Math.log2(Math.max(radiusM, 500) / 500));
   return (
     <View style={styles.frame}>
@@ -20,10 +20,12 @@ export function ZonePicker({ center, radiusM, onChange }: { center: LatLng; radi
         }}
       >
         <Camera center={[center.lng, center.lat]} zoom={zoom} />
-        <GeoJSONSource id="zone" data={area}>
-          <Layer id="zone-fill" type="fill" paint={{ "fill-color": colors.brick, "fill-opacity": 0.2 }} />
-          <Layer id="zone-line" type="line" paint={{ "line-color": colors.brick, "line-width": 2 }} />
-        </GeoJSONSource>
+        {radiusM > 0 ? (
+          <GeoJSONSource id="zone" data={area}>
+            <Layer id="zone-fill" type="fill" paint={{ "fill-color": colors.brick, "fill-opacity": 0.2 }} />
+            <Layer id="zone-line" type="line" paint={{ "line-color": colors.brick, "line-width": 2 }} />
+          </GeoJSONSource>
+        ) : null}
       </Map>
     </View>
   );

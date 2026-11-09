@@ -47,6 +47,18 @@ export function Button({
   );
 }
 
+export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
+      <Text style={[text.label, selected && styles.chipOnLabel]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function Row({ children }: { children: ReactNode }) {
+  return <View style={styles.chips}>{children}</View>;
+}
+
 export function Title({ children }: { children: ReactNode }) {
   return <Text style={text.title}>{children}</Text>;
 }
@@ -106,5 +118,9 @@ const styles = StyleSheet.create({
   field: { gap: spacing.xs },
   input: { ...text.body, backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, minHeight: 52 },
   inputError: { borderColor: colors.error },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
+  chipOn: { backgroundColor: colors.brick, borderColor: colors.brick },
+  chipOnLabel: { color: colors.white },
   fieldError: { ...text.secondary, color: colors.error },
 });

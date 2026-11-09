@@ -1,4 +1,4 @@
-import { Camera, GeoJSONSource, Layer, Map, type CameraRef, type GeoJSONSourceRef, type PressEventWithFeatures, type ViewStateChangeEvent } from "@maplibre/maplibre-react-native";
+import { Camera, GeoJSONSource, Images, Layer, Map, type CameraRef, type GeoJSONSourceRef, type MapRef, type PressEvent, type ViewStateChangeEvent } from "@maplibre/maplibre-react-native";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { NativeSyntheticEvent } from "react-native";
@@ -19,6 +19,8 @@ import { colors, radius, spacing, text } from "../../theme";
 
 type Mode = "map" | "list";
 
+const PIN_IMAGES = { "jq-price": require("../../../assets/images/pin.png"), "jq-price-on": require("../../../assets/images/pin-selected.png") };
+
 export default function MapScreen() {
   const { profile } = useSession();
   const start = profile ? { lat: profile.work.lat, lng: profile.work.lng } : DEFAULT_CENTER;
@@ -28,6 +30,7 @@ export default function MapScreen() {
   const [selected, setSelected] = useState<number | null>(null);
   const camera = useRef<CameraRef>(null);
   const source = useRef<GeoJSONSourceRef>(null);
+  const map = useRef<MapRef>(null);
 
   const filters = useFilters();
   const nearby = useChangasInBounds(bounds, filters);
@@ -42,9 +45,13 @@ export default function MapScreen() {
     setCenter({ lat: c[1], lng: c[0] });
   }, []);
 
-  const onPressSource = useCallback(async (event: NativeSyntheticEvent<PressEventWithFeatures>) => {
-    const feature = event.nativeEvent.features[0];
-    if (!feature) return;
+  const onMapPress = useCallback(async (event: NativeSyntheticEvent<PressEvent>) => {
+    const found = await map.current?.queryRenderedFeatures(event.nativeEvent.point, { layers: ["pin", "clusters"] });
+    const feature = found?.[0];
+    if (!feature) {
+      setSelected(null);
+      return;
+    }
     const properties = feature.properties ?? {};
     if (properties.cluster) {
       const zoom = await source.current?.getClusterExpansionZoom(Number(properties.cluster_id));
@@ -61,14 +68,29 @@ export default function MapScreen() {
   return (
     <View style={styles.root}>
       {mode === "map" ? (
-        <Map style={styles.map} mapStyle={MAP_STYLE_URL} onRegionDidChange={onRegionChange} onPress={() => setSelected(null)}>
+        <Map ref={map} style={styles.map} mapStyle={MAP_STYLE_URL} onRegionDidChange={onRegionChange} onPress={onMapPress}>
           <Camera ref={camera} initialViewState={{ center: [start.lng, start.lat], zoom: 13 }} />
-          <GeoJSONSource ref={source} id="changas" data={features} cluster clusterRadius={50} onPress={onPressSource}>
-            <Layer id="zones" type="circle" filter={["!", ["has", "point_count"]]} paint={{ "circle-color": colors.brick, "circle-opacity": 0.18, "circle-radius": ["interpolate", ["exponential", 2], ["zoom"], 10, 2.4, 18, 612] }} />
-            <Layer id="clusters" type="circle" filter={["has", "point_count"]} paint={{ "circle-color": colors.brick, "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 30, 30] }} />
+          <Images images={PIN_IMAGES} />
+          <GeoJSONSource ref={source} id="changas" data={features} cluster clusterRadius={50}>
+            <Layer id="clusters" type="circle" filter={["has", "point_count"]} paint={{ "circle-color": colors.brick, "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 30, 30], "circle-stroke-color": colors.white, "circle-stroke-width": 2 }} />
             <Layer id="cluster-count" type="symbol" filter={["has", "point_count"]} layout={{ "text-field": ["get", "point_count_abbreviated"], "text-size": 14, "text-font": ["Noto Sans Bold"] }} paint={{ "text-color": colors.white }} />
-            <Layer id="pin" type="circle" filter={["!", ["has", "point_count"]]} paint={{ "circle-color": colors.sand, "circle-radius": 16, "circle-stroke-color": colors.brick, "circle-stroke-width": 2 }} />
-            <Layer id="pin-label" type="symbol" filter={["!", ["has", "point_count"]]} layout={{ "text-field": ["get", "label"], "text-size": 12, "text-font": ["Noto Sans Bold"], "text-allow-overlap": true }} paint={{ "text-color": colors.ink }} />
+            <Layer
+              id="pin"
+              type="symbol"
+              filter={["!", ["has", "point_count"]]}
+              layout={{
+                "icon-image": ["case", ["==", ["get", "id"], selected ?? -1], "jq-price-on", "jq-price"],
+                "icon-text-fit": "width",
+                "icon-text-fit-padding": [0, 14, 0, 14],
+                "icon-allow-overlap": true,
+                "text-field": ["get", "label"],
+                "text-size": 14,
+                "text-font": ["Noto Sans Bold"],
+                "text-allow-overlap": true,
+                "symbol-sort-key": ["case", ["==", ["get", "id"], selected ?? -1], 1, 0],
+              }}
+              paint={{ "text-color": colors.white }}
+            />
           </GeoJSONSource>
         </Map>
       ) : (

@@ -81,7 +81,7 @@ describe("mapa", () => {
     const remote = changa({ id: 2, spec: { ...changa().spec, modality: "remote", area: undefined } });
     const features = toFeatures([changa(), remote]);
     expect(features.features).toHaveLength(1);
-    expect(features.features[0]?.properties).toMatchObject({ id: 1, label: "5" });
+    expect(features.features[0]?.properties).toMatchObject({ id: 1, label: "US$ 5" });
   });
 });
 

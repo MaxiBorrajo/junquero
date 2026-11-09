@@ -33,6 +33,7 @@ import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, upsertProfile, validateProfile } from "./profiles";
 import { listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
+import { casesFor } from "./cases";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
@@ -554,6 +555,8 @@ app.post("/me/orders/:orderId/agreement", async (c) => {
   if (!result.ok) return c.json({ error: result.error }, result.status);
   return c.json({ agreement: presentAgreement(result.row, nowSeconds()) }, 201);
 });
+
+app.get("/me/cases", async (c) => c.json(await casesFor(c.env.DB, c.get("address"))));
 
 app.get("/me/agreements", async (c) => c.json({ agreements: await listAgreements(c.env.DB, c.get("address"), nowSeconds()) }));
 

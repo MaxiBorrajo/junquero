@@ -23,7 +23,7 @@ def pill(path, body, W):
     d.rounded_rectangle((0, 0, W * SCALE - 1, H * SCALE - 1), radius=H * SCALE // 2, fill=WHITE)
     b = 3 * SCALE
     d.rounded_rectangle((b, b, W * SCALE - 1 - b, H * SCALE - 1 - b), radius=H * SCALE // 2 - b, fill=body)
-    glyph(im, 9 * SCALE, 8 * SCALE, 28)
+    glyph(im, 12 * SCALE, 13 * SCALE, 18)
     im.resize((W, H), Image.LANCZOS).save(path)
 
 

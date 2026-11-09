@@ -1,11 +1,33 @@
-import { createPublicClient, createWalletClient, http, type Abi, type Address, type Hex } from "viem";
+import { ContractFunctionRevertedError, createPublicClient, createWalletClient, http, type Abi, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { indexedContracts } from "./contracts";
-import type { CaseState, OrderState, TaskChain, TaskKind } from "./tasks";
+import type { AttemptResult, CaseState, OrderState, TaskChain, TaskKind } from "./tasks";
 
 const escrow = indexedContracts.find((contract) => contract.name === "escrow")!;
 const arbitration = indexedContracts.find((contract) => contract.name === "arbitration")!;
+
+const TIMED_ERRORS = new Set([
+  "AutoReleaseNotReady",
+  "DeadlineNotReached",
+  "FundingNotExpired",
+  "ResponseWindowOpen",
+  "WindowOpen",
+  "VotingNotOver",
+]);
+
+const RETRY_MARGIN_SECONDS = 2;
+
+export function retryAtFrom(error: unknown): number | null {
+  const reverted = (error as { walk?: (fn: (e: unknown) => boolean) => unknown }).walk?.(
+    (inner) => inner instanceof ContractFunctionRevertedError,
+  );
+  if (!(reverted instanceof ContractFunctionRevertedError)) return null;
+  const { errorName, args } = reverted.data ?? {};
+  if (!errorName || !TIMED_ERRORS.has(errorName) || !args?.length) return null;
+  const until = Number(args[0]);
+  return until > 0 ? until + RETRY_MARGIN_SECONDS : null;
+}
 
 const target = (kind: TaskKind) => (kind === "order" ? escrow : arbitration);
 
@@ -58,10 +80,10 @@ export function createTaskChain(rpcUrl: string, privateKey: Hex): TaskChain {
       };
       try {
         await client.simulateContract(call);
-      } catch {
-        return null;
+      } catch (error) {
+        return { sent: false, retryAt: retryAtFrom(error) } satisfies AttemptResult;
       }
-      return wallet.writeContract(call);
+      return { sent: true, txHash: await wallet.writeContract(call) } satisfies AttemptResult;
     },
   };
 }

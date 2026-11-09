@@ -122,7 +122,13 @@ export default {
     };
     ctx.waitUntil(runIndexerRounds(env.DB, client, options, Number(env.CHUNKS_PER_RUN)));
     if (env.RELAYER_KEY) {
-      const taskOptions = { batchSize: Number(env.TASK_BATCH), maxSends: Number(env.TASK_MAX_SENDS) };
+      const taskOptions = {
+        batchSize: Number(env.TASK_BATCH),
+        maxSends: Number(env.TASK_MAX_SENDS),
+        eventScanLimit: 500,
+        sentGraceSeconds: 120,
+        unreadableRetrySeconds: 60,
+      };
       ctx.waitUntil(
         runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY), taskOptions, Math.floor(Date.now() / 1000)).catch(
           (error) => console.error("tasks failed", error),

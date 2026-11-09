@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Cases } from "./pages/Cases";
 import { Changas } from "./pages/Changas";
 import { Log } from "./pages/Log";
+import { Reports } from "./pages/Reports";
 import { Selfies } from "./pages/Selfies";
 import { Summary } from "./pages/Summary";
 import { Users } from "./pages/Users";
@@ -8,12 +10,14 @@ import { NoWalletError } from "./lib/login";
 import { shortAddress } from "./lib/format";
 import { SessionProvider, useSession } from "./session";
 
-type Page = "summary" | "selfies" | "changas" | "users" | "log";
+type Page = "summary" | "selfies" | "changas" | "reports" | "cases" | "users" | "log";
 
 const PAGES: { id: Page; label: string }[] = [
   { id: "summary", label: "Resumen" },
   { id: "selfies", label: "Selfies" },
   { id: "changas", label: "Changas" },
+  { id: "reports", label: "Reportes" },
+  { id: "cases", label: "Reclamos" },
   { id: "users", label: "Usuarios" },
   { id: "log", label: "Registro" },
 ];
@@ -60,6 +64,8 @@ function Panel() {
   const { address, signOut } = useSession();
   const [page, setPage] = useState<Page>("summary");
   const [pending, setPending] = useState(0);
+  const [reports, setReports] = useState(0);
+  const [emergency, setEmergency] = useState(0);
 
   return (
     <div className="layout">
@@ -69,6 +75,8 @@ function Panel() {
           <button key={item.id} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}>
             {item.label}
             {item.id === "selfies" && pending > 0 ? <span className="badge">{pending}</span> : null}
+            {item.id === "reports" && reports > 0 ? <span className="badge">{reports}</span> : null}
+            {item.id === "cases" && emergency > 0 ? <span className="badge">{emergency}</span> : null}
           </button>
         ))}
         <div className="spacer" />
@@ -79,6 +87,8 @@ function Panel() {
         {page === "summary" ? <Summary /> : null}
         {page === "selfies" ? <Selfies onChange={setPending} /> : null}
         {page === "changas" ? <Changas /> : null}
+        {page === "reports" ? <Reports onChange={setReports} /> : null}
+        {page === "cases" ? <Cases onChange={setEmergency} /> : null}
         {page === "users" ? <Users /> : null}
         {page === "log" ? <Log /> : null}
       </main>

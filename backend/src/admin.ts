@@ -119,3 +119,19 @@ export async function listLog(db: D1Database, limit: number, before?: number) {
     .all<{ id: number; admin: string; action: string; target: string; reason: string; created_at: number }>();
   return results.map((row) => ({ id: row.id, admin: row.admin, action: row.action, target: row.target, reason: row.reason, createdAt: row.created_at }));
 }
+
+export async function emergencyCases(db: D1Database, limit: number) {
+  const { results } = await db
+    .prepare(
+      `SELECT e.case_id AS case_id, oc.order_id AS order_id, e.block_timestamp AS since, json_extract(e.args, '$.reason') AS reason
+       FROM events e JOIN order_cases oc ON oc.case_id = e.case_id
+       WHERE e.name = 'NeedsEmergencyResolution'
+         AND NOT EXISTS (
+           SELECT 1 FROM events x WHERE x.case_id = e.case_id AND x.name = 'EmergencyResolved'
+             AND (x.block_number > e.block_number OR (x.block_number = e.block_number AND x.log_index > e.log_index)))
+       ORDER BY e.case_id DESC LIMIT ?`,
+    )
+    .bind(limit)
+    .all<{ case_id: number; order_id: number; since: number; reason: string | null }>();
+  return results.map((row) => ({ caseId: row.case_id, orderId: row.order_id, since: row.since, reason: row.reason }));
+}

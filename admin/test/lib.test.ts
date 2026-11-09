@@ -71,3 +71,29 @@ describe("formato", () => {
     expect(shortAddress("0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511")).toBe("0x4E5e…6511");
   });
 });
+
+import { toFunctionSelector } from "viem";
+import { encodeEmergency, reasonHash, sendEmergency } from "../src/lib/emergency";
+
+describe("árbitro de emergencia", () => {
+  it("codifica resolveEmergency con el selector del contrato y el motivo resumido", () => {
+    const data = encodeEmergency(7, true, "  Faltan jurados  ");
+    expect(data.slice(0, 10)).toBe(toFunctionSelector("resolveEmergency(uint256,bool,bytes32)"));
+    expect(data).toContain(reasonHash("Faltan jurados").slice(2));
+    expect(data.length).toBe(2 + 8 + 64 * 3);
+  });
+
+  it("cambia a Sepolia y manda la transacción desde la billetera del administrador", async () => {
+    const calls: { method: string; params?: unknown[] }[] = [];
+    const provider = { request: async (args: { method: string; params?: unknown[] }) => (calls.push(args), args.method === "eth_sendTransaction" ? "0x" + "ab".repeat(32) : null) };
+    const hash = await sendEmergency(provider, "0xabc", "0x1204d91dcD99e9Fb8928Ccf5c3A7c0EcE837a642", 3, false, "Sin jurados");
+    expect(hash).toBe("0x" + "ab".repeat(32));
+    expect(calls.map((c) => c.method)).toEqual(["wallet_switchEthereumChain", "eth_sendTransaction"]);
+    expect((calls[1]!.params![0] as { to: string }).to).toBe("0x1204d91dcD99e9Fb8928Ccf5c3A7c0EcE837a642");
+  });
+
+  it("si la persona rechaza el cambio de red, no manda nada", async () => {
+    const provider = { request: async () => Promise.reject(Object.assign(new Error("rechazado"), { code: 4001 })) };
+    await expect(sendEmergency(provider, "0xabc", "0x1204d91dcD99e9Fb8928Ccf5c3A7c0EcE837a642", 3, true, "Motivo")).rejects.toThrow("rechazado");
+  });
+});

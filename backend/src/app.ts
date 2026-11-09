@@ -32,7 +32,7 @@ import type { Env } from "./env";
 import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, upsertProfile, validateProfile } from "./profiles";
-import { listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
+import { emergencyCases, listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
 import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
@@ -298,6 +298,20 @@ app.post("/admin/changas/:id/hidden", async (c) => {
   readCache.clear();
   await logAction(c.env.DB, c.get("address"), body.hidden ? "changa_hidden" : "changa_restored", String(id), parsed.reason, nowSeconds()).run();
   return c.json({ hidden: body.hidden });
+});
+
+app.get("/admin/cases", async (c) => c.json({ cases: await emergencyCases(c.env.DB, parseLimit(c.req.query("limit"), 50, 100)) }));
+
+app.post("/admin/cases/:id/emergency", async (c) => {
+  const id = parseChangaId(c.req.param("id"));
+  const body = (await readJson(c)) as { payeeWins?: unknown; reason?: unknown; txHash?: unknown } | undefined;
+  if (id === null || typeof body?.payeeWins !== "boolean" || typeof body.txHash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(body.txHash)) {
+    return c.json({ error: "payeeWins, reason and txHash are required" }, 400);
+  }
+  const parsed = parseReason(body.reason);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  await logAction(c.env.DB, c.get("address"), "emergency_resolved", `case:${id}`, `${body.payeeWins ? "a favor de quien hizo la changa" : "a favor de quien publicó"}: ${parsed.reason} (${body.txHash})`, nowSeconds()).run();
+  return c.json({ ok: true });
 });
 
 app.get("/admin/users", async (c) => {

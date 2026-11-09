@@ -117,3 +117,35 @@ describe("selfie review audit", () => {
     expect(log).toMatchObject([{ action: "selfie_rejected", target: person.address.toLowerCase(), reason: "Foto borrosa" }]);
   });
 });
+
+describe("emergency arbitration queue", () => {
+  const event = (raw: any, name: string, block: number, caseId: number, args: object = {}) =>
+    raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, case_id, args)
+       VALUES (?, 0, 1000, '0x1', 'arbitration', '0x', ?, ?, ?)`,
+    ).run(block, name, caseId, JSON.stringify(args));
+
+  it("lists cases waiting for the emergency arbiter and drops the resolved ones", async () => {
+    const w = await world();
+    w.ctx.raw.prepare("INSERT INTO order_cases (case_id, order_id) VALUES (1, 1), (2, 2)").run();
+    event(w.ctx.raw, "NeedsEmergencyResolution", 10, 1, { reason: "2" });
+    event(w.ctx.raw, "NeedsEmergencyResolution", 11, 2, { reason: "1" });
+    expect(((await (await get(w, "/admin/cases")).json()) as any).cases).toMatchObject([{ caseId: 2, orderId: 2 }, { caseId: 1, orderId: 1 }]);
+    event(w.ctx.raw, "EmergencyResolved", 12, 2);
+    expect(((await (await get(w, "/admin/cases")).json()) as any).cases).toMatchObject([{ caseId: 1 }]);
+    expect((await get(w, "/admin/cases", w.user.body.token)).status).toBe(403);
+  });
+
+  it("records the published reason with the transaction", async () => {
+    const w = await world();
+    const post = (body: unknown) => w.ctx.call("/admin/cases/1/emergency", authed(w.boss.body.token, "POST", body));
+    const txHash = "0x" + "ab".repeat(32);
+    expect((await post({ payeeWins: true, txHash })).status).toBe(400);
+    expect((await post({ payeeWins: true, reason: "Faltan jurados", txHash: "0x12" })).status).toBe(400);
+    expect((await post({ payeeWins: true, reason: "Faltan jurados", txHash })).status).toBe(200);
+    const log = ((await (await get(w, "/admin/log")).json()) as any).log;
+    expect(log[0]).toMatchObject({ action: "emergency_resolved", target: "case:1" });
+    expect(log[0].reason).toContain("Faltan jurados");
+    expect(log[0].reason).toContain(txHash);
+  });
+});

@@ -16,6 +16,9 @@ const ACTIONS: Record<string, string> = {
   selfie_rejected: "Selfie rechazada",
   changa_hidden: "Changa bajada",
   changa_restored: "Changa restaurada",
+  report_hide: "Reporte: oferta bajada",
+  report_dismissed: "Reporte descartado",
+  emergency_resolved: "Reclamo resuelto como árbitro",
 };
 
 export function Log() {

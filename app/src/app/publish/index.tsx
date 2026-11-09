@@ -23,13 +23,13 @@ export default function PublishBasics() {
       <Field label={t.publish.titleLabel} value={draft.title} onChangeText={(title) => update({ title })} maxLength={80} hint={t.publish.titleHint} error={errors.title ? t.publish.titleError : null} />
       <Text style={text.label}>{t.publish.typeLabel}</Text>
       <Row>
-        <Chip label={t.publish.onsite} selected={draft.modality === "onsite"} onPress={() => update((d) => setModality(d, "onsite"))} />
-        <Chip label={t.publish.remote} selected={draft.modality === "remote"} onPress={() => update((d) => setModality(d, "remote"))} />
+        <Chip icon="pin" label={t.publish.onsite} selected={draft.modality === "onsite"} onPress={() => update((d) => setModality(d, "onsite"))} />
+        <Chip icon="globe" label={t.publish.remote} selected={draft.modality === "remote"} onPress={() => update((d) => setModality(d, "remote"))} />
       </Row>
       <Text style={text.label}>{t.publish.kindLabel}</Text>
       <Row>
-        <Chip label={t.publish.individual} selected={draft.kind === "individual"} onPress={() => update({ kind: "individual" })} />
-        <Chip label={t.publish.group} selected={draft.kind === "group"} onPress={() => update({ kind: "group" })} />
+        <Chip icon="wallet" label={t.publish.individual} selected={draft.kind === "individual"} onPress={() => update({ kind: "individual" })} />
+        <Chip icon="users" label={t.publish.group} selected={draft.kind === "group"} onPress={() => update({ kind: "group" })} />
       </Row>
       {draft.kind === "group" ? <Secondary>{t.publish.groupNote}</Secondary> : null}
       <Text style={text.label}>{t.publish.categoryLabel}</Text>

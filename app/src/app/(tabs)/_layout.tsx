@@ -23,7 +23,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="map" options={tab(t.tabs.map, "map")} />
       <Tabs.Screen name="my-changas" options={tab(t.tabs.myChangas, "briefcase")} />
       <Tabs.Screen name="messages" options={tab(t.tabs.messages, "message")} />
-      <Tabs.Screen name="profile" options={tab(t.tabs.profile, "user")} />
+      <Tabs.Screen name="profile" options={tab(t.tabs.profile, "bird")} />
     </Tabs>
   );
 }

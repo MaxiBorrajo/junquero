@@ -111,7 +111,7 @@ export default function MapScreen() {
               type="symbol"
               filter={["!", ["has", "point_count"]]}
               layout={{
-                "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["to-string", ["get", "category"]], "-", ["get", "size"]],
+                "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["get", "size"]],
                 "icon-size": 0.85,
                 "icon-allow-overlap": true,
                 "text-field": ["get", "label"],

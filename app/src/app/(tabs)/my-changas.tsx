@@ -51,9 +51,9 @@ export default function MyChangas() {
       <View style={styles.pad}>
         <Title>{t.tabs.myChangas}</Title>
         <Row>
-          <Chip label={t.mine.published} selected={tab === "published"} onPress={() => setTab("published")} />
-          <Chip label={t.mine.applied} selected={tab === "applied"} onPress={() => setTab("applied")} />
-          <Chip label={t.mine.contributions} selected={tab === "contributions"} onPress={() => setTab("contributions")} />
+          <Chip icon="briefcase" label={t.mine.published} selected={tab === "published"} onPress={() => setTab("published")} />
+          <Chip icon="send" label={t.mine.applied} selected={tab === "applied"} onPress={() => setTab("applied")} />
+          <Chip icon="users" label={t.mine.contributions} selected={tab === "contributions"} onPress={() => setTab("contributions")} />
         </Row>
         <SearchField value={query} onChange={(value) => setQueries((current) => ({ ...current, [tab]: value }))} placeholder={t.mine.search} />
         {toConfirm.map((item) => (

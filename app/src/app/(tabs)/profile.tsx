@@ -89,12 +89,12 @@ export default function Profile() {
       <View style={styles.box}>
         <Text style={text.label}>{t.me.wallet}</Text>
         <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>
-        <Button label={copied ? t.me.copied : t.me.copyAddress} variant="ghost" onPress={copy} />
+        <Button label={copied ? t.me.copied : t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
       </View>
-      {selfie === "rejected" || selfie === "none" ? <Button label={t.me.retakeSelfie} variant="secondary" onPress={() => router.push("/selfie")} /> : null}
-      <Button label={unread > 0 ? `${t.notifications.title} (${unread})` : t.notifications.title} variant="secondary" onPress={() => router.push("/notifications")} />
-      <Button label={t.jury.title} variant="secondary" onPress={() => router.push("/jury")} />
-      <Button label={t.me.edit} variant="secondary" onPress={() => router.push("/profile-setup")} />
+      {selfie === "rejected" || selfie === "none" ? <Button label={t.me.retakeSelfie} variant="secondary" icon="camera" onPress={() => router.push("/selfie")} /> : null}
+      <Button label={unread > 0 ? `${t.notifications.title} (${unread})` : t.notifications.title} variant="secondary" icon="bell" onPress={() => router.push("/notifications")} />
+      <Button label={t.jury.title} variant="secondary" icon="scale" onPress={() => router.push("/jury")} />
+      <Button label={t.me.edit} variant="secondary" icon="edit" onPress={() => router.push("/profile-setup")} />
       <Button label={t.me.logout} variant="danger" icon="logout" onPress={leave} />
     </Screen>
   );

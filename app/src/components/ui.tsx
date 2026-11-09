@@ -80,9 +80,10 @@ export function Button({
   );
 }
 
-export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+export function Chip({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: IconName }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
+      {icon ? <Icon name={icon} size={16} color={selected ? colors.white : colors.brick} /> : null}
       <Text style={[text.label, styles.chipLabel, selected && styles.chipOnLabel]}>{label}</Text>
     </Pressable>
   );
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 132, paddingTop: spacing.md, textAlignVertical: "top" },
   inputError: { borderColor: colors.error },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.brick, borderColor: colors.brick },
   chipLabel: { includeFontPadding: false },
   chipOnLabel: { color: colors.white },

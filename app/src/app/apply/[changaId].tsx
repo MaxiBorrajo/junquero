@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Text, View } from "react-native";
+import { Alert, Platform, Text, ToastAndroid, View } from "react-native";
 import { useChangaBySpec } from "../../data/useChangas";
 import { formatUsdc, toMicro } from "../../lib/money";
 import { milestoneTotal } from "../../chain/terms";
@@ -43,6 +43,8 @@ export default function Apply() {
       const planBody = change && original.length > 0 ? { plan: { milestones: editable.map((item) => ({ name: item.name.trim(), amount: toMicro(item.amount.trim()).toString(), criteria: item.criteria.trim(), evidence: item.evidence.trim() })), advance: changa.data?.spec.advance === true } } : {};
       await api.send("PUT", `/me/applications/${changaId}`, { message: message.trim(), ...(offer.value ? { amount: offer.value } : {}), ...planBody });
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      if (Platform.OS === "android") ToastAndroid.show(t.apply.sent, ToastAndroid.LONG);
+      else Alert.alert(t.apply.sent);
       router.replace("/my-changas");
     } catch (failure) {
       setError(failure instanceof ApiError && failure.status === 409 ? t.apply.conflict : t.common.genericError);

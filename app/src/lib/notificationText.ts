@@ -1,6 +1,6 @@
 const TEXTS: Record<string, { title: string; body: string }> = {
-  application_new: { title: "Nueva postulación", body: "Alguien se postuló a tu changa." },
-  agreement_proposed: { title: "Te eligieron", body: "Te eligieron para una changa. Confirmá el acuerdo." },
+  application_new: { title: "Nueva postulación", body: "Un junquero se postuló a tu trabajo." },
+  agreement_proposed: { title: "Te eligieron", body: "Te eligieron para un trabajo. Confirmá el acuerdo." },
   agreed: { title: "Changa acordada", body: "Quedó acordada. Abrí la changa para ver los detalles." },
   chat: { title: "Mensaje nuevo", body: "Tenés un mensaje nuevo." },
   delivered: { title: "Entrega registrada", body: "Revisá el trabajo: si no respondés a tiempo, se aprueba solo." },

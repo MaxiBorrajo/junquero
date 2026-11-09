@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 
 SCALE = 8
 H = 44
-SIZES = {"s": 96, "m": 120, "l": 140}
+SIZES = {str(length): 48 + 8 * length for length in range(5, 13)}
 BRICK = (143, 47, 34, 255)
 INK = (35, 24, 21, 255)
 WHITE = (255, 255, 255, 255)

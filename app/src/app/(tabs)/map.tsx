@@ -18,7 +18,7 @@ import { useChangasInBounds, useRemoteChangas } from "../../data/useChangas";
 import { activeFilterCount } from "../../lib/filters";
 import { t } from "../../i18n";
 import { PIN_IMAGES } from "../../lib/pinImages";
-import { roundBounds, toFeatures, type Bounds } from "../../lib/changaMap";
+import { PIN_MAX_LENGTH, PIN_MIN_LENGTH, roundBounds, toFeatures, type Bounds } from "../../lib/changaMap";
 import { distanceM } from "../../lib/geo";
 import { matchesQuery } from "../../lib/search";
 import { usePullGesture } from "../../lib/usePullGesture";
@@ -27,6 +27,16 @@ import { useSession } from "../../session/SessionProvider";
 import { colors, fonts, radius, spacing, text } from "../../theme";
 
 type Mode = "map" | "list";
+
+const TEXT_OFFSET = [
+  "match",
+  ["get", "size"],
+  ...Array.from({ length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 }, (_, index) => {
+    const length = PIN_MIN_LENGTH + index;
+    return [String(length), ["literal", [((12 - 4 * length) * 0.85) / 12, 0]]];
+  }).flat(),
+  ["literal", [0, 0]],
+] as never;
 
 
 export default function MapScreen() {
@@ -118,7 +128,7 @@ export default function MapScreen() {
                 "text-size": 12,
                 "text-font": ["Noto Sans Bold"],
                 "text-anchor": "left",
-                "text-offset": ["match", ["get", "size"], "s", ["literal", [-0.85, 0]], "m", ["literal", [-1.7, 0]], ["literal", [-2.4, 0]]],
+                "text-offset": TEXT_OFFSET,
                 "text-allow-overlap": true,
                 "symbol-sort-key": ["case", ["==", ["get", "id"], selected ?? -1], 1, 0],
               }}

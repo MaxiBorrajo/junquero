@@ -30,9 +30,10 @@ export function roundBounds(bounds: Bounds, stepMilli = 20): Bounds {
   return { south: down(bounds.south), north: up(bounds.north), west: down(bounds.west), east: up(bounds.east) };
 }
 
-export type PinSize = "s" | "m" | "l";
+export const PIN_MIN_LENGTH = 5;
+export const PIN_MAX_LENGTH = 12;
 
-export const pinSize = (label: string): PinSize => (label.length <= 6 ? "s" : label.length <= 9 ? "m" : "l");
+export const pinSize = (label: string): string => String(Math.min(PIN_MAX_LENGTH, Math.max(PIN_MIN_LENGTH, label.length)));
 
 export function toFeatures(changas: Changa[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
   const features: GeoJSON.Feature<GeoJSON.Point>[] = [];

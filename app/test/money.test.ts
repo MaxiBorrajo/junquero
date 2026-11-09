@@ -96,3 +96,16 @@ describe("postularse", () => {
     expect(applyBlock(changa(), ready)).toBeNull();
   });
 });
+
+import { pinSize } from "../src/lib/changaMap";
+
+describe("ancho del pin", () => {
+  it("usa el largo del precio y lo acota", () => {
+    expect(pinSize("US$ 5")).toBe("5");
+    expect(pinSize("US$ 20")).toBe("6");
+    expect(pinSize("US$ 100")).toBe("7");
+    expect(pinSize("US$ 1.250,5")).toBe("11");
+    expect(pinSize("US$ 99.999.999,5")).toBe("12");
+    expect(pinSize("1")).toBe("5");
+  });
+});

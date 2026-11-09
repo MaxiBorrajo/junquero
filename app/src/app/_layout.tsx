@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { WagmiProvider } from "wagmi";
 import { colors } from "../theme";
+import { PushHandler } from "../push/PushHandler";
 import { ChatKeyProvider } from "../chat/ChatKeyProvider";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { appKit, wagmiAdapter } from "../wallet/appkit";
@@ -41,6 +42,7 @@ export default function RootLayout() {
           <SessionProvider>
             <ChatKeyProvider>
               <Shell />
+              <PushHandler />
             </ChatKeyProvider>
             <View style={{ position: "absolute", height: "100%", width: "100%" }} pointerEvents="box-none">
               <AppKit />

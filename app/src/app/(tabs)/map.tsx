@@ -8,7 +8,9 @@ import type { Changa } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
 import { Button, ErrorText, Secondary } from "../../components/ui";
 import { DEFAULT_CENTER, MAP_STYLE_URL } from "../../config";
+import { useFilters } from "../../data/filterStore";
 import { useChangasInBounds, useRemoteChangas } from "../../data/useChangas";
+import { activeFilterCount } from "../../lib/filters";
 import { t } from "../../i18n";
 import { roundBounds, toFeatures, type Bounds } from "../../lib/changaMap";
 import { distanceM } from "../../lib/geo";
@@ -27,8 +29,9 @@ export default function MapScreen() {
   const camera = useRef<CameraRef>(null);
   const source = useRef<GeoJSONSourceRef>(null);
 
-  const nearby = useChangasInBounds(bounds);
-  const remote = useRemoteChangas();
+  const filters = useFilters();
+  const nearby = useChangasInBounds(bounds, filters);
+  const remote = useRemoteChangas(filters);
   const changas = nearby.data ?? [];
   const features = useMemo(() => toFeatures(changas), [changas]);
   const selectedChanga = selected === null ? null : (changas.find((item) => item.id === selected) ?? null);
@@ -83,6 +86,7 @@ export default function MapScreen() {
       <SafeAreaView style={styles.top} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
           <Pill label={mode === "map" ? t.map.list : t.map.mapView} onPress={() => setMode(mode === "map" ? "list" : "map")} />
+          <Pill label={activeFilterCount(filters) > 0 ? `${t.filters.open} · ${activeFilterCount(filters)}` : t.filters.open} onPress={() => router.push("/filters")} />
           {remote.data && remote.data.length > 0 ? <Pill label={`${t.map.remoteChip} · ${remote.data.length}`} onPress={() => router.push("/remote")} /> : null}
         </View>
         {nearby.isError ? <ErrorText>{t.map.loadError}</ErrorText> : null}

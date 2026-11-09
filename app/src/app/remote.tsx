@@ -3,12 +3,13 @@ import { FlatList, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChangaCard } from "../components/ChangaCard";
 import { Secondary } from "../components/ui";
+import { useFilters } from "../data/filterStore";
 import { useRemoteChangas } from "../data/useChangas";
 import { t } from "../i18n";
 import { colors, spacing } from "../theme";
 
 export default function RemoteList() {
-  const { data } = useRemoteChangas();
+  const { data } = useRemoteChangas(useFilters());
   return (
     <SafeAreaView style={styles.screen}>
       <FlatList

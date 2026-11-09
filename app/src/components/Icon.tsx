@@ -32,6 +32,8 @@ export const icons = {
   list: [path("M3 6h.01"), path("M3 12h.01"), path("M3 18h.01"), path("M8 6h13"), path("M8 12h13"), path("M8 18h13")],
   filter: [path("M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z")],
   globe: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"), path("M2 12h20")],
+  logout: [path("M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"), path("m16 17 5-5-5-5"), path("M21 12H9")],
+  junco: [path("M12 21V8"), path("M12 3c1.2 0 1.8 1.2 1.8 2.8S13.2 8.6 12 8.6 10.2 7.4 10.2 5.8 10.8 3 12 3z"), path("M7 21c0-4 .4-7 2-10"), path("M17 21c0-4-.4-7-2-10"), path("M4 21h16")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 6v6l4 2")],
 } as const satisfies Record<string, readonly Shape[]>;
 

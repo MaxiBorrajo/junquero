@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { t } from "../i18n";
 import { colors, radius, spacing, text } from "../theme";
 import type { PullRefresh } from "../lib/useManualRefresh";
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
 import { usePullGesture } from "../lib/usePullGesture";
 import { PullSpinner } from "./PullSpinner";
 
@@ -39,7 +39,7 @@ export function Screen({ children, scroll = true, footer, back = true, refresh }
   );
 }
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 export function Button({
   label,
@@ -47,12 +47,14 @@ export function Button({
   variant = "primary",
   loading = false,
   disabled = false,
+  icon,
 }: {
   label: string;
   onPress: () => void;
   variant?: Variant;
   loading?: boolean;
   disabled?: boolean;
+  icon?: IconName;
 }) {
   const inactive = disabled || loading;
   return (
@@ -69,7 +71,10 @@ export function Button({
           {label ? <Text style={[styles.buttonLabel, labelStyles[variant]]}>{label}</Text> : null}
         </View>
       ) : (
-        <Text style={[styles.buttonLabel, labelStyles[variant]]}>{label}</Text>
+        <View style={styles.busy}>
+          {icon ? <Icon name={icon} size={20} color={labelStyles[variant].color} /> : null}
+          <Text style={[styles.buttonLabel, labelStyles[variant]]}>{label}</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -124,12 +129,14 @@ const buttonStyles = StyleSheet.create({
   primary: { backgroundColor: colors.brick },
   secondary: { backgroundColor: colors.sand },
   ghost: { backgroundColor: "transparent" },
+  danger: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.error },
 });
 
 const labelStyles = StyleSheet.create({
   primary: { color: colors.white },
   secondary: { color: colors.ink },
   ghost: { color: colors.brick },
+  danger: { color: colors.error },
 });
 
 const styles = StyleSheet.create({

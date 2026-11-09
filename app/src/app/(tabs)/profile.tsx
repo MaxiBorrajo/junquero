@@ -62,7 +62,7 @@ export default function Profile() {
   const selfie = profile?.selfieStatus ?? "none";
 
   return (
-    <Screen refresh={refresh} footer={<Button label={t.me.logout} variant="ghost" onPress={leave} />}>
+    <Screen refresh={refresh}>
       <View style={styles.header}>
         {profile?.photo ? <Image source={{ uri: `${API_URL}${profile.photo.url}` }} style={styles.photo} /> : <View style={[styles.photo, styles.empty]} />}
         <View style={{ flex: 1 }}>
@@ -95,6 +95,7 @@ export default function Profile() {
       <Button label={unread > 0 ? `${t.notifications.title} (${unread})` : t.notifications.title} variant="secondary" onPress={() => router.push("/notifications")} />
       <Button label={t.jury.title} variant="secondary" onPress={() => router.push("/jury")} />
       <Button label={t.me.edit} variant="secondary" onPress={() => router.push("/profile-setup")} />
+      <Button label={t.me.logout} variant="danger" icon="logout" onPress={leave} />
     </Screen>
   );
 }

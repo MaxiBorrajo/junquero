@@ -184,7 +184,7 @@ export default function MapScreen() {
       ) : null}
 
       <View style={styles.publish}>
-        <Button label={t.tabs.publish} onPress={() => router.push("/publish")} />
+        <Button label={t.tabs.publish} icon="plus" onPress={() => router.push("/publish")} />
       </View>
     </View>
   );
@@ -195,7 +195,7 @@ const dist = (changa: Changa, from: { lat: number; lng: number }): number => (ch
 function Pill({ label, icon, onPress }: { label: string; icon: IconName; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.pill}>
-      <Icon name={icon} size={16} color={colors.ink} />
+      <Icon name={icon} size={15} color={colors.ink} />
       <Text style={styles.pillLabel}>{label}</Text>
     </Pressable>
   );
@@ -208,11 +208,11 @@ const styles = StyleSheet.create({
   listContent: { padding: spacing.md, paddingTop: 140, paddingBottom: 96, gap: spacing.sm },
   top: { position: "absolute", top: 0, left: 0, right: 0, paddingHorizontal: spacing.md, gap: spacing.sm },
   topRow: { flexDirection: "row", gap: spacing.sm },
-  pill: { flexDirection: "row", alignItems: "center", gap: 6, height: 40, backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.line },
-  pillLabel: { ...text.label, includeFontPadding: false, textAlignVertical: "center" },
+  pill: { flexDirection: "row", alignItems: "center", gap: 5, height: 34, backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: 11, borderWidth: 1, borderColor: colors.line },
+  pillLabel: { ...text.label, fontSize: 13, includeFontPadding: false, textAlignVertical: "center" },
   empty: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
   preview: { position: "absolute", left: spacing.md, right: spacing.md, bottom: 88 },
-  bell: { marginLeft: "auto", width: 42, height: 42, borderRadius: 21, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
+  bell: { marginLeft: "auto", width: 34, height: 34, borderRadius: 17, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },
   bellBadge: { position: "absolute", top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.brick, borderWidth: 1.5, borderColor: colors.white, alignItems: "center", justifyContent: "center" },
   bellBadgeText: { color: colors.white, fontSize: 10, lineHeight: 12, fontFamily: fonts.bold, includeFontPadding: false },
   locate: { position: "absolute", right: spacing.md, bottom: 88, width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center" },

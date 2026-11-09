@@ -1,0 +1,66 @@
+:root {
+  --brick: #8f2f22;
+  --sand: #e7c98b;
+  --bg: #f4eee6;
+  --map: #e8dfd3;
+  --ink: #231815;
+  --error: #a3174e;
+  --success: #1f7a45;
+  --muted: #6b5c57;
+  --line: #d9cdbe;
+  --white: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: "Outfit", system-ui, sans-serif; background: var(--bg); color: var(--ink); font-size: 15px; }
+
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100%; }
+.sidebar { background: var(--brick); color: var(--white); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
+.sidebar h1 { font-size: 20px; font-weight: 800; margin: 0 8px 16px; }
+.sidebar button { background: transparent; border: 0; color: var(--white); text-align: left; padding: 10px 12px; border-radius: 8px; font: inherit; font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.sidebar button[aria-current="page"] { background: rgba(255, 255, 255, 0.16); font-weight: 700; }
+.sidebar button:hover { background: rgba(255, 255, 255, 0.1); }
+.sidebar .spacer { flex: 1; }
+.sidebar .who { font-size: 12px; opacity: 0.8; margin: 0 8px 8px; word-break: break-all; }
+.badge { background: var(--sand); color: var(--ink); border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700; }
+
+main { padding: 28px 32px; max-width: 1200px; }
+h2 { font-size: 24px; font-weight: 800; margin: 0 0 20px; }
+.muted { color: var(--muted); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.card .label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.card .value { font-size: 28px; font-weight: 800; margin-top: 4px; }
+
+table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); background: #faf6f0; }
+tr:last-child td { border-bottom: 0; }
+
+button.btn { font: inherit; font-weight: 600; border-radius: 8px; border: 0; padding: 9px 16px; cursor: pointer; background: var(--brick); color: var(--white); }
+button.btn.secondary { background: var(--sand); color: var(--ink); }
+button.btn.ghost { background: transparent; color: var(--brick); border: 1px solid var(--line); }
+button.btn.danger { background: var(--error); }
+button.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+input, textarea, select { font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); }
+textarea { width: 100%; min-height: 70px; resize: vertical; }
+.toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+
+.error { background: var(--white); border: 1px solid var(--error); color: var(--error); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; gap: 10px; align-items: center; }
+.error::before { content: "!"; background: var(--error); color: var(--white); width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
+.ok { color: var(--success); font-weight: 600; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--map); }
+.pill.hidden { background: var(--error); color: var(--white); }
+
+.login-wrap { min-height: 100%; display: grid; place-items: center; padding: 16px; }
+.login { width: 100%; max-width: 420px; background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 16px; }
+.login h1 { margin: 0; color: var(--brick); font-weight: 800; }
+
+.review { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 24px; align-items: start; }
+.review img { width: 100%; border-radius: 12px; background: var(--map); aspect-ratio: 3 / 4; object-fit: cover; }
+.review .panel { display: flex; flex-direction: column; gap: 12px; }
+.queue { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+.queue button { text-align: left; }

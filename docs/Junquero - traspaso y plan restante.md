@@ -97,6 +97,14 @@ Orden propuesto, sin decidir (Maxi decide). Los puntos 1 a 3 están hechos, ver 
 7. **Panel de administración web**: lectura del indexador, novedades, tesoro, relayer, verificación de selfies, moderación, explorador de changas y métricas.
 8. **Interfaz de gobernanza** (votar y ver propuestas) y, si hay tiempo, panel del tesoro.
 
+**Estado al 9 de noviembre de 2026 (puntos 4, 6 y 7):**
+
+- App (`app/`, Expo SDK 58): hecho y probado solo con pruebas, tipado y empaquetado, sin dispositivo: registro con MetaMask (Reown), perfil y selfie, mapa con pines agrupados y filtros, lista y chip a distancia, detalle, publicar en cinco pasos (permiso firmado y `createOrder` por el relayer), postulación, elegir y acuerdo con dos firmas (el servidor guarda la firma del publicador y manda `agree` al recibir la del prestador), chat cifrado (`tweetnacl`, compatible con libsodium), changa en curso con evidencia cifrada, entrega y cobro con QR, perfil con saldo y notificaciones push.
+- App, falta: reclamo y jurado (abrir, responder, sorteo, voto en dos fases, veredicto), changa grupal, hitos y término anticipado, aprobar a distancia (requiere guardar la firma de liberación en el servidor), vista previa descifrada de mensajes, reseñas y perfil público, reportar contenido, Project ID de Expo para las push.
+- Panel (`admin/`, Vite y React): ingreso con MetaMask, resumen y salud, cola de selfies con rechazo con motivo, changas con baja y restauración con motivo, usuarios y registro de acciones. Se sirve desde el mismo Worker (assets), sin CORS. Falta: reportes de contenido, reclamos y jurados, fondo y parámetros, métricas con exportación, suspender usuarios.
+- Servidor: tablas `agreements`, `admin_log` y columna `hidden` en la migración 0013 y 0014. **Hay que aplicar las migraciones y desplegar** (`npx wrangler d1 migrations apply junquero --remote` y `npm run deploy`, que también compila el panel).
+- Build de la app: no hay cuenta de Expo en uso. Se compiló un APK de desarrollo con el Android SDK local (`gradlew assembleDebug`, con `-XX:TieredStopAtLevel=1` en `gradle.properties` por un fallo de OpenJDK 21) y se compartió por un túnel de `cloudflared`.
+
 Alcance del TP: 37 de 40 funciones; quedan fuera historial y nivel 1, nivel 2 con documento y capas contra changas falsas. Escenarios de demo: A individual, B efectivo, C disputa con jurado, D cancelación escalonada, E grupal, F votar un parámetro, H panel e I chat y notificaciones. El G no entra. Tope de costo de infraestructura: 20 USD por mes.
 
 ### 4.3 Documentos a actualizar cuando se llegue a la app

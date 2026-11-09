@@ -3,6 +3,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "preview_urls": false,
+  "assets": { "directory": "../admin/dist" },
   "triggers": { "crons": ["* * * * *"] },
   "d1_databases": [
     {

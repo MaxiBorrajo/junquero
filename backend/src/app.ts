@@ -12,6 +12,16 @@ import {
 import { issueToken, parseLogin, verifyLogin, verifyToken } from "./auth";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
 import { startBlock } from "./contracts";
+import {
+  fileHeaders,
+  deleteFile,
+  linkFiles,
+  parseUpload,
+  readFile,
+  requireOwnedPublicFiles,
+  storeFile,
+} from "./files";
+import { listPendingSelfies, markSelfiePending, pendingSelfieHash, reviewSelfie } from "./selfie";
 import type { Env } from "./env";
 import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
@@ -67,6 +77,14 @@ const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 });
 
+const requireAdmin = createMiddleware<AppEnv>(async (c, next) => {
+  const admins = (c.env.ADMIN_ADDRESSES ?? "").toLowerCase().split(",").map((item) => item.trim());
+  if (!admins.includes(c.get("address"))) return c.json({ error: "forbidden" }, 403);
+  await next();
+});
+
+const stripPrefix = (hash: string) => (hash.startsWith("0x") ? hash.slice(2) : hash);
+
 async function cachedRead(url: string, produce: () => Promise<unknown>): Promise<unknown> {
   const now = Date.now();
   const hit = readCache.get(url, now);
@@ -101,9 +119,11 @@ app.use("/orders/*", readGuard);
 app.use("/changas", readGuard);
 app.use("/changas/*", readGuard);
 app.use("/profiles/*", readGuard);
+app.use("/files/*", limitBy((env) => env.FILE_LIMITER));
 app.use("/auth/*", limitBy((env) => env.AUTH_LIMITER));
 app.use("/me", requireAuth);
 app.use("/me/*", requireAuth);
+app.use("/admin/*", requireAuth, requireAdmin);
 
 app.get("/health", async (c) => c.json({ ok: true, lastIndexedBlock: await readCursor(c.env.DB, startBlock) }));
 
@@ -138,6 +158,13 @@ app.put("/me/profile", async (c) => {
   if (body === undefined) return c.json({ error: "invalid json" }, 400);
   const result = validateProfile(body);
   if (!result.ok) return c.json({ error: result.error }, 400);
+  if (result.profile.photo) {
+    const image = await c.env.DB.prepare("SELECT mime FROM files WHERE owner = ? AND hash = ? AND kind = 'public'")
+      .bind(c.get("address"), result.profile.photo)
+      .first<{ mime: string }>();
+    if (!image?.mime.startsWith("image/")) return c.json({ error: "photo must be an uploaded image" }, 400);
+    await linkFiles(c.env.DB, c.get("address"), [result.profile.photo]);
+  }
   await upsertProfile(c.env.DB, c.get("address"), result.profile, nowSeconds());
   const row = await getProfile(c.env.DB, c.get("address"));
   return c.json({ profile: presentOwnProfile(row!) });
@@ -157,14 +184,82 @@ app.post("/me/changas", async (c) => {
   const now = nowSeconds();
   const result = validateSpec(body, now);
   if (!result.ok) return c.json({ error: result.error }, 400);
+  const attachments = result.spec.attachments.map((item) => ({ ...item, hash: stripPrefix(item.hash) }));
+  const missing = await requireOwnedPublicFiles(c.env.DB, c.get("address"), attachments);
+  if (missing) return c.json({ error: missing }, 400);
   const saved = await saveDraft(c.env.DB, c.get("address"), result.spec, result.canonical, result.hash, now);
   if (!saved.ok) return c.json({ error: saved.error }, 429);
+  await linkFiles(c.env.DB, c.get("address"), attachments.map((item) => item.hash));
   return c.json({ specHash: result.hash, canonical: result.canonical }, saved.created ? 201 : 200);
 });
 
 app.get("/me/changas", async (c) => {
   const rows = await listByOwner(c.env.DB, c.get("address"), OWN_CHANGAS_LIMIT);
   return c.json({ changas: rows.map(presentChanga) });
+});
+
+app.put("/me/files", async (c) => {
+  const upload = parseUpload(c.req.raw.headers, "public");
+  if (!upload.ok) return c.json({ error: upload.error }, upload.status);
+  const owner = c.get("address");
+  const outcome = await storeFile(c.env.DB, c.env.FILES, owner, "public", upload.value, c.req.raw.body, nowSeconds());
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  return c.json({ hash: upload.value.hash, url: `/files/${owner}/${upload.value.hash}` }, outcome.created ? 201 : 200);
+});
+
+app.put("/me/selfie", async (c) => {
+  const upload = parseUpload(c.req.raw.headers, "selfie");
+  if (!upload.ok) return c.json({ error: upload.error }, upload.status);
+  const owner = c.get("address");
+  const profile = await getProfile(c.env.DB, owner);
+  if (!profile) return c.json({ error: "create your profile first" }, 409);
+  if (profile.selfie_status === "approved") return c.json({ error: "selfie already verified" }, 409);
+
+  const previous = await pendingSelfieHash(c.env.DB, owner);
+  const now = nowSeconds();
+  const outcome = await storeFile(c.env.DB, c.env.FILES, owner, "selfie", upload.value, c.req.raw.body, now, true);
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  if (previous && previous.hash !== upload.value.hash) await deleteFile(c.env.DB, c.env.FILES, owner, previous.hash);
+  await markSelfiePending(c.env.DB, owner, now);
+  return c.json({ selfieStatus: "pending" }, 202);
+});
+
+app.get("/me/selfie", async (c) => {
+  const owner = c.get("address");
+  const stored = await pendingSelfieHash(c.env.DB, owner);
+  const file = stored ? await readFile(c.env.DB, c.env.FILES, owner, stored.hash, "selfie") : null;
+  if (!file) return c.json({ error: "not found" }, 404);
+  return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, false) });
+});
+
+app.get("/admin/selfies", async (c) => c.json({ selfies: await listPendingSelfies(c.env.DB, 50) }));
+
+app.get("/admin/selfies/:address", async (c) => {
+  const address = c.req.param("address").toLowerCase();
+  const stored = ADDRESS.test(address) ? await pendingSelfieHash(c.env.DB, address) : null;
+  const file = stored ? await readFile(c.env.DB, c.env.FILES, address, stored.hash, "selfie") : null;
+  if (!file) return c.json({ error: "not found" }, 404);
+  return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, false) });
+});
+
+app.post("/admin/selfies/:address", async (c) => {
+  const address = c.req.param("address").toLowerCase();
+  const body = (await readJson(c)) as { approved?: unknown } | undefined;
+  if (!ADDRESS.test(address) || typeof body?.approved !== "boolean") return c.json({ error: "approved must be true or false" }, 400);
+  const reviewed = await reviewSelfie(c.env.DB, address, body.approved, nowSeconds());
+  if (!reviewed) return c.json({ error: "no pending selfie" }, 404);
+  const stored = await pendingSelfieHash(c.env.DB, address);
+  if (stored) await deleteFile(c.env.DB, c.env.FILES, address, stored.hash);
+  return c.json({ selfieStatus: body.approved ? "approved" : "rejected" });
+});
+
+app.get("/files/:owner/:hash", async (c) => {
+  const owner = c.req.param("owner").toLowerCase();
+  const hash = c.req.param("hash").toLowerCase();
+  if (!ADDRESS.test(owner) || !/^[0-9a-f]{64}$/.test(hash)) return c.json({ error: "invalid file" }, 400);
+  const file = await readFile(c.env.DB, c.env.FILES, owner, hash, "public");
+  if (!file) return c.json({ error: "not found" }, 404);
+  return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, true) });
 });
 
 const parseChangaId = (value: string): number | null => {
@@ -179,6 +274,9 @@ app.put("/me/applications/:changaId", async (c) => {
   if (body === undefined) return c.json({ error: "invalid json" }, 400);
   const parsed = validateApplication(body);
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const attached = parsed.value.attachments.map((item) => ({ ...item, hash: stripPrefix(item.hash) }));
+  const missing = await requireOwnedPublicFiles(c.env.DB, c.get("address"), attached);
+  if (missing) return c.json({ error: missing }, 400);
   const outcome = await submitApplication(
     c.env.DB,
     changaId,
@@ -188,6 +286,7 @@ app.put("/me/applications/:changaId", async (c) => {
     c.env.REQUIRE_VERIFIED_APPLICANT === "true",
   );
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  await linkFiles(c.env.DB, c.get("address"), attached.map((item) => item.hash));
   return c.json({ application: presentApplication(outcome.row) }, outcome.created ? 201 : 200);
 });
 

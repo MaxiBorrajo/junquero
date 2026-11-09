@@ -24,7 +24,25 @@ Devuelve `{ token, expiresAt, address }`. El token dura 7 días y va en `Authori
 - `GET /me` devuelve la dirección y el perfil propio (con zona de trabajo y estado de la selfie).
 - `GET /profiles/:address` es público: nombre, categorías, zona general (2 decimales), `verified` y fecha de alta. No expone la zona exacta ni el estado de la selfie.
 
-La imagen de la selfie y la foto de perfil esperan a R2. `selfie_status` queda en `none`.
+`PUT /me/profile` reemplaza todo el perfil e incluye `photo` opcional (el sha256 de una imagen ya subida con `/me/files`). Sin `photo` se quita la foto.
+
+## Archivos
+
+Se guardan en R2 (bucket `junquero`, binding `FILES`), con clave `files/<dirección>/<sha256>`. El hash de un archivo es su **SHA-256**, que la app calcula antes de subir; R2 lo verifica al recibirlo sin gastar CPU del Worker.
+
+- `PUT /me/files`: cuerpo con los bytes del archivo y encabezados `Content-Type`, `Content-Length` y `X-Content-SHA256` (64 caracteres hexadecimales). Devuelve `{ hash, url }` (201 si es nuevo, 200 si ya estaba). Tipos admitidos: JPEG, PNG, WebP, MP4, MOV, PDF, Word, Excel, TXT y CSV, hasta 25 MB. Cuota por cuenta: 200 archivos y 200 MB.
+- `GET /files/:dirección/:hash`: público, con caché inmutable. Los documentos se descargan, no se abren en el navegador.
+- En una ficha de changa o en una postulación, cada adjunto `{ hash: "0x" + sha256, name, mime, size }` debe coincidir con un archivo subido por la misma cuenta; si no, 400.
+- Un archivo que nadie referencia (ficha, postulación o foto de perfil) se borra a las 24 horas.
+
+Estos archivos son públicos para quien conozca el hash. La evidencia de cierre y los adjuntos del chat, que son privados y van cifrados, se resuelven con el chat.
+
+## Selfie
+
+- `PUT /me/selfie` (JPEG o PNG, hasta 2 MB, mismos encabezados que `/me/files`): requiere perfil creado y deja `selfieStatus: "pending"`. Una nueva reemplaza a la pendiente. Con la selfie ya aprobada devuelve 409.
+- `GET /me/selfie` devuelve la propia mientras esté pendiente.
+- `GET /admin/selfies` lista las pendientes, `GET /admin/selfies/:dirección` muestra la imagen y `POST /admin/selfies/:dirección` con `{ approved: true | false }` resuelve. Solo las direcciones de `ADMIN_ADDRESSES` (hoy la cuenta administradora de los contratos).
+- Al resolver, la imagen se borra de R2 y queda solo el estado (`approved` o `rejected`). Una selfie rechazada se puede volver a enviar.
 
 ## Changas
 
@@ -81,4 +99,4 @@ Estados: `active`, `withdrawn`, `chosen` (el indexador ve `OrderAgreed` con ese 
 
 ## Límites por IP
 
-Relayer 10 por minuto, sesión 10, lecturas 120, escrituras 20 por cuenta. Cambian en `wrangler.jsonc`.
+Relayer 10 por minuto, sesión 10, lecturas 120, archivos 300, escrituras 20 por cuenta. Cambian en `wrangler.jsonc`.

@@ -2,7 +2,31 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { app } from "../src/app";
 import { buildLoginMessage } from "../src/auth";
 import type { Env } from "../src/env";
+import { createHash } from "node:crypto";
 import { createFakeD1 } from "./fakeD1";
+
+export class FakeBucket {
+  objects = new Map<string, { bytes: Uint8Array; contentType?: string }>();
+
+  async put(key: string, body: ReadableStream, options?: { sha256?: string; httpMetadata?: { contentType?: string } }) {
+    const bytes = new Uint8Array(await new Response(body).arrayBuffer());
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    if (options?.sha256 && options.sha256 !== digest) throw new Error("checksum mismatch");
+    this.objects.set(key, { bytes, contentType: options?.httpMetadata?.contentType });
+  }
+
+  async get(key: string) {
+    const stored = this.objects.get(key);
+    return stored ? { body: new Response(stored.bytes).body } : null;
+  }
+
+  async delete(keys: string | string[]) {
+    for (const key of Array.isArray(keys) ? keys : [keys]) this.objects.delete(key);
+  }
+}
+
+export const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+export const admin = privateKeyToAccount(generatePrivateKey());
 
 export const open = { limit: async () => ({ success: true }) };
 export const owner = privateKeyToAccount(generatePrivateKey());
@@ -13,6 +37,9 @@ export function setup(limiter = open) {
   const { db, raw } = createFakeD1();
   const env = {
     DB: db,
+    FILES: new FakeBucket(),
+    ADMIN_ADDRESSES: admin.address,
+    FILE_LIMITER: limiter,
     AUTH_SECRET: "test-secret",
     RELAY_LIMITER: limiter,
     READ_LIMITER: limiter,
@@ -20,7 +47,7 @@ export function setup(limiter = open) {
     WRITE_LIMITER: limiter,
   } as unknown as Env;
   const call = (path: string, init?: RequestInit) => app.request(path, init, env);
-  return { db, raw, env, call };
+  return { db, raw, env, call, bucket: env.FILES as unknown as FakeBucket };
 }
 
 export async function tokenFor(call: ReturnType<typeof setup>["call"], account = owner) {

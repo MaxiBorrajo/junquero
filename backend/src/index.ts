@@ -5,6 +5,7 @@ import { deployedTokenDecimals, indexedContracts, startBlock } from "./contracts
 import type { Env } from "./env";
 import { processEvents } from "./eventStream";
 import { runIndexerRounds, type ChainClient } from "./indexer";
+import { purgeOrphanFiles } from "./files";
 import { isPurgeMinute, purgeOldLogs } from "./maintenance";
 import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
@@ -44,7 +45,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const nowSeconds = Math.floor(event.scheduledTime / 1000);
     if (isPurgeMinute(event.scheduledTime)) {
-      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds)]));
+      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds)]));
     }
     const options = {
       contracts: indexedContracts,

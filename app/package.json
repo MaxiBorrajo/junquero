@@ -62,7 +62,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "private": true,
   "overrides": {

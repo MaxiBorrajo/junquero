@@ -62,7 +62,8 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
       );
       await queryClient.invalidateQueries({ queryKey: ["evidence", orderId] });
     } catch (failure) {
-      setError((failure as Error).message === "counterpart_without_key" ? t.order.evidenceNoKey : t.order.evidenceFailed);
+      const status = (failure as { status?: number }).status;
+      setError((failure as Error).message === "counterpart_without_key" ? t.order.evidenceNoKey : status === 403 || status === 409 ? t.order.evidenceSyncing : t.order.evidenceFailed);
     } finally {
       setBusy(false);
     }

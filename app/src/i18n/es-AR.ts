@@ -312,6 +312,7 @@ export const esAR = {
     evidenceCount: "pruebas subidas",
     evidenceUploading: "Subiendo y cifrando",
     evidenceFailed: "No pudimos subir la prueba. Probá de nuevo.",
+    evidenceSyncing: "Todavía estamos confirmando el acuerdo. Probá de nuevo en un minuto.",
     evidenceNoKey: "La otra persona todavía no activó el chat, así que no podemos compartirle la prueba.",
     evidenceNeedMore: "Subí al menos una prueba antes de terminar.",
     finish: "Terminé",

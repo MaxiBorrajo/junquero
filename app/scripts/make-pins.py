@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 
 SCALE = 8
 H = 44
-SIZES = {str(length): 48 + 8 * length for length in range(5, 13)}
+SIZES = {str(length): 50 + 8 * length for length in range(5, 13)}
 BRICK = (143, 47, 34, 255)
 INK = (35, 24, 21, 255)
 WHITE = (255, 255, 255, 255)
@@ -23,7 +23,7 @@ def pill(path, body, W):
     d.rounded_rectangle((0, 0, W * SCALE - 1, H * SCALE - 1), radius=H * SCALE // 2, fill=WHITE)
     b = 3 * SCALE
     d.rounded_rectangle((b, b, W * SCALE - 1 - b, H * SCALE - 1 - b), radius=H * SCALE // 2 - b, fill=body)
-    glyph(im, 12 * SCALE, 13 * SCALE, 18)
+    glyph(im, 9 * SCALE, 9 * SCALE, 26)
     im.resize((W, H), Image.LANCZOS).save(path)
 
 

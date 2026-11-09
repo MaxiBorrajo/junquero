@@ -33,7 +33,7 @@ const TEXT_OFFSET = [
   ["get", "size"],
   ...Array.from({ length: PIN_MAX_LENGTH - PIN_MIN_LENGTH + 1 }, (_, index) => {
     const length = PIN_MIN_LENGTH + index;
-    return [String(length), ["literal", [((12 - 4 * length) * 0.85) / 12, 0]]];
+    return [String(length), ["literal", [((13 - 4 * length) * 0.85) / 12, 0]]];
   }).flat(),
   ["literal", [0, 0]],
 ] as never;

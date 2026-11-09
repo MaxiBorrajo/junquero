@@ -91,3 +91,48 @@ describe("borrador", () => {
     expect([back.getDate(), back.getHours(), back.getMinutes()]).toEqual([10, 9, 30]);
   });
 });
+
+import { emptyMilestone, totalAmount, validateMilestones, groupDeadline } from "../src/publish/draft";
+
+describe("hitos y grupo en el borrador", () => {
+  const m = (patch: Partial<ReturnType<typeof emptyMilestone>> = {}) => ({ name: "Pintar", amount: "50", criteria: "Dos manos", evidence: "Foto", ...patch });
+  const withPlan = (items = [m(), m({ name: "Terminar", amount: "30" })], patch: Partial<Draft> = {}) => base({ useMilestones: true, milestones: items, amount: "", ...patch });
+
+  it("el total sale de la suma de los hitos", () => {
+    expect(totalAmount(withPlan())).toBe(80_000_000n);
+    expect(totalAmount(base({ amount: "25" }))).toBe(25_000_000n);
+    expect(totalAmount(withPlan([m(), m({ amount: "abc" })]))).toBeNull();
+  });
+
+  it("valida cantidad y datos de cada hito", () => {
+    expect(validateMilestones(withPlan())).toEqual({});
+    expect(validateMilestones(withPlan([m()])).milestones).toBeDefined();
+    const bad = validateMilestones(withPlan([m({ name: "" }), m({ criteria: "" })]));
+    expect(bad["m0.name"]).toBeDefined();
+    expect(bad["m1.criteria"]).toBeDefined();
+    expect(validateMilestones(withPlan([m({ amount: "0" }), m()]))["m0.amount"]).toBeDefined();
+    expect(validateMilestones(base({ amount: "25" }))).toEqual({});
+  });
+
+  it("validatePrice acepta un plan correcto sin monto suelto y exige el mínimo sobre la suma", () => {
+    expect(validatePrice(withPlan())).toEqual({});
+    expect(validatePrice(withPlan([m({ amount: "0,3" }), m({ amount: "0,3" })])).amount).toBe("amountMin");
+  });
+
+  it("la ficha lleva los hitos en unidades mínimas y el anticipo si se pidió", () => {
+    const spec = buildSpec(withPlan(undefined, { advance: true }), "nonce-12345", NOW);
+    expect(spec.milestones).toEqual([
+      { name: "Pintar", amount: "50000000", criteria: "Dos manos", evidence: "Foto" },
+      { name: "Terminar", amount: "30000000", criteria: "Dos manos", evidence: "Foto" },
+    ]);
+    expect(spec.advance).toBe(true);
+    expect(buildSpec(withPlan(), "nonce-12345", NOW).advance).toBeUndefined();
+    expect(buildSpec(base(), "nonce-12345", NOW).milestones).toBeUndefined();
+  });
+
+  it("la ficha grupal lleva la meta y el plazo de aportes", () => {
+    const spec = buildSpec(base({ kind: "group", fundingDays: 14, amount: "100" }), "nonce-12345", NOW);
+    expect(spec.group).toEqual({ target: "100000000", fundingDeadline: groupDeadline(14, NOW) });
+    expect(groupDeadline(1, 0)).toBe(86400);
+  });
+});

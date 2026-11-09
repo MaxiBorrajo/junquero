@@ -43,11 +43,16 @@ export default function ChangaDetail() {
   const { spec } = changa;
   const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null });
   const isOwner = block === "own";
-  const action =
+  const isGroup = Boolean(spec.group);
+  const groupButton =
+    isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") ? (
+      <Button label={changa.status === "funding" ? t.publish.goToGroup : t.group.title} variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
+    ) : null;
+  const action = changa.status === "funding" ? groupButton :
     isOwner && changa.status === "open" ? (
       <Button label={t.mine.viewApplications} onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
     ) : block === null ? (
-      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "" } })} />
+      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "", plan: spec.milestones ? "1" : "0" } })} />
     ) : block === "anonymous" || block === "no-profile" ? (
       <Button label={t.welcome.needHand} onPress={() => router.push("/welcome")} />
     ) : null;
@@ -78,6 +83,17 @@ export default function ChangaDetail() {
           <Body>{formatDuration(spec.durationMin)}</Body>
         </Section>
       ) : null}
+      {spec.milestones && spec.milestones.length > 0 ? (
+        <Section label={t.milestonesBoard.title}>
+          {spec.milestones.map((item, index) => (
+            <View key={index} style={{ gap: 2, marginBottom: 8 }}>
+              <Body>{`${index + 1}. ${item.name} · ${formatUsdc(item.amount)}`}</Body>
+              <Secondary>{item.criteria}</Secondary>
+              <Secondary>{item.evidence}</Secondary>
+            </View>
+          ))}
+        </Section>
+      ) : null}
       {spec.evidence.length > 0 ? (
         <Section label={t.detail.evidence}>
           {spec.evidence.map((item) => (
@@ -101,6 +117,7 @@ export default function ChangaDetail() {
             ))}
         </Section>
       ) : null}
+      {groupButton && changa.status === "open" ? groupButton : null}
       {block && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
     </Screen>
   );

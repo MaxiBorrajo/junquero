@@ -35,3 +35,25 @@ describe("acciones de la changa", () => {
     expect(autoReleaseAt(1000)).toBe(1000 + 86400);
   });
 });
+
+import { allPaid, boardAction, paidCount } from "../src/lib/board";
+
+describe("tablero de hitos", () => {
+  const board = (statuses: number[], next: number, firstIsAdvance = false) => ({ next, count: statuses.length, firstIsAdvance, milestones: statuses.map((status) => ({ status })) });
+  it("elige la acción según rol y estado del hito actual", () => {
+    expect(boardAction(board([0, 0], 0), "payee")).toBe("deliver");
+    expect(boardAction(board([0, 0], 0, true), "payee")).toBe("claim-advance");
+    expect(boardAction(board([2, 0], 1, true), "payee")).toBe("deliver");
+    expect(boardAction(board([1, 0], 0), "payee")).toBe("wait-review");
+    expect(boardAction(board([1, 0], 0), "payer")).toBe("review");
+    expect(boardAction(board([0, 0], 0), "payer")).toBe("wait-delivery");
+    expect(boardAction(board([2, 2], 2), "payer")).toBe("none");
+    expect(boardAction(board([0, 0], 0), "viewer")).toBe("none");
+  });
+  it("cuenta los hitos pagados", () => {
+    expect(paidCount([{ status: 2 }, { status: 0 }, { status: 2 }])).toBe(2);
+    expect(allPaid([{ status: 2 }, { status: 2 }])).toBe(true);
+    expect(allPaid([{ status: 2 }, { status: 1 }])).toBe(false);
+    expect(allPaid([])).toBe(false);
+  });
+});

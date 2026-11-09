@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { deployment } from "../../chain/deployment";
+import { encodeReleaseMilestone, parseMilestoneQr } from "../../chain/milestones";
 import { encodeRelease, parseReleaseQr, sendViaRelay } from "../../chain/orderActions";
 import { readForwarderNonce } from "../../chain/reader";
 import { Body, Button, ErrorText, Field, Screen, Title } from "../../components/ui";
@@ -26,7 +27,38 @@ export default function Scan() {
 
   const submit = async (raw: string) => {
     if (handled.current || !address) return;
-    const parsed = parseReleaseQr(raw, Math.floor(Date.now() / 1000));
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const milestone = raw.includes('"k":"m"') ? parseMilestoneQr(raw, nowSeconds) : null;
+    if (milestone && milestone !== "invalid" && milestone !== "expired") {
+      if (String(milestone.data.orderId) !== String(orderId) || milestone.payee.toLowerCase() !== address.toLowerCase()) {
+        setError(t.order.scanInvalid);
+        return;
+      }
+      handled.current = true;
+      setBusy(true);
+      setError(null);
+      try {
+        const account = address as `0x${string}`;
+        await sendViaRelay(
+          { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped },
+          encodeReleaseMilestone(milestone.data, milestone.signature),
+        );
+        await queryClient.invalidateQueries({ queryKey: ["milestones", Number(orderId)] });
+        await queryClient.invalidateQueries({ queryKey: ["order", Number(orderId)] });
+        setDone(true);
+      } catch (failure) {
+        handled.current = false;
+        setError(isRejection(failure) ? t.order.signCancelled : t.order.releaseFailed);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (milestone === "expired") {
+      setError(t.order.scanExpired);
+      return;
+    }
+    const parsed = parseReleaseQr(raw, nowSeconds);
     if (parsed === "invalid" || parsed === "expired") {
       setError(parsed === "expired" ? t.order.scanExpired : t.order.scanInvalid);
       return;

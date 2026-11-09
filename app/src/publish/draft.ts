@@ -1,4 +1,4 @@
-import type { Attachment, Spec } from "../api/types";
+import type { Attachment, Milestone, Spec } from "../api/types";
 import { approximateCenter, type LatLng } from "../lib/geo";
 import { toMicro } from "../lib/money";
 
@@ -13,6 +13,18 @@ export const EVIDENCE_LENGTH = 120;
 export const ATTACHMENTS_MAX = 10;
 
 export type Modality = "onsite" | "remote";
+export type Kind = "individual" | "group";
+
+export interface MilestoneDraft {
+  name: string;
+  amount: string;
+  criteria: string;
+  evidence: string;
+}
+
+export const MIN_MILESTONES = 2;
+export const MAX_MILESTONES = 20;
+export const FUNDING_DAYS = [3, 7, 14, 30];
 
 export interface Draft {
   title: string;
@@ -27,6 +39,11 @@ export interface Draft {
   attachments: Attachment[];
   evidence: string[];
   amount: string;
+  kind: Kind;
+  fundingDays: number;
+  useMilestones: boolean;
+  advance: boolean;
+  milestones: MilestoneDraft[];
 }
 
 export const emptyDraft = (): Draft => ({
@@ -42,6 +59,11 @@ export const emptyDraft = (): Draft => ({
   attachments: [],
   evidence: [],
   amount: "",
+  kind: "individual",
+  fundingDays: 7,
+  useMilestones: false,
+  advance: false,
+  milestones: [],
 });
 
 export type StepKey = "basics" | "when" | "files" | "price";
@@ -79,11 +101,39 @@ export function parseAmount(input: string): bigint | null {
   return toMicro(clean);
 }
 
+export const emptyMilestone = (): MilestoneDraft => ({ name: "", amount: "", criteria: "", evidence: "" });
+
+export function milestoneAmounts(draft: Draft): bigint[] | null {
+  const amounts = draft.milestones.map((item) => parseAmount(item.amount));
+  return amounts.some((value) => value === null || value <= 0n) ? null : (amounts as bigint[]);
+}
+
+export function totalAmount(draft: Draft): bigint | null {
+  if (!draft.useMilestones) return parseAmount(draft.amount);
+  const amounts = milestoneAmounts(draft);
+  return amounts ? amounts.reduce((sum, value) => sum + value, 0n) : null;
+}
+
+export function validateMilestones(draft: Draft): DraftErrors {
+  if (!draft.useMilestones) return {};
+  const errors: DraftErrors = {};
+  if (draft.milestones.length < MIN_MILESTONES || draft.milestones.length > MAX_MILESTONES) errors.milestones = "count";
+  draft.milestones.forEach((item, index) => {
+    const amount = parseAmount(item.amount);
+    if (item.name.trim().length < 2 || item.name.trim().length > 60) errors[`m${index}.name`] = "name";
+    if (amount === null || amount <= 0n) errors[`m${index}.amount`] = "amount";
+    if (item.criteria.trim().length < 3 || item.criteria.trim().length > 200) errors[`m${index}.criteria`] = "criteria";
+    if (item.evidence.trim().length < 3 || item.evidence.trim().length > 100) errors[`m${index}.evidence`] = "evidence";
+  });
+  return errors;
+}
+
 export function validatePrice(draft: Draft): DraftErrors {
   const errors: DraftErrors = {};
-  const amount = parseAmount(draft.amount);
+  const amount = draft.useMilestones ? totalAmount(draft) : parseAmount(draft.amount);
   if (amount === null) errors.amount = "amount";
   else if (amount < MIN_AMOUNT_MICRO) errors.amount = "amountMin";
+  Object.assign(errors, validateMilestones(draft));
   const evidence = draft.evidence.map((item) => item.trim()).filter(Boolean);
   if (evidence.length > EVIDENCE_MAX || evidence.some((item) => item.length > EVIDENCE_LENGTH)) errors.evidence = "evidence";
   return errors;
@@ -97,7 +147,7 @@ export function withApproximateZone(draft: Draft, point: LatLng, random: () => n
   return { ...draft, point, approx: approximateCenter(point, random) };
 }
 
-export function buildSpec(draft: Draft, nonce: string): Omit<Spec, "v"> & { v: 1 } {
+export function buildSpec(draft: Draft, nonce: string, nowSeconds: number = Math.floor(Date.now() / 1000)): Omit<Spec, "v"> & { v: 1 } {
   const spec: Omit<Spec, "v"> & { v: 1 } = {
     v: 1,
     title: draft.title.trim(),
@@ -112,8 +162,20 @@ export function buildSpec(draft: Draft, nonce: string): Omit<Spec, "v"> & { v: 1
   if (draft.modality === "onsite" && draft.startsAt !== null) spec.startsAt = draft.startsAt;
   if (draft.modality === "remote" && draft.deadline !== null) spec.deadline = draft.deadline;
   if (draft.durationMin !== null) spec.durationMin = draft.durationMin;
+  if (draft.useMilestones) {
+    spec.milestones = draft.milestones.map((item, index): Milestone => ({
+      name: item.name.trim(),
+      amount: (milestoneAmounts(draft) as bigint[])[index]!.toString(),
+      criteria: item.criteria.trim(),
+      evidence: item.evidence.trim(),
+    }));
+    if (draft.advance) spec.advance = true;
+  }
+  if (draft.kind === "group") spec.group = { target: (totalAmount(draft) ?? 0n).toString(), fundingDeadline: groupDeadline(draft.fundingDays, nowSeconds) };
   return spec;
 }
+
+export const groupDeadline = (days: number, nowSeconds: number): number => nowSeconds + days * 86400;
 
 export function dayOptions(now: Date, count: number): Date[] {
   const days: Date[] = [];

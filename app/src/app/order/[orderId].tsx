@@ -8,6 +8,8 @@ import { encodeCheckIn, encodeDeliver, encodeReleaseQr, releaseTypedData, sendVi
 import { readForwarderNonce } from "../../chain/reader";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
 import { Stars } from "../../components/Stars";
+import { MilestoneBoard } from "../../components/MilestoneBoard";
+import { useChangaBySpec } from "../../data/useChangas";
 import { useMyCases } from "../../data/useCases";
 import { useOrder } from "../../data/useOrder";
 import { EvidenceGallery, EvidenceUploader, useEvidence } from "../../evidence/EvidenceSection";
@@ -28,6 +30,7 @@ export default function OrderScreen() {
   const order = useOrder(id);
   const evidence = useEvidence(id);
   const myCases = useMyCases();
+  const changaForOrder = useChangaBySpec(order.data?.specHash ?? "0x");
   const myCase = (myCases.data?.asParty ?? []).find((item) => item.orderId === id);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -86,7 +89,7 @@ export default function OrderScreen() {
   return (
     <Screen
       footer={
-        view === "worker-working" ? (
+        state.hasMilestones ? null : view === "worker-working" ? (
           <Button label={t.order.finish} onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} />
         ) : view === "worker-waiting-review" ? (
           <Button label={t.order.scanQr} onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(id) } })} />
@@ -102,7 +105,11 @@ export default function OrderScreen() {
         <Text style={text.amount}>{formatUsdc(state.price.toString())}</Text>
       </View>
 
-      {view === "worker-working" ? (
+      {state.hasMilestones && view !== "settled" && view !== "cancelled" && view !== "disputed" ? (
+        <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} />
+      ) : null}
+
+      {!state.hasMilestones && view === "worker-working" ? (
         <>
           <Body>{t.order.statusAgreed}</Body>
           {state.modality === 0 && state.checkedInAt === 0 ? <Button label={t.order.arrived} variant="secondary" onPress={arrive} loading={busy} /> : null}
@@ -115,16 +122,16 @@ export default function OrderScreen() {
         </>
       ) : null}
 
-      {view === "worker-waiting-review" ? (
+      {!state.hasMilestones && view === "worker-waiting-review" ? (
         <>
           <Body>{t.order.statusDelivered}</Body>
           <Secondary>{t.order.autoRelease}</Secondary>
         </>
       ) : null}
 
-      {view === "payer-waiting-work" ? <Body>{t.order.statusAgreed}</Body> : null}
+      {!state.hasMilestones && view === "payer-waiting-work" ? <Body>{t.order.statusAgreed}</Body> : null}
 
-      {view === "payer-reviewing" ? (
+      {!state.hasMilestones && view === "payer-reviewing" ? (
         <>
           <Body>{t.order.reviewTitle}</Body>
           <EvidenceGallery orderId={id} items={items} />

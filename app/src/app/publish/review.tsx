@@ -10,7 +10,7 @@ import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../compone
 import { t } from "../../i18n";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatAmount, formatUsdc } from "../../lib/money";
-import { parseAmount, validateAll } from "../../publish/draft";
+import { totalAmount, validateAll } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { useSession } from "../../session/SessionProvider";
 import { isRejection, signTyped } from "../../wallet/sign";
@@ -31,7 +31,7 @@ export default function PublishReview() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<PublishStep | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const amount = parseAmount(draft.amount);
+  const amount = totalAmount(draft);
   const invalid = amount === null || Object.keys(validateAll(draft, Math.floor(Date.now() / 1000))).length > 0;
 
   const publish = async () => {
@@ -55,10 +55,10 @@ export default function PublishReview() {
         draft,
         amount,
       );
-      const open = await waitUntilOpen(api, result.specHash, { attempts: 12, delayMs: 10_000 });
+      const open = await waitUntilOpen(api, result.specHash, { attempts: 12, delayMs: 10_000, statuses: draft.kind === "group" ? ["funding", "open"] : ["open"] });
       await queryClient.invalidateQueries({ queryKey: ["changas"] });
       reset();
-      router.replace({ pathname: "/publish/done", params: { confirmed: open ? "1" : "0" } });
+      router.replace({ pathname: "/publish/done", params: { confirmed: open ? "1" : "0", group: draft.kind === "group" ? "1" : "0", spec: result.specHash } });
     } catch (failure) {
       setStep(null);
       if (failure instanceof InsufficientBalance) setError(t.publish.insufficient.replace("{amount}", formatAmount(failure.missing.toString())));

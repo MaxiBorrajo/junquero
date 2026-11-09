@@ -52,9 +52,12 @@ export interface Spec {
   durationMin?: number;
   evidence: string[];
   attachments: Attachment[];
+  milestones?: Milestone[];
+  advance?: boolean;
+  group?: GroupPlan;
 }
 
-export type ChangaStatus = "draft" | "open" | "agreed" | "delivered" | "settled" | "cancelled" | "disputed" | string;
+export type ChangaStatus = "draft" | "funding" | "open" | "agreed" | "delivered" | "settled" | "cancelled" | "disputed" | string;
 
 export interface Changa {
   id: number;
@@ -121,4 +124,16 @@ export interface PublicProfile {
   name: string;
   photo: FileRef | null;
   verified: boolean;
+}
+
+export interface Milestone {
+  name: string;
+  amount: string;
+  criteria: string;
+  evidence: string;
+}
+
+export interface GroupPlan {
+  target: string;
+  fundingDeadline: number;
 }

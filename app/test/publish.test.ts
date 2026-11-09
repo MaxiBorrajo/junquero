@@ -3,6 +3,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it, vi } from "vitest";
 import { createApi } from "../src/api/client";
 import { escrowAbi } from "../src/chain/abis";
+import { groupAbi } from "../src/chain/group";
 import type { Deployment } from "../src/chain/deployment";
 import { InsufficientBalance, publishChanga, waitUntilOpen, type PublishDeps, type PublishStep } from "../src/chain/publish";
 import { emptyDraft, type Draft } from "../src/publish/draft";
@@ -104,5 +105,25 @@ describe("esperar publicación", () => {
   it("devuelve null si no aparece a tiempo", async () => {
     const api = createApi({ baseUrl: "https://x", fetcher: async () => new Response("{}", { status: 404 }), getToken: () => null });
     expect(await waitUntilOpen(api, SPEC_HASH, { attempts: 2, delayMs: 1, wait: async () => {} })).toBeNull();
+  });
+});
+
+describe("publicar una changa grupal", () => {
+  it("crea la changa grupal sin pedir saldo ni permiso", async () => {
+    const group: Draft = { ...draft, kind: "group", amount: "100", fundingDays: 7 };
+    const { deps, calls, steps } = setup({ readBalance: async () => { throw new Error("no debería consultar saldo"); } });
+    const signed: unknown[] = [];
+    const result = await publishChanga({ ...deps, signTypedData: async (typed) => (signed.push(typed), deps.signTypedData(typed)) }, group, 100_000_000n);
+    expect(result.specHash).toBe(SPEC_HASH);
+    expect(steps).toEqual(["spec", "forward", "relay", "confirming"]);
+    expect(signed).toHaveLength(1);
+
+    const spec = calls[0]!.body as { group: { target: string; fundingDeadline: number } };
+    expect(spec.group).toEqual({ target: "100000000", fundingDeadline: 1_800_000_000 + 7 * 86400 });
+    const body = calls[1]!.body as { data: Hex };
+    const decoded = decodeFunctionData({ abi: groupAbi, data: body.data });
+    expect(decoded.functionName).toBe("createGroupOrder");
+    expect((decoded.args as unknown as [Record<string, unknown>, Record<string, unknown>])[0]).toMatchObject({ amount: 100_000_000n, specHash: SPEC_HASH });
+    expect((decoded.args as unknown as [Record<string, unknown>, Record<string, unknown>])[1]).toMatchObject({ fundingDeadline: 1_800_000_000 + 7 * 86400 });
   });
 });

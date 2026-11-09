@@ -13,3 +13,5 @@ export function formatDate(seconds: number, locale = "es-AR"): string {
 export function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.max(50, Math.round(meters / 50) * 50)} m` : `${(meters / 1000).toFixed(meters < 10000 ? 1 : 0).replace(".", ",")} km`;
 }
+
+export const shortAddress = (address: string): string => `${address.slice(0, 6)}…${address.slice(-4)}`;

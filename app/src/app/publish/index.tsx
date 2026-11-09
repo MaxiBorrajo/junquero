@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Chip, Field, Row } from "../../components/ui";
+import { Chip, Field, Row, Secondary } from "../../components/ui";
 import { WizardStep } from "../../components/Wizard";
 import { t } from "../../i18n";
 import { setModality, validateBasics } from "../../publish/draft";
@@ -26,6 +26,12 @@ export default function PublishBasics() {
         <Chip label={t.publish.onsite} selected={draft.modality === "onsite"} onPress={() => update((d) => setModality(d, "onsite"))} />
         <Chip label={t.publish.remote} selected={draft.modality === "remote"} onPress={() => update((d) => setModality(d, "remote"))} />
       </Row>
+      <Text style={text.label}>{t.publish.kindLabel}</Text>
+      <Row>
+        <Chip label={t.publish.individual} selected={draft.kind === "individual"} onPress={() => update({ kind: "individual" })} />
+        <Chip label={t.publish.group} selected={draft.kind === "group"} onPress={() => update({ kind: "group" })} />
+      </Row>
+      {draft.kind === "group" ? <Secondary>{t.publish.groupNote}</Secondary> : null}
       <Text style={text.label}>{t.publish.categoryLabel}</Text>
       <Row>
         {t.publish.categories.map((name, index) => (

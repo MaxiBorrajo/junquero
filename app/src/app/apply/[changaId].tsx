@@ -10,7 +10,7 @@ import { useSession } from "../../session/SessionProvider";
 const MESSAGE_MAX = 500;
 
 export default function Apply() {
-  const { changaId, max } = useLocalSearchParams<{ changaId: string; max?: string }>();
+  const { changaId, max, plan } = useLocalSearchParams<{ changaId: string; max?: string; plan?: string }>();
   const { api } = useSession();
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
@@ -40,7 +40,7 @@ export default function Apply() {
     <Screen footer={<Button label={t.apply.send} onPress={submit} loading={busy} disabled={!offer.ok} />}>
       <Title>{t.apply.title}</Title>
       <Body>{t.apply.explanation}</Body>
-      <Field label={t.apply.amount} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={t.apply.amountPlaceholder} error={amountError} hint={t.apply.amountHint} />
+      {plan === "1" ? null : <Field label={t.apply.amount} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={t.apply.amountPlaceholder} error={amountError} hint={t.apply.amountHint} />}
       <Field label={t.apply.message} value={message} onChangeText={setMessage} multiline maxLength={MESSAGE_MAX} hint={`${message.length}/${MESSAGE_MAX}`} />
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>

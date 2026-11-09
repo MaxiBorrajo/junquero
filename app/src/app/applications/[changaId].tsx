@@ -4,7 +4,11 @@ import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Changa, ReceivedApplication } from "../../api/types";
+import { encodeProposeProvider } from "../../chain/group";
+import { sendViaRelay } from "../../chain/orderActions";
+import { relayDepsFor } from "../../lib/relayHelpers";
 import { AGREEMENT_VALIDITY_SECONDS, ZERO_HASH, agreementTypedData, proposalPrice } from "../../chain/agreement";
+import { milestoneTerms, milestoneTermsHash } from "../../chain/terms";
 import { deployment } from "../../chain/deployment";
 import { Button, ErrorText, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
@@ -31,18 +35,35 @@ export default function ReceivedApplications() {
 
   const choose = async (application: ReceivedApplication, target: Changa) => {
     if (!address || target.orderId === null) return;
-    const price = proposalPrice(application.amount, target.amount);
+    const plan = milestoneTerms(target.spec.milestones, target.spec.advance, target.specHash as `0x${string}`);
+    const price = plan ? proposalPrice(null, target.amount) : proposalPrice(application.amount, target.amount);
     if (price === null) return;
     setBusy(application.id);
     setMessage(null);
     setFailed(false);
     try {
       const expiry = Math.floor(Date.now() / 1000) + AGREEMENT_VALIDITY_SECONDS;
-      const terms = { orderId: BigInt(target.orderId), payer: address as `0x${string}`, payee: application.applicant as `0x${string}`, price, specHash: target.specHash as `0x${string}`, termsHash: ZERO_HASH, expiry };
+      const terms = { orderId: BigInt(target.orderId), payer: address as `0x${string}`, payee: application.applicant as `0x${string}`, price, specHash: target.specHash as `0x${string}`, termsHash: plan ? milestoneTermsHash(plan) : ZERO_HASH, expiry };
       const signature = await signTyped(agreementTypedData(deployment, terms));
       await api.send("POST", `/me/orders/${target.orderId}/agreement`, { payee: application.applicant, price: price.toString(), expiry, signature });
       await queryClient.invalidateQueries({ queryKey: ["agreements"] });
       setMessage(t.received.proposalSent);
+    } catch (error) {
+      if (isRejection(error)) setMessage(t.received.cancelled);
+      else setFailed(true);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const proposeProvider = async (application: ReceivedApplication, target: Changa) => {
+    if (target.orderId === null) return;
+    setBusy(application.id);
+    setMessage(null);
+    setFailed(false);
+    try {
+      await sendViaRelay(relayDepsFor(api, address as string), encodeProposeProvider(BigInt(target.orderId), application.applicant as `0x${string}`));
+      setMessage(t.group.proposeDone);
     } catch (error) {
       if (isRejection(error)) setMessage(t.received.cancelled);
       else setFailed(true);
@@ -88,6 +109,7 @@ export default function ReceivedApplications() {
             <Text style={text.body}>{`${t.received.offer}: ${item.amount ? formatUsdc(item.amount) : changa ? `${formatUsdc(changa.amount)}` : t.received.publishedAmount}`}</Text>
             {item.message ? <Text style={text.body}>{item.message}</Text> : null}
             <Button label={t.received.talk} variant="ghost" onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } })} />
+            {changa && changa.status === "open" && changa.spec.group ? <Button label={t.group.propose} variant="secondary" onPress={() => proposeProvider(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
             {changa && changa.status === "open" ? <Button label={t.received.choose} onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
           </View>
         )}

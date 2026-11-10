@@ -39,7 +39,7 @@ export function Screen({ children, scroll = true, footer, back = true, refresh }
   );
 }
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 
 export function Button({
   label,
@@ -131,6 +131,7 @@ const buttonStyles = StyleSheet.create({
   secondary: { backgroundColor: colors.sand },
   ghost: { backgroundColor: "transparent" },
   danger: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.error },
+  outline: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.brick },
 });
 
 const labelStyles = StyleSheet.create({
@@ -138,6 +139,7 @@ const labelStyles = StyleSheet.create({
   secondary: { color: colors.ink },
   ghost: { color: colors.brick },
   danger: { color: colors.error },
+  outline: { color: colors.brick },
 });
 
 const styles = StyleSheet.create({

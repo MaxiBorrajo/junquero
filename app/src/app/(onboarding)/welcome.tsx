@@ -15,9 +15,9 @@ export default function Welcome() {
       scroll={false}
       footer={
         <>
-          <Button label={t.welcome.needHand} onPress={() => start("publish")} />
-          <Button label={t.welcome.giveHand} variant="secondary" onPress={() => start("map")} />
-          <Button label={t.welcome.browse} variant="ghost" onPress={() => router.replace("/map")} />
+          <Button label={t.welcome.needHand} icon="pin" onPress={() => start("publish")} />
+          <Button label={t.welcome.giveHand} variant="secondary" icon="briefcase" onPress={() => start("map")} />
+          <Button label={t.welcome.browse} variant="outline" icon="map" onPress={() => router.replace("/map")} />
         </>
       }
     >

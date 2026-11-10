@@ -60,7 +60,7 @@ export default function ChangaDetail() {
     ) : block === null ? (
       <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "", plan: spec.milestones ? "1" : "0", spec: changa.specHash } })} />
     ) : block === "anonymous" || block === "no-profile" ? (
-      <Button label={t.welcome.needHand} onPress={() => router.push("/welcome")} />
+      <Button label={t.mine.enter} onPress={() => router.push("/welcome")} />
     ) : null;
 
   return (

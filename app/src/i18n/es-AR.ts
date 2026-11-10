@@ -16,7 +16,7 @@ export const esAR = {
   },
   welcome: {
     title: "Junquero",
-    junco: "Cada changa es un junco. Vos elegís dónde trabajar.",
+    slogan: "Un junco para cada necesidad. Un junco para cada oficio.",
     needHand: "Quiero una mano",
     giveHand: "Quiero dar una mano",
     browse: "Mirar el mapa primero",

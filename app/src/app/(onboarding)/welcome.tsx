@@ -23,7 +23,7 @@ export default function Welcome() {
     >
       <View style={styles.hero}>
         <Text style={styles.name}>{t.welcome.title}</Text>
-        <Secondary style={styles.junco}>{t.welcome.junco}</Secondary>
+        <Secondary style={styles.slogan}>{t.welcome.slogan}</Secondary>
       </View>
     </Screen>
   );
@@ -32,5 +32,5 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   hero: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm },
   name: { ...text.title, fontSize: 44, color: colors.brick },
-  junco: { textAlign: "center", paddingHorizontal: spacing.lg },
+  slogan: { textAlign: "center", paddingHorizontal: spacing.lg },
 });

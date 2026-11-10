@@ -114,6 +114,7 @@ export const futureSpec = (nonce = "nonce-0001", overrides: Record<string, unkno
   modality: "onsite",
   nonce,
   area: { lat: -34.6037, lng: -58.3816, radiusM: 300 },
+  evidence: ["Foto del trabajo terminado"],
   ...overrides,
 });
 

@@ -10,6 +10,7 @@ const base = {
   modality: "onsite",
   nonce: "abc12345",
   area: { lat: -34.60371234, lng: -58.38159876, radiusM: 300 },
+  evidence: ["Foto del trabajo terminado"],
 };
 
 const ok = (input: unknown) => {
@@ -35,7 +36,7 @@ describe("validateSpec", () => {
   });
 
   it("produces the same hash regardless of key order and the same canonical text", () => {
-    const reordered = { nonce: base.nonce, area: base.area, modality: base.modality, category: 2, description: base.description, title: base.title, v: 1 };
+    const reordered = { evidence: base.evidence, nonce: base.nonce, area: base.area, modality: base.modality, category: 2, description: base.description, title: base.title, v: 1 };
     expect(ok(reordered).hash).toBe(ok(base).hash);
     expect(ok(base).hash).toMatch(/^0x[0-9a-f]{64}$/);
   });
@@ -81,6 +82,17 @@ describe("validateSpec", () => {
     const hash = "0x" + "ab".repeat(32);
     expect(ok({ ...base, attachments: [{ hash: hash.toUpperCase().replace("0X", "0x"), name: "a.jpg", mime: "image/jpeg", size: 10 }] }).spec.attachments[0].hash).toBe(hash);
     expect(error({ ...base, attachments: [{ hash: "0x12", name: "a", mime: "image/jpeg", size: 10 }] })).toBe("invalid attachment");
+  });
+
+  it("asks for at least one closing evidence unless the work is split in milestones", () => {
+    expect(error({ ...base, evidence: [] })).toBe("ask for at least one closing evidence");
+    const { evidence: _omitted, ...withoutEvidence } = base;
+    expect(error(withoutEvidence)).toBe("ask for at least one closing evidence");
+    const milestones = [
+      { name: "Primera mano", amount: "10000000", criteria: "Pared lisa", evidence: "Foto" },
+      { name: "Segunda mano", amount: "10000000", criteria: "Sin manchas", evidence: "Foto" },
+    ];
+    expect(ok({ ...withoutEvidence, milestones }).spec.milestones).toHaveLength(2);
   });
 
   it("rejects control characters in text", () => {

@@ -38,7 +38,7 @@ describe("changa grupal de punta a punta", () => {
   let orderId: number;
 
   it("se publica como grupal, aparece juntando aportes y no sale en el mapa", async () => {
-    const draft = { ...emptyDraft(), title: "Arreglar la plaza", category: 0, kind: "group" as const, fundingDays: 7, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 5 * 86400, amount: "100" };
+    const draft = { ...emptyDraft(), evidence: ["Foto del trabajo terminado"], title: "Arreglar la plaza", category: 0, kind: "group" as const, fundingDays: 7, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 5 * 86400, amount: "100" };
     const nonces = readNonces(coordinator);
     const result = await publishChanga({ api: coordinator.api, deployment, account: coordinator.address, now: () => Math.floor(Date.now() / 1000), nonce: () => `e2e-${Date.now()}`, readBalance: async () => { throw new Error("grupal no consulta saldo"); }, readTokenNonce: nonces.token, readForwarderNonce: nonces.forwarder, signTypedData: coordinator.signTyped }, draft, 100_000_000n);
     changa = await until("changa grupal", async () => {

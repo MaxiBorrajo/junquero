@@ -52,7 +52,7 @@ describe("reclamo con jurado de punta a punta", () => {
   const keys = {} as Record<string, Awaited<ReturnType<typeof chatKey>>>;
 
   it("una changa mediana se acuerda y se entrega", async () => {
-    const draft = { ...emptyDraft(), title: "Instalar un portón", category: 0, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 7200, amount: "100" };
+    const draft = { ...emptyDraft(), evidence: ["Foto del trabajo terminado"], title: "Instalar un portón", category: 0, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 7200, amount: "100" };
     const nonces = readNonces(payer);
     const result = await publishChanga({ api: payer.api, deployment, account: payer.address, now: () => Math.floor(Date.now() / 1000), nonce: () => `e2e-${Date.now()}`, readBalance: nonces.balance, readTokenNonce: nonces.token, readForwarderNonce: nonces.forwarder, signTypedData: payer.signTyped }, draft, 100_000_000n);
     changa = await until("abierta", async () => {

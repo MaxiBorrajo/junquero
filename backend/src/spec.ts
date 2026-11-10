@@ -218,6 +218,8 @@ export function validateSpec(input: unknown, nowSeconds: number): SpecResult {
     spec.group = group;
   }
 
+  if (spec.milestones === undefined && spec.evidence.length === 0) return { ok: false, error: "ask for at least one closing evidence" };
+
   const canonical = canonicalize(spec);
   if (new TextEncoder().encode(canonical).length > MAX_CANONICAL_BYTES) return { ok: false, error: "spec is too large" };
   return { ok: true, spec, canonical, hash: keccak256(toBytes(canonical)) };

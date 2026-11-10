@@ -30,7 +30,7 @@ describe("recorrido individual de punta a punta", () => {
   it("no deja publicar sin saldo y avisa cuánto falta", async () => {
     const broke = makeActor(generatePrivateKey());
     await login(broke);
-    const draft = { ...emptyDraft(), title: "Cambiar una canilla", category: 0, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 7200, amount: "25" };
+    const draft = { ...emptyDraft(), evidence: ["Foto del trabajo terminado"], title: "Cambiar una canilla", category: 0, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 7200, amount: "25" };
     const nonces = readNonces(broke);
     await expect(
       publishChanga({ api: broke.api, deployment, account: broke.address, now: () => Math.floor(Date.now() / 1000), nonce: () => `e2e-${Date.now()}`, readBalance: nonces.balance, readTokenNonce: nonces.token, readForwarderNonce: nonces.forwarder, signTypedData: broke.signTyped }, draft, 25_000_000n),
@@ -40,7 +40,7 @@ describe("recorrido individual de punta a punta", () => {
   it("publica con permiso firmado y el relayer; el indexador la deja abierta", async () => {
     await mint(payer.address, 100_000_000n);
     const escrowBefore = await balanceOf(deployment.escrow);
-    const draft = { ...emptyDraft(), title: "Cambiar una canilla", category: 0, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 7200, amount: "25" };
+    const draft = { ...emptyDraft(), evidence: ["Foto del trabajo terminado"], title: "Cambiar una canilla", category: 0, point: { lat: -34.6, lng: -58.4 }, approx: { lat: -34.601, lng: -58.401 }, startsAt: Math.floor(Date.now() / 1000) + 7200, amount: "25" };
     const nonces = readNonces(payer);
     const result = await publishChanga({ api: payer.api, deployment, account: payer.address, now: () => Math.floor(Date.now() / 1000), nonce: () => `e2e-${Date.now()}`, readBalance: nonces.balance, readTokenNonce: nonces.token, readForwarderNonce: nonces.forwarder, signTypedData: payer.signTyped }, draft, 25_000_000n);
     changa = await until("changa abierta", async () => {

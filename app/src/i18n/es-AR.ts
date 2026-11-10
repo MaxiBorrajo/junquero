@@ -16,7 +16,6 @@ export const esAR = {
   },
   welcome: {
     title: "Junquero",
-    tagline: "Dame una mano. Dale una mano.",
     junco: "Cada changa es un junco. Vos elegís dónde trabajar.",
     needHand: "Quiero una mano",
     giveHand: "Quiero dar una mano",

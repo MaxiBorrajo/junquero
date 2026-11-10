@@ -1,6 +1,5 @@
 import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
 import { Button, Screen, Secondary } from "../../components/ui";
 import { t } from "../../i18n";
 import { setFirstScreen } from "../../session/intent";
@@ -24,8 +23,6 @@ export default function Welcome() {
     >
       <View style={styles.hero}>
         <Text style={styles.name}>{t.welcome.title}</Text>
-        <Secondary style={styles.tagline}>{t.welcome.tagline}</Secondary>
-        <Image source={require("../../../assets/images/junco.png")} style={styles.mark} tintColor={colors.brick} contentFit="contain" />
         <Secondary style={styles.junco}>{t.welcome.junco}</Secondary>
       </View>
     </Screen>
@@ -35,7 +32,5 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   hero: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm },
   name: { ...text.title, fontSize: 44, color: colors.brick },
-  tagline: { textAlign: "center" },
-  mark: { width: 44, height: 44 },
-  junco: { textAlign: "center", fontSize: 14, paddingHorizontal: spacing.lg },
+  junco: { textAlign: "center", paddingHorizontal: spacing.lg },
 });

@@ -16,7 +16,6 @@ import { colors, text } from "../../theme";
 export default function PublishPrice() {
   const { draft, update } = useDraft();
   const [touched, setTouched] = useState(false);
-  const errors = touched ? validatePrice(draft) : {};
   const amount = totalAmount(draft);
   const fee = useQuery({ queryKey: ["feeRule"], queryFn: readFeeRule, staleTime: 5 * 60_000 });
   const rule = useQuery({ queryKey: ["milestoneRule"], queryFn: readMilestoneRule, staleTime: 5 * 60_000 });
@@ -25,6 +24,7 @@ export default function PublishPrice() {
   const span = draft.deadline && (draft.startsAt ?? Math.floor(Date.now() / 1000)) ? draft.deadline - Math.floor(Date.now() / 1000) : 0;
   const required = amount !== null && rule.data ? milestonesRequired(amount, rule.data.threshold, span, Number(rule.data.minDuration)) : false;
   const useMilestones = draft.useMilestones || required;
+  const errors = touched ? validatePrice(required && !draft.useMilestones ? { ...draft, useMilestones: true } : draft) : {};
 
   const next = () => {
     setTouched(true);
@@ -32,7 +32,7 @@ export default function PublishPrice() {
     if (Object.keys(validatePrice(current)).length === 0) router.push("/publish/review");
   };
 
-  const setEvidence = (index: number, value: string) => update((d) => ({ ...d, evidence: d.evidence.map((item, i) => (i === index ? value : item)) }));
+  const setEvidence = (index: number, value: string) => update((d) => ({ ...d, evidence: d.evidence.length === 0 ? [value] : d.evidence.map((item, i) => (i === index ? value : item)) }));
   const setMilestone = (index: number, patch: Partial<MilestoneDraft>) => update((d) => ({ ...d, milestones: d.milestones.map((item, i) => (i === index ? { ...item, ...patch } : item)) }));
   const toggleMilestones = (on: boolean) => update((d) => ({ ...d, useMilestones: on, milestones: on && d.milestones.length < 2 ? [emptyMilestone(), emptyMilestone()] : d.milestones }));
 
@@ -98,8 +98,8 @@ export default function PublishPrice() {
       ) : null}
 
       <Text style={text.label}>{t.publish.evidenceLabel}</Text>
-      {draft.evidence.map((item, index) => (
-        <Field key={index} label="" value={item} onChangeText={(value) => setEvidence(index, value)} maxLength={120} placeholder={t.publish.evidencePlaceholder} />
+      {(draft.evidence.length > 0 ? draft.evidence : [""]).map((item, index) => (
+        <Field key={index} label="" value={item} onChangeText={(value) => setEvidence(index, value)} maxLength={120} placeholder={t.publish.evidencePlaceholder} error={index === 0 && errors.evidence === "required" ? t.publish.evidenceRequired : null} />
       ))}
       {draft.evidence.length < EVIDENCE_MAX ? <Button label={t.publish.evidenceAdd} variant="ghost" onPress={() => update((d) => ({ ...d, evidence: [...d.evidence, ""] }))} /> : null}
 

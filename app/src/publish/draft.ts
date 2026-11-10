@@ -139,6 +139,7 @@ export function validatePrice(draft: Draft): DraftErrors {
   Object.assign(errors, validateMilestones(draft));
   const evidence = draft.evidence.map((item) => item.trim()).filter(Boolean);
   if (evidence.length > EVIDENCE_MAX || evidence.some((item) => item.length > EVIDENCE_LENGTH)) errors.evidence = "evidence";
+  else if (!draft.useMilestones && evidence.length === 0) errors.evidence = "required";
   return errors;
 }
 

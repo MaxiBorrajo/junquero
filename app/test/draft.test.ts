@@ -48,8 +48,15 @@ describe("borrador", () => {
   });
 
   it("validateAll junta los errores de todos los pasos", () => {
-    expect(Object.keys(validateAll(emptyDraft(), NOW)).sort()).toEqual(["amount", "category", "point", "startsAt", "title"]);
-    expect(validateAll(base(), NOW)).toEqual({});
+    expect(Object.keys(validateAll(emptyDraft(), NOW)).sort()).toEqual(["amount", "category", "evidence", "point", "startsAt", "title"]);
+    expect(validateAll(base({ evidence: ["foto del frente"] }), NOW)).toEqual({});
+  });
+
+  it("pide al menos una prueba de cierre salvo que se use el plan por hitos", () => {
+    expect(validatePrice(base({ evidence: [] })).evidence).toBe("required");
+    expect(validatePrice(base({ evidence: ["", "  "] })).evidence).toBe("required");
+    expect(validatePrice(base({ evidence: ["foto del frente"] })).evidence).toBeUndefined();
+    expect(validatePrice(base({ evidence: [], useMilestones: true, milestones: [] })).evidence).toBeUndefined();
   });
 
   it("la ficha presencial lleva la zona aproximada y nunca el punto exacto", () => {

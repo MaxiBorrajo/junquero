@@ -171,6 +171,7 @@ export const esAR = {
     amountMinError: "El monto mínimo es 1 USDC.",
     evidenceLabel: "Qué evidencia pedís al cerrar",
     evidenceAdd: "Agregar un pedido",
+    evidenceRequired: "Pedí al menos una prueba para cerrar. Así las dos partes saben qué tiene que quedar registrado.",
     evidencePlaceholder: "Por ejemplo: foto del frente terminado",
     breakdownAmount: "Monto de la changa",
     breakdownFee: "Comisión de la plataforma",

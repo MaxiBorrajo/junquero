@@ -30,22 +30,22 @@ Con dos celulares o un celular y el emulador alcanza para los flujos de dos part
 
 Elegir uno y anotarlo al empezar cada sesión.
 
-- [ ] **Local:** `backend` con `npm run dev`, emulador con `EXPO_PUBLIC_API_URL=http://localhost:8787` y panel con `npm run dev`. Ver `README.md`, sección "Levantar todo en local".
+- [ x ] **Local:** `backend` con `npm run dev`, emulador con `EXPO_PUBLIC_API_URL=http://localhost:8787` y panel con `npm run dev`. Ver `README.md`, sección "Levantar todo en local".
 - [ ] **Dev (nube):** APK release instalado, servidor `junquero-api` desplegado con la última versión (`cd backend && npm run deploy`) y panel con `npm run dev:cloud`.
 
 Antes de empezar:
-- [ ] `GET /health` del servidor responde `ok` y `lastIndexedBlock` avanza (el cron está indexando).
-- [ ] El relayer tiene ETH de Sepolia (ver saldo de su dirección).
-- [ ] Las pruebas automáticas pasan: `cd app && npm test`, `cd backend && npm test`, `cd admin && npm test`.
+- [ x ] `GET /health` del servidor responde `ok` y `lastIndexedBlock` avanza (el cron está indexando).
+- [ x ] El relayer tiene ETH de Sepolia (ver saldo de su dirección).
+- [ x ] Las pruebas automáticas pasan: `cd app && npm test`, `cd backend && npm test`, `cd admin && npm test`.
 - [ ] Opcional: pruebas de punta a punta (`bash app/e2e/up.sh` y después `npx vitest run --config vitest.e2e.config.ts` en `/tmp/junquero-e2e/repo/app`), que cubren individual, hitos, grupal y reclamo con jurado contra una cadena local.
 
 ### 0.3 Fondos de prueba
 
-- [ ] Ana tiene USDC de prueba suficiente (por lo menos 200 para cubrir la changa por hitos y la de jurado).
-- [ ] Beto tiene USDC de prueba para la garantía de postulación.
-- [ ] Hugo, Gabi e Ines tienen USDC para aportar.
-- [ ] J1 a J5 tienen cada una 10 USDC de garantía depositada como jurado (ver 8.1).
-- [ ] Anotar los saldos iniciales de Ana y Beto para comprobar los movimientos de plata en cada prueba.
+- [ x ] Ana tiene USDC de prueba suficiente (por lo menos 200 para cubrir la changa por hitos y la de jurado).
+- [ x ] Beto tiene USDC de prueba para la garantía de postulación.
+- [ x ] Hugo, Gabi e Ines tienen USDC para aportar.
+- [ x ] J1 a J5 tienen cada una 10 USDC de garantía depositada como jurado (ver 8.1).
+- [ x ] Anotar los saldos iniciales de Ana y Beto para comprobar los movimientos de plata en cada prueba.
 
 ### 0.4 Plazos
 
@@ -68,26 +68,26 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 ## 1. Registro y perfil
 
 **1.1 Ingreso con billetera** · Rol: cualquiera
-- [ ] Pasos: abrir la app sin sesión → elegir "Tengo una necesidad" o "Busco trabajo" → conectar MetaMask → firmar el mensaje de confirmación.
+- [ x ] Pasos: abrir la app sin sesión → elegir "Tengo una necesidad" o "Busco trabajo" → conectar MetaMask → firmar el mensaje de confirmación.
 - Esperado: la firma no cuesta ni mueve plata. Queda la sesión y se pasa a crear el perfil.
 - Observaciones: _
 
 **1.2 Crear perfil y selfie** · Rol: Ana y Beto
-- [ ] Pasos: cargar nombre, rubros y zona de trabajo → sacar la selfie.
+- [ x ] Pasos: cargar nombre, rubros y zona de trabajo → sacar la selfie.
 - Esperado: el perfil muestra "Junquero en revisión" hasta que se apruebe.
 - Observaciones: _
 
 **1.3 Aprobar la selfie desde el panel** · Rol: Admin
-- [ ] Pasos: panel → Selfies → aprobar la de Ana y la de Beto.
+- [ x ] Pasos: panel → Selfies → aprobar la de Ana y la de Beto.
 - Esperado: en la app pasa a "Junquero verificado". La imagen se borra del servidor y queda solo el estado.
-- Variante: [ ] rechazar una selfie → en la app aparece "Verificación rechazada" y se puede sacar otra.
+- Variante: [ ! ] rechazar una selfie → en la app aparece "Verificación rechazada" y se puede sacar otra.
 
 **1.4 Sin selfie verificada no se puede postular** · Rol: Beto
-- [ ] Pasos: con la cuenta aún sin verificar, intentar postularse a una changa.
+- [ x ] Pasos: con la cuenta aún sin verificar, intentar postularse a una changa.
 - Esperado: se bloquea con un aviso. (Depende del valor `REQUIRE_VERIFIED_APPLICANT` del servidor; anotar con cuál se probó.)
 
 **1.5 Cerrar sesión y volver a entrar** · Rol: cualquiera
-- [ ] Pasos: Perfil → Cerrar sesión → volver a ingresar con la misma billetera.
+- [ x ] Pasos: Perfil → Cerrar sesión → volver a ingresar con la misma billetera.
 - Esperado: recupera su perfil, sus changas y su chat.
 
 ---

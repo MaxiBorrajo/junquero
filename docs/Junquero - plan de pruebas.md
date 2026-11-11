@@ -22,6 +22,8 @@ Cada rol es una billetera distinta. Los nombres son solo para este documento.
 | Admin | Panel de administración | 1 | La cuenta `0x4E5e…6511`, la del despliegue |
 | Relayer | Paga el gas de las operaciones | 1 | No es una persona: tiene que tener ETH de Sepolia |
 
+Las cuentas de demo ya están creadas en Sepolia (solicitante, prestador, cinco jurados, tres aportantes y un testigo), con credencial de nivel 0, jurados semilla y fondos de prueba. Sus direcciones están en `demoAccounts` de `contracts/deployments/sepolia.json` y sus claves en los keystores de Foundry de la compu de Maxi. Se pueden importar a MetaMask para no tener que crear ni fondear cuentas nuevas.
+
 Con dos celulares o un celular y el emulador alcanza para los flujos de dos partes. Para jurados y aportantes se cambia de cuenta en la misma billetera o se usa más de un dispositivo.
 
 ### 0.2 Entorno
@@ -47,9 +49,19 @@ Antes de empezar:
 
 ### 0.4 Plazos
 
-Varias reglas dependen de plazos largos (liberación automática a las 24 h o 72 h, vencimiento del acuerdo a las 24 h, ventanas de votación). Con una billetera real y Sepolia no se pueden esperar días.
-- [ ] Revisar y anotar los valores de plazos que tiene el despliegue de Sepolia (modo DEMO) antes de probar cualquier prueba con espera.
-- Los plazos largos se verifican con las pruebas de punta a punta, que avanzan el reloj de la cadena local.
+El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.sol` y el traspaso):
+
+| Qué | Valor en DEMO | ¿Se prueba en vivo? |
+| --- | --- | --- |
+| Responder un reclamo, aceptar la invitación de jurado, apelar, revelar la semilla, votar (commit) y revelar el voto | 5 minutos cada uno | Sí |
+| Votación de parámetros: espera previa, período de votación y espera del Timelock | 1, 10 y 5 minutos | Sí, cuando exista la pantalla (ver sección 12) |
+| Espera por no presentación | 20 minutos | Sí |
+| Liberación automática de una changa corta y de un hito | 24 h y 72 h (el mínimo permitido es 1 h) | No: ver abajo |
+| Gracia de la reserva del prestador | 12 h (el mínimo permitido es 0) | No: ver abajo |
+| Vencimiento del acuerdo si una parte no firma | A verificar en el servidor (el diseño dice 24 h) | A verificar |
+
+- Las ventanas del jurado y de la votación son de minutos, así que el escenario C y la votación se pueden recorrer completos en una sola sesión.
+- La liberación automática (5.9 y 6.3) y la gracia de la reserva (3.3) no se pueden esperar. Hay dos caminos: la prueba de punta a punta, que avanza el reloj de una cadena local, o bajar el parámetro por votación una vez que exista la pantalla (la liberación automática admite hasta 1 hora y la gracia hasta 0).
 
 ---
 
@@ -157,7 +169,7 @@ Varias reglas dependen de plazos largos (liberación automática a las 24 h o 72
 - Esperado: hay una notificación por evento (nueva postulación, te eligieron, pago en garantía, etc.), con contador de no leídas; al tocarla abre la pantalla de la changa.
 
 **4.4 Notificaciones push reales** · Rol: cualquiera
-- [ ] **No disponible todavía:** requiere crear el proyecto de Expo. Mientras tanto Ajustes muestra "No disponibles en esta versión".
+- 🛠 **POR DESARROLLAR:** requiere que Maxi cree el proyecto de Expo. Mientras tanto Ajustes muestra "No disponibles en esta versión". Cuando exista: probar que llegue un aviso con la app cerrada por cada evento de la tabla de notificaciones, que al tocarlo abra la changa correcta y que el interruptor de Ajustes lo apague y lo encienda.
 
 ---
 
@@ -352,7 +364,7 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 - Esperado: al llegar al 25% del dinero o a dos personas se congela el pago y se abre el reclamo con jurado (ver 8.3). Si el jurado la considera infundada, quien objetó paga el costo.
 
 **9.10 Cambiar el coordinador** · Rol: aportantes
-- [ ] **Incompleto en la app:** el contrato lo tiene (propuesta y aprobación por mayoría de dinero, con ventana de veto) pero la pantalla está a medias. Probar solo si se termina.
+- 🛠 **POR DESARROLLAR:** el contrato lo tiene (propuesta y aprobación por mayoría de dinero, con ventana de veto) pero la pantalla está a medias. Cuando se termine, probar: un aportante propone un coordinador nuevo → los demás aprueban con más del 50% del dinero → pasa a ser quien firma el QR; con veto dentro de la ventana no cambia; con un reclamo abierto no se puede proponer.
 
 ---
 
@@ -400,7 +412,7 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 
 **11.5 Usuarios** · Rol: Admin
 - [ ] Esperado: se ve la lista con reputación y verificación.
-- [ ] **Suspender / reactivar: no disponible todavía.**
+- 🛠 **POR DESARROLLAR: suspender y reactivar usuarios.** Cuando exista, probar: suspender a Beto → no puede postularse ni publicar y su perfil público muestra el aviso; reactivarlo lo devuelve a la normalidad; la acción queda en el registro con motivo.
 
 **11.6 Selfies** · Rol: Admin
 - [ ] Es la 1.3.
@@ -413,24 +425,55 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 - [ ] Esperado: cada acción de moderación aparece con billetera, fecha y motivo.
 
 **11.9 Fondo, parámetros y métricas**
-- [ ] **No disponible todavía en el panel.**
+- 🛠 **POR DESARROLLAR: fondo y parámetros.** Cuando exista, probar: ver el saldo del fondo de la plataforma, los parámetros vigentes y las propuestas en espera.
+- 🛠 **POR DESARROLLAR: métricas con exportación.** Cuando exista, probar: los indicadores del documento de métricas con rango de fechas, y que la exportación coincida con lo hecho en las pruebas.
 
 ---
 
-## 12. Votar un parámetro (escenario F)
+## 12. 🛠 POR DESARROLLAR: votar un parámetro (escenario F)
 
-- [ ] **Decisión pendiente.** La app no tiene pantalla para proponer ni votar parámetros, y el panel todavía no tiene "Fondo y parámetros". El contrato (Governor y Timelock) sí existe. Opciones:
-  1. Mostrar el escenario con un script de Foundry (`cast` o el script de gobernanza) y explicarlo en la defensa.
-  2. Agregar una pantalla mínima de votación en la app o el panel (lleva trabajo).
-- Si se hace por script, pasos a probar: proponer cambio de un parámetro → votar con cuentas con actividad → esperar el plazo de votación → ejecutar tras el Timelock → ver el nuevo valor aplicado.
+Hoy la app y el panel no tienen pantalla para proponer ni votar. El contrato (Governor y Timelock) ya está en Sepolia y el control de parámetros ya pasó al Timelock. Las ventanas en DEMO son de minutos, así que el flujo completo se puede probar en una sesión.
 
-## 13. Pago en efectivo (escenario B)
+Cuando se desarrolle, pruebas a agregar y marcar:
+- [ ] 12.1 Ver las votaciones abiertas y mi peso de voto (cero para cuentas sin actividad, con explicación).
+- [ ] 12.2 Proponer el cambio de un parámetro (por ejemplo, la liberación automática de 24 h a 1 h).
+- [ ] 12.3 Votar a favor, en contra o abstenerse con varias cuentas; el resultado parcial se actualiza.
+- [ ] 12.4 Cierre de la votación y espera del Timelock (5 minutos en DEMO).
+- [ ] 12.5 Ejecución: el nuevo valor queda vigente y se refleja en las pantallas que lo usan.
+- [ ] 12.6 Propuesta rechazada o sin quórum: no cambia nada.
+- [ ] 12.7 Usarlo para bajar la liberación automática y la gracia de la reserva y así probar 3.3, 5.9 y 6.3 en vivo.
 
-- [ ] **Decisión pendiente.** No encontré la opción de "efectivo" en la app: el contrato la tiene (tarifa de publicación y menor reputación), pero no hay pantalla. Confirmar si entra en la demo; si entra, hay que agregarla a Publicar. Si no, quitar el escenario B del alcance.
+Mientras tanto, el escenario se puede mostrar con un script de Foundry y explicarlo.
 
-## 14. Testigo en changas de más de 300 USDC
+## 13. 🛠 POR DESARROLLAR: pago en efectivo (escenario B)
 
-- [ ] **No disponible en la app.** El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. Decidir si se muestra por script o se deja afuera.
+El contrato tiene la modalidad (tarifa de publicación de 1 USDC más 2% y menor reputación), pero la app no ofrece la opción al publicar. Cuando se desarrolle, pruebas a agregar:
+- [ ] 13.1 Publicar eligiendo pago en efectivo: se cobra la tarifa de publicación y no se deposita el monto.
+- [ ] 13.2 Acordar y cerrar sin QR de liberación de plata; cada parte confirma la entrega.
+- [ ] 13.3 Reputación: la changa en efectivo suma menos que una con pago en garantía.
+- [ ] 13.4 Reclamo en una changa en efectivo: qué se resuelve y qué no (la plata no está en el contrato).
+
+## 14. 🛠 POR DESARROLLAR: testigo en changas de más de 300 USDC
+
+El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. Cuando se desarrolle, pruebas a agregar:
+- [ ] 14.1 Una changa de más de 300 USDC exige asignar un testigo al acordar.
+- [ ] 14.2 El testigo recibe el aviso y ve la evidencia.
+- [ ] 14.3 El testigo atesta que el trabajo se hizo y se libera el pago; sin su atestación no se libera.
+- [ ] 14.4 El testigo no puede ser una de las partes.
+- [ ] 14.5 Testigo que no responde: qué pasa con el plazo y el reclamo.
+
+## 14b. Resumen de lo que está por desarrollar
+
+| Qué | Dónde se prueba hoy | Sección |
+| --- | --- | --- |
+| Votar parámetros (F) | Solo por script | 12 |
+| Pago en efectivo (B) | No se puede | 13 |
+| Testigo | No se puede | 14 |
+| Cambio de coordinador | Solo contrato | 9.10 |
+| Suspender usuarios en el panel | No se puede | 11.5 |
+| Fondo y parámetros en el panel | No se puede | 11.9 |
+| Métricas con exportación en el panel | No se puede | 11.9 |
+| Notificaciones push reales | No se puede | 4.4 |
 
 ---
 
@@ -474,6 +517,7 @@ Completar al terminar cada sesión de pruebas.
 | 10. Perfil y ajustes | 5 | | | |
 | 11. Panel | 8 | | | |
 | 15. Transversales | 9 | | | |
+| 12 a 14 y 9.10, 11.5, 11.9, 4.4 (por desarrollar) | 🛠 | | | |
 
 **Fallas encontradas** (anotar acá y arreglar después):
 

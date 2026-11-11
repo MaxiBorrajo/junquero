@@ -103,12 +103,43 @@ No hay `.env` que cargar para la app: las claves públicas de MapTiler y Reown e
 - **MetaMask** en el emulador (o en el celular): instalarla desde Play Store, crear una cuenta de prueba y agregar la red Sepolia. Conseguir ETH de Sepolia de un grifo si se va a pagar gas propio; el relayer del sistema paga el de las operaciones normales. El USDC de prueba se acuña desde la app (mint abierto).
 - **Panel de admin**: se ingresa con MetaMask usando la cuenta `admin` (`0x4E5e…6511`). Su clave vive en un keystore de Foundry en la computadora de Maxi (`~/.foundry/keystores`); copiarla a otra máquina es decisión de Maxi y nunca por chat ni por el repositorio.
 - **Cloudflare**: para desplegar, `npx wrangler login` dentro de `backend/` con la cuenta de Maxi.
-- **Secretos del Worker** (ya cargados en producción, no hay que repetirlos): `RPC_URL` (Alchemy), `RELAYER_KEY`, `AUTH_SECRET`. Para correr el Worker en local con la cadena real hace falta `backend/.dev.vars` con esas tres variables (el archivo está ignorado por git).
-- **Contratos**: `contracts/.env` (ignorado por git), plantilla en `contracts/.env.example`. Solo se necesita para volver a desplegar o correr scripts contra Sepolia.
+- **Secretos**: viven en Doppler (proyecto `junquero`, configuraciones `dev_local`, `dev` y `prd`). En cada computadora se instala la CLI de Doppler, se corre `doppler login` y `bash scripts/pull-secrets.sh`, que genera `backend/.dev.vars` y `contracts/.env` (los dos ignorados por git). Sin Doppler se pueden armar a mano desde `backend/.dev.vars.example` y `contracts/.env.example`. Detalle de cada secreto en `docs/Junquero - entornos y pase a produccion.md`.
 
 ## Entornos
 
-Hay tres: local (tu compu), dev (Cloudflare, Sepolia) y prod (todavía no existe, Arbitrum). Servidor local: `cd backend && npm run dev`. Secretos: `bash scripts/pull-secrets.sh` (Doppler) o copiar `backend/.dev.vars.example`. Detalle y checklist del pase a producción en `docs/Junquero - entornos y pase a produccion.md`.
+Hay tres: **local** (tu compu), **dev** (Cloudflare, Sepolia, para pasar el APK a conocidos) y **prod** (todavía no existe, será Arbitrum). Local y dev usan los mismos contratos de Sepolia pero bases y archivos distintos. El checklist del pase a producción está en `docs/Junquero - entornos y pase a produccion.md`.
+
+## Levantar todo en local
+
+Con las herramientas de arriba instaladas y los secretos bajados (sección 5). Cada comando va en su propia terminal, desde la raíz del repositorio.
+
+```bash
+# 0. Una sola vez por computadora
+doppler login
+bash scripts/pull-secrets.sh            # genera backend/.dev.vars y contracts/.env
+
+# 1. Servidor (API, base y archivos simulados, cron cada minuto): http://localhost:8787
+cd backend && npm run dev
+
+# 2. Panel de admin (opcional): http://localhost:5173
+cd admin && npm run dev                 # contra el servidor local
+cd admin && npm run dev:cloud           # contra el servidor de dev en Cloudflare
+
+# 3. Emulador de Android
+emulator -avd junquero-play -gpu host
+
+# 4. App contra el servidor local
+adb reverse tcp:8787 tcp:8787
+adb reverse tcp:8081 tcp:8081
+cd app && EXPO_PUBLIC_API_URL=http://localhost:8787 npx expo start --dev-client --port 8081
+adb shell am start -a android.intent.action.VIEW -d "exp+junquero://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+```
+
+- Sin `EXPO_PUBLIC_API_URL` la app habla con el servidor de dev en Cloudflare.
+- La primera vez hay que instalar la app de desarrollo (sección siguiente) y la base local queda vacía: se carga sola al indexar Sepolia.
+- La `RELAYER_KEY` de `dev_local` tiene que ser una cuenta propia con ETH de Sepolia, distinta de la del Worker en Cloudflare.
+- El panel contra el servidor local necesita `ADMIN_ORIGINS=http://localhost:5173` en `dev_local` (ya está cargado).
+- Para publicar el servidor de dev en Cloudflare: `cd backend && npm run deploy` (hace falta `npx wrangler login`).
 
 ## Correr la app en el emulador
 
@@ -205,12 +236,13 @@ Despliegue y scripts de Sepolia: `contracts/README.md` y `contracts/SECURITY.md`
 ## Seguridad
 
 - Las claves privadas no se escriben en el repositorio ni se pasan por chat. Los scripts que firman usan keystores de Foundry.
-- `contracts/.env` y `backend/.dev.vars` están ignorados por git.
+- `contracts/.env` y `backend/.dev.vars` están ignorados por git y se generan desde Doppler; no se editan a mano ni se copian entre computadoras.
 - Las claves de MapTiler (plan gratuito, solo no comercial) y de Reown en `app/src/config.ts` son de uso público desde el cliente.
 
 ## Problemas conocidos del entorno
 
 - Emulador sin textos en el mapa: está corriendo con `-gpu swiftshader`; usar `-gpu host`.
 - Gradle sin memoria o con un fallo de JIT: revisar los `org.gradle.jvmargs` de arriba.
+- El APK release falla en R8 con `Missing class java.awt.Component` (viene de JNA): agregar `-dontwarn java.awt.**` a `app/android/app/proguard-rules.pro` (la carpeta `android` es generada y hay que repetirlo tras `prebuild`).
 - Pantallas en blanco al tirar para actualizar: alguien volvió a usar `RefreshControl`.
 - El indexador del Worker lee de a 10 bloques porque el plan gratuito de Alchemy limita `eth_getLogs`.

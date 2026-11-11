@@ -64,7 +64,7 @@ Valores iniciales cargados por el script (a confirmar por Maxi, ver sección 5):
 
 ### 3.1 Backend desplegado
 
-Worker `junquero-api` en `https://junquero-api.maximilianoborrajo0-5a6.workers.dev` (Cloudflare, plan gratuito, URLs de vista previa desactivadas), código en `backend/`, con Hono, viem, base D1 `junquero` y Alchemy como RPC (secreto `RPC_URL`). Un cron cada minuto ejecuta el indexador y el robot de tareas.
+Worker `junquero-api` en `https://junquero-api.maximilianoborrajo0-5a6.workers.dev`, que es el entorno **dev** (Sepolia). Hay además un entorno local (`cd backend && npm run dev`) y un entorno de producción en Arbitrum todavía sin crear; ver `docs/Junquero - entornos y pase a produccion.md`. Los secretos están en Doppler (proyecto `junquero`, configuraciones `dev_local`, `dev`, `prd`). (Cloudflare, plan gratuito, URLs de vista previa desactivadas), código en `backend/`, con Hono, viem, base D1 `junquero` y Alchemy como RPC (secreto `RPC_URL`). Un cron cada minuto ejecuta el indexador y el robot de tareas.
 
 - **Indexador**: guarda cada evento de los contratos en la tabla `events` (clave `(block_number, log_index)`, sin rowid). El plan gratuito de Alchemy limita `eth_getLogs` a 10 bloques, por eso `BLOCK_CHUNK=10` y `CHUNKS_PER_RUN=6`. Lee con 2 confirmaciones.
 - **API pública**: `GET /health`, `GET /events` (filtros `contract`, `name`, `beforeBlock`, `limit` hasta 200) y `GET /orders/:id/timeline`. Límite de 120 pedidos por minuto por IP y caché de 10 segundos en memoria.

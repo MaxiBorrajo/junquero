@@ -23,7 +23,7 @@ describe("activity summary", () => {
 
     const token = (await tokenFor(ctx.call, owner)).body.token;
     const summary = (await (await ctx.call("/me/activity", authed(token, "GET"))).json()) as Record<string, unknown>;
-    expect(summary).toEqual({ earned: "12000000", spent: "25000000", toCollect: "3000000", inEscrow: "7000000", settledAsPayee: 1, settledAsPayer: 2 });
+    expect(summary).toEqual({ earned: "12000000", spent: "25000000", toCollect: "3000000", inEscrow: "16000000", settledAsPayee: 1, settledAsPayer: 2 });
   });
 
   it("returns zeros for someone with no activity", async () => {

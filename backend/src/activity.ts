@@ -8,6 +8,8 @@ export interface ActivitySummary {
 }
 
 const OPEN_STATES = "('agreed','delivered','disputed')";
+// Quien publica ya depositó el pago al publicar, aunque todavía no haya prestador.
+const ESCROW_STATES = "('open','agreed','delivered','disputed')";
 
 export async function activitySummary(db: D1Database, address: string): Promise<ActivitySummary> {
   const row = await db
@@ -16,7 +18,7 @@ export async function activitySummary(db: D1Database, address: string): Promise<
          COALESCE(SUM(CASE WHEN p.payee = ?1 AND c.status = 'settled' THEN c.amount_micro END), 0) AS earned,
          COALESCE(SUM(CASE WHEN p.payer = ?1 AND c.status = 'settled' THEN c.amount_micro END), 0) AS spent,
          COALESCE(SUM(CASE WHEN p.payee = ?1 AND c.status IN ${OPEN_STATES} THEN c.amount_micro END), 0) AS to_collect,
-         COALESCE(SUM(CASE WHEN p.payer = ?1 AND c.status IN ${OPEN_STATES} THEN c.amount_micro END), 0) AS in_escrow,
+         COALESCE(SUM(CASE WHEN p.payer = ?1 AND c.status IN ${ESCROW_STATES} THEN c.amount_micro END), 0) AS in_escrow,
          COALESCE(SUM(CASE WHEN p.payee = ?1 AND c.status = 'settled' THEN 1 END), 0) AS settled_payee,
          COALESCE(SUM(CASE WHEN p.payer = ?1 AND c.status = 'settled' THEN 1 END), 0) AS settled_payer
        FROM order_parties p JOIN changas c ON c.order_id = p.order_id

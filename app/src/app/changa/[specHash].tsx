@@ -1,7 +1,12 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { deployment } from "../../chain/deployment";
+import { encodeCancel, sendViaRelay } from "../../chain/orderActions";
+import { readForwarderNonce } from "../../chain/reader";
+import { isRejection, signTyped } from "../../wallet/sign";
 import { Icon } from "../../components/Icon";
 import { ImageViewer } from "../../components/ImageViewer";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -26,7 +31,12 @@ const BLOCK_TEXT: Record<ApplyBlock, string | null> = {
 
 export default function ChangaDetail() {
   const { specHash } = useLocalSearchParams<{ specHash: string }>();
-  const { address, profile } = useSession();
+  const { address, profile, api } = useSession();
+  const queryClient = useQueryClient();
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const query = useChangaBySpec(String(specHash));
   const [viewing, setViewing] = useState<string | null>(null);
 
@@ -50,6 +60,24 @@ export default function ChangaDetail() {
   const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null });
   const isOwner = block === "own";
   const isGroup = Boolean(spec.group);
+  const cancelChanga = async () => {
+    if (changa.orderId === null || !address) return;
+    const account = address as `0x${string}`;
+    setBusy(true);
+    setNote(null);
+    setFailed(false);
+    try {
+      await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(changa.orderId)));
+      setNote(t.detail.cancelDone);
+      setConfirmCancel(false);
+      await queryClient.invalidateQueries();
+    } catch (error) {
+      if (isRejection(error)) setNote(t.detail.cancelSigned);
+      else setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
   const groupButton =
     isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") ? (
       <Button label={changa.status === "funding" ? t.publish.goToGroup : t.group.title} variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
@@ -131,6 +159,19 @@ export default function ChangaDetail() {
       <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
       {groupButton && changa.status === "open" ? groupButton : null}
       {block !== "anonymous" && block !== "own" ? <Button label={t.report.changa} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } })} /> : null}
+      {isOwner && changa.status === "open" && changa.orderId !== null ? (
+        confirmCancel ? (
+          <View style={{ gap: spacing.sm }}>
+            <Secondary>{t.detail.cancelConfirm}</Secondary>
+            <Button label={t.detail.cancelYes} onPress={() => void cancelChanga()} disabled={busy} />
+            <Button label={t.detail.cancelNo} variant="ghost" onPress={() => setConfirmCancel(false)} disabled={busy} />
+          </View>
+        ) : (
+          <Button label={t.detail.cancelChanga} variant="ghost" onPress={() => setConfirmCancel(true)} />
+        )
+      ) : null}
+      {note ? <Secondary>{note}</Secondary> : null}
+      {failed ? <ErrorText>{t.detail.cancelFailed}</ErrorText> : null}
       {block && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
     </Screen>
   );

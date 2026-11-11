@@ -95,6 +95,7 @@ export default function Profile() {
       <Button label={unread > 0 ? `${t.notifications.title} (${unread})` : t.notifications.title} variant="secondary" icon="bell" onPress={() => router.push("/notifications")} />
       <Button label={t.jury.title} variant="secondary" icon="scale" onPress={() => router.push("/jury")} />
       <Button label={t.me.edit} variant="secondary" icon="edit" onPress={() => router.push("/profile-setup")} />
+      <Button label={t.settings.open} variant="secondary" icon="settings" onPress={() => router.push("/settings")} />
       <Button label={t.me.logout} variant="danger" icon="logout" onPress={leave} />
     </Screen>
   );

@@ -40,6 +40,8 @@ export const icons = {
   send: [path("M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"), path("m21.854 2.147-10.94 10.939")],
   users: [path("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"), { kind: "circle", cx: 9, cy: 7, r: 4 }, path("M22 21v-2a4 4 0 0 0-3-3.87"), path("M16 3.13a4 4 0 0 1 0 7.75")],
   wallet: [path("M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"), path("M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4")],
+  settings: [path("M20 7h-9"), path("M14 17H5"), { kind: "circle", cx: 17, cy: 17, r: 3 }, { kind: "circle", cx: 7, cy: 7, r: 3 }],
+  info: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 16v-4"), path("M12 8h.01")],
   clock: [{ kind: "circle", cx: 12, cy: 12, r: 10 }, path("M12 6v6l4 2")],
 } as const satisfies Record<string, readonly Shape[]>;
 

@@ -2,6 +2,7 @@ import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { useSession } from "../session/SessionProvider";
+import { pushEnabledByUser } from "./preference";
 import { registerForPush } from "./register";
 import { routeForNotification } from "./routes";
 
@@ -20,7 +21,9 @@ export function PushHandler() {
 
   useEffect(() => {
     if (status !== "ready" || !address) return;
-    void registerForPush(api).catch(() => {});
+    void pushEnabledByUser()
+      .then((on) => (on ? registerForPush(api) : undefined))
+      .catch(() => {});
   }, [status, api, address]);
 
   useEffect(() => {

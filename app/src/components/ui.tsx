@@ -11,20 +11,20 @@ import { PullSpinner } from "./PullSpinner";
 
 const NO_REFRESH: PullRefresh = { refreshing: false, onRefresh: () => undefined };
 
-export function BackButton() {
+export function BackButton({ onBack }: { onBack?: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} style={styles.back}>
+    <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))} style={styles.back}>
       <Icon name="back" size={22} color={colors.ink} />
     </Pressable>
   );
 }
 
-export function Screen({ children, scroll = true, footer, back = true, refresh }: { children: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean; refresh?: PullRefresh }) {
+export function Screen({ children, scroll = true, footer, back = true, onBack, refresh }: { children: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean; onBack?: () => void; refresh?: PullRefresh }) {
   const pull = usePullGesture(refresh ?? NO_REFRESH);
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
-        {back ? <BackButton /> : null}
+        {back ? <BackButton onBack={onBack} /> : null}
         {scroll ? (
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" {...(refresh ? pull : {})}>
             <PullSpinner active={refresh?.refreshing ?? false} />

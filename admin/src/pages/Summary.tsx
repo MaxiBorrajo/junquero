@@ -36,12 +36,12 @@ export function Summary() {
             <Card label="Acuerdos por confirmar" value={String(data.pendingAgreements)} />
             <Card label="Selfies pendientes" value={String(data.usersBySelfie.pending ?? 0)} />
           </div>
-          <h3>Changas por estado</h3>
+          <h3>Trabajos por estado</h3>
           <div className="cards">
             {Object.entries(data.changasByStatus).map(([status, total]) => (
               <Card key={status} label={STATUS_LABELS[status] ?? status} value={String(total)} />
             ))}
-            {Object.keys(data.changasByStatus).length === 0 ? <p className="muted">Todavía no hay changas.</p> : null}
+            {Object.keys(data.changasByStatus).length === 0 ? <p className="muted">Todavía no hay trabajos.</p> : null}
           </div>
           <h3>Salud del sistema</h3>
           <div className="cards">

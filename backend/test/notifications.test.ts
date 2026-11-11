@@ -67,6 +67,16 @@ describe("what triggers a notification", () => {
     expect(rows(ctx).filter((r) => r.kind === "application_new")).toHaveLength(1);
   });
 
+  it("tells the owner once their order or group is confirmed on chain", async () => {
+    const ctx = setup();
+    plainEvent(ctx.raw, "OrderCreated", 7, 500, { payer: owner.address });
+    plainEvent(ctx.raw, "GroupCreated", 8, 501, { creator: owner.address });
+    await processEvents(ctx.db, handlers, 100);
+    const found = rows(ctx);
+    expect(found.find((r) => r.kind === "published")).toMatchObject({ address: owner.address.toLowerCase(), ref: "7" });
+    expect(found.find((r) => r.kind === "group_published")).toMatchObject({ address: owner.address.toLowerCase(), ref: "8" });
+  });
+
   it("tells the chosen provider that the order is agreed and schedules a reminder before the start", async () => {
     const ctx = setup();
     const startsAt = Math.floor(Date.now() / 1000) + 5 * 3600;

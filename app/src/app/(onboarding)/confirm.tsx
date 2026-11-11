@@ -5,6 +5,7 @@ import { signMessage } from "wagmi/actions";
 import { Body, Button, ErrorText, Screen, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { useSession } from "../../session/SessionProvider";
+import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { wagmiAdapter } from "../../wallet/appkit";
 
 function isUserRejection(error: unknown): boolean {
@@ -15,6 +16,7 @@ function isUserRejection(error: unknown): boolean {
 export default function Confirm() {
   const { address } = useAccount();
   const { signIn } = useSession();
+  const switchAccount = useSwitchAccount();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,18 +31,22 @@ export default function Confirm() {
       await signIn(address, (message) => signMessage(wagmiAdapter.wagmiConfig, { message }));
       router.replace("/");
     } catch (failure) {
-      if (isUserRejection(failure)) {
-        router.replace("/connect");
-        return;
-      }
-      setError(t.confirm.failed);
+      setError(isUserRejection(failure) ? t.confirm.cancelled : t.confirm.failed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Screen footer={<Button label={t.confirm.action} onPress={confirm} loading={busy} />}>
+    <Screen
+      onBack={() => void switchAccount("/welcome")}
+      footer={
+        <>
+          <Button label={t.confirm.action} onPress={confirm} loading={busy} />
+          <Button label={t.confirm.switchAccount} variant="ghost" onPress={() => void switchAccount("/connect")} disabled={busy} />
+        </>
+      }
+    >
       <Title>{t.confirm.title}</Title>
       <Body>{t.confirm.explanation}</Body>
       {error ? <ErrorText>{error}</ErrorText> : null}

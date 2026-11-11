@@ -7,10 +7,15 @@ import { Body, Button, ErrorText, Screen, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { readBytes, uploadBytes } from "../../lib/files";
 import { useSession } from "../../session/SessionProvider";
+import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { colors, radius, spacing } from "../../theme";
 
 export default function Selfie() {
-  const { api, refresh } = useSession();
+  const { api, profile, refresh } = useSession();
+  const switchAccount = useSwitchAccount();
+  // Primer ingreso: la flecha corta la sesión para poder elegir otra cuenta.
+  const gate = !profile || profile.selfieStatus === "none" || profile.selfieStatus === "rejected";
+  const gateBack = gate ? { onBack: () => void switchAccount("/welcome") } : {};
   const [permission, requestPermission] = useCameraPermissions();
   const camera = useRef<CameraView>(null);
   const [shot, setShot] = useState<string | null>(null);
@@ -18,11 +23,11 @@ export default function Selfie() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!permission) return <Screen>{null}</Screen>;
+  if (!permission) return <Screen {...gateBack}>{null}</Screen>;
 
   if (!permission.granted) {
     return (
-      <Screen
+      <Screen {...gateBack}
         footer={
           permission.canAskAgain ? (
             <Button label={t.selfie.take} onPress={() => void requestPermission()} />
@@ -69,7 +74,7 @@ export default function Selfie() {
 
   if (shot) {
     return (
-      <Screen
+      <Screen {...gateBack}
         footer={
           <>
             <Button label={t.selfie.send} onPress={send} loading={busy} />
@@ -85,7 +90,7 @@ export default function Selfie() {
   }
 
   return (
-    <Screen footer={<Button label={t.selfie.take} onPress={capture} loading={capturing} />}>
+    <Screen {...gateBack} footer={<Button label={t.selfie.take} onPress={capture} loading={capturing} />}>
       <Title>{t.selfie.title}</Title>
       <Body>{t.selfie.explanation}</Body>
       <View style={styles.frame}>

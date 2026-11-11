@@ -14,10 +14,14 @@ import { readBytes, uploadBytes, type Uploaded } from "../../lib/files";
 import type { LatLng } from "../../lib/geo";
 import { isValidName, normalizeName } from "../../lib/validation";
 import { useSession } from "../../session/SessionProvider";
+import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { colors, radius, spacing, text } from "../../theme";
 
 export default function ProfileSetup() {
   const { api, profile, refresh } = useSession();
+  const switchAccount = useSwitchAccount();
+  // Primer ingreso (todavía no hay perfil): la flecha corta la sesión para poder elegir otra cuenta.
+  const gateBack = profile ? {} : { onBack: () => void switchAccount("/welcome") };
   const [name, setName] = useState(profile?.name ?? "");
   const [center, setCenter] = useState<LatLng>(profile ? { lat: profile.work.lat, lng: profile.work.lng } : DEFAULT_CENTER);
   const [radiusM, setRadiusM] = useState(profile?.work.radiusM ?? 5000);
@@ -88,7 +92,7 @@ export default function ProfileSetup() {
   const shownPhoto = photo?.uri ?? (keepPhoto ? `${API_URL}${keepPhoto.url}` : null);
 
   return (
-    <Screen footer={<Button label={t.common.next} onPress={save} loading={busy} />}>
+    <Screen {...gateBack} footer={<Button label={t.common.next} onPress={save} loading={busy} />}>
       <Title>{t.profile.title}</Title>
       <Field label={t.profile.name} value={name} onChangeText={setName} onBlur={() => setTouched(true)} maxLength={60} hint={t.profile.nameHint} error={nameError} autoCapitalize="words" />
       <View style={styles.photoRow}>

@@ -16,17 +16,19 @@ interface Template {
 export const TEMPLATES: Record<string, Template> = {
   application_new: { title: "Nueva postulación", body: "Un junquero se postuló a tu trabajo.", priority: "high" },
   agreement_proposed: { title: "Te eligieron", body: "Te eligieron para un trabajo. Confirmá el acuerdo.", priority: "high" },
-  agreed: { title: "Changa acordada", body: "Quedó acordada. Abrí la app para ver los detalles.", priority: "high" },
+  published: { title: "Trabajo publicado", body: "Tu trabajo ya está confirmado y aparece en el mapa.", priority: "default" },
+  group_published: { title: "Trabajo grupal publicado", body: "Tu trabajo grupal ya puede recibir aportes. Compartilo para juntar la meta.", priority: "default" },
+  agreed: { title: "Trabajo acordado", body: "Quedó acordado. Abrí la app para ver los detalles.", priority: "high" },
   chat: { title: "Mensaje nuevo", body: "Tenés un mensaje nuevo.", priority: "default" },
   delivered: { title: "Entrega registrada", body: "Revisá el trabajo: si no respondés a tiempo, se aprueba solo.", priority: "high" },
-  cancelled: { title: "Changa cancelada", body: "Una de tus changas fue cancelada.", priority: "high" },
-  settled: { title: "Pago liberado", body: "Se liberó el pago de una changa.", priority: "default" },
-  reminder_start: { title: "Tu changa es pronto", body: "Tenés una changa en una hora.", priority: "high" },
+  cancelled: { title: "Trabajo cancelado", body: "Uno de tus trabajos fue cancelado.", priority: "high" },
+  settled: { title: "Pago liberado", body: "Se liberó el pago de un trabajo.", priority: "default" },
+  reminder_start: { title: "Tu trabajo es pronto", body: "Tenés un trabajo en una hora.", priority: "high" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí la app para confirmar.", priority: "high" },
   dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Abrí la app ahora.", priority: "high" },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para actuar. Abrí la app ahora.", priority: "high" },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito.", priority: "high" },
-  selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a changas.", priority: "default" },
+  selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a trabajos.", priority: "default" },
   selfie_rejected: { title: "Revisá tu selfie", body: "No pudimos verificarla. Probá de nuevo con buena luz.", priority: "default" },
 };
 
@@ -84,7 +86,13 @@ function reminderFor(db: D1Database, orderId: number, payee: string) {
 export const notificationsHandler: EventHandler = (db: D1Database, events: StreamEvent[]) => {
   const statements: D1PreparedStatement[] = [];
   for (const event of events) {
-    if (event.name === "OrderAgreed" && event.order_id !== null) {
+    if (event.name === "OrderCreated" && event.order_id !== null) {
+      const payer = parse<{ payer?: string }>(event.args)?.payer;
+      if (payer && isAddress(payer)) statements.push(queueNotification(db, payer, "published", String(event.order_id)));
+    } else if (event.name === "GroupCreated" && event.order_id !== null) {
+      const creator = parse<{ creator?: string }>(event.args)?.creator;
+      if (creator && isAddress(creator)) statements.push(queueNotification(db, creator, "group_published", String(event.order_id)));
+    } else if (event.name === "OrderAgreed" && event.order_id !== null) {
       const payee = parse<{ payee?: string }>(event.args)?.payee;
       if (!payee || !isAddress(payee)) continue;
       statements.push(queueNotification(db, payee, "agreed", String(event.order_id)), ...reminderFor(db, event.order_id, payee));

@@ -15,7 +15,7 @@ type Page = "summary" | "selfies" | "changas" | "reports" | "cases" | "users" | 
 const PAGES: { id: Page; label: string }[] = [
   { id: "summary", label: "Resumen" },
   { id: "selfies", label: "Selfies" },
-  { id: "changas", label: "Changas" },
+  { id: "changas", label: "Trabajos" },
   { id: "reports", label: "Reportes" },
   { id: "cases", label: "Reclamos" },
   { id: "users", label: "Usuarios" },

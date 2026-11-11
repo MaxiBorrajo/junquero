@@ -80,7 +80,7 @@ export function Reports({ onChange }: { onChange: (count: number) => void }) {
           {(list.data ?? []).map((row) => (
             <tr key={row.id}>
               <td>
-                <span className="pill">{row.kind === "changa" ? "Changa" : "Usuario"}</span> {row.title ?? row.target}
+                <span className="pill">{row.kind === "changa" ? "Trabajo" : "Usuario"}</span> {row.title ?? row.target}
               </td>
               <td>{row.reason}</td>
               <td title={row.reporter}>{shortAddress(row.reporter)}</td>

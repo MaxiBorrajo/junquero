@@ -13,6 +13,7 @@ export default function Welcome() {
   return (
     <Screen
       scroll={false}
+      back={false}
       footer={
         <>
           <Button label={t.welcome.needHand} icon="pin" onPress={() => start("publish")} />

@@ -62,7 +62,7 @@ export function Cases({ onChange }: { onChange: (count: number) => void }) {
       {failure ? <div className="error">{failure}</div> : null}
       {current ? (
         <div className="card" style={{ marginBottom: 16 }}>
-          <strong>Reclamo #{current.caseId} (changa #{current.orderId})</strong>
+          <strong>Reclamo #{current.caseId} (trabajo #{current.orderId})</strong>
           <textarea placeholder="Motivo de la resolución (se publica)" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={300} />
           <div className="toolbar" style={{ marginTop: 10 }}>
             <button className="btn" disabled={busy} onClick={() => decide(false)}>
@@ -81,7 +81,7 @@ export function Cases({ onChange }: { onChange: (count: number) => void }) {
         <thead>
           <tr>
             <th>Reclamo</th>
-            <th>Changa</th>
+            <th>Trabajo</th>
             <th>Desde</th>
             <th>Motivo</th>
             <th></th>

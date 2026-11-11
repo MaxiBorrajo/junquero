@@ -46,7 +46,7 @@ export function Changas() {
 
   return (
     <>
-      <h2>Changas</h2>
+      <h2>Trabajos</h2>
       <div className="toolbar">
         <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Estado">
           <option value="">Todos los estados</option>
@@ -113,7 +113,7 @@ export function Changas() {
           ))}
         </tbody>
       </table>
-      {!list.loading && (list.data ?? []).length === 0 ? <p className="muted">No hay changas.</p> : null}
+      {!list.loading && (list.data ?? []).length === 0 ? <p className="muted">No hay trabajos.</p> : null}
     </>
   );
 }

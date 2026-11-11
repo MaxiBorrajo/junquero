@@ -14,8 +14,8 @@ interface Entry {
 const ACTIONS: Record<string, string> = {
   selfie_approved: "Selfie aprobada",
   selfie_rejected: "Selfie rechazada",
-  changa_hidden: "Changa bajada",
-  changa_restored: "Changa restaurada",
+  changa_hidden: "Trabajo bajado",
+  changa_restored: "Trabajo restaurado",
   report_hide: "Reporte: oferta bajada",
   report_dismissed: "Reporte descartado",
   emergency_resolved: "Reclamo resuelto como árbitro",

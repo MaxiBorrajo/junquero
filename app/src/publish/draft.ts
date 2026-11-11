@@ -157,7 +157,7 @@ export function buildSpec(draft: Draft, nonce: string, nowSeconds: number = Math
     category: draft.category ?? 0,
     modality: draft.modality,
     nonce,
-    evidence: draft.evidence.map((item) => item.trim()).filter(Boolean),
+    evidence: draft.useMilestones ? [] : draft.evidence.map((item) => item.trim()).filter(Boolean),
     attachments: draft.attachments,
   };
   if (draft.modality === "onsite" && draft.approx) spec.area = { lat: draft.approx.lat, lng: draft.approx.lng, radiusM: APPROX_RADIUS_M };

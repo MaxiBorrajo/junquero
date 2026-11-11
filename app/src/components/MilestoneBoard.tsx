@@ -5,7 +5,7 @@ import QRCode from "react-native-qrcode-svg";
 import { router } from "expo-router";
 import type { Changa } from "../api/types";
 import { deployment } from "../chain/deployment";
-import { MilestoneStatus, PROGRESS_STEPS, encodeReportProgress, encodeAbandon, encodeClaimAdvance, encodeDeclareAbandoned, encodeDeliverMilestone, encodeMilestoneQr, encodeTerminateEarly, milestoneReleaseTypedData } from "../chain/milestones";
+import { MilestoneStatus, PROGRESS_STEPS, encodeReportProgress, encodeAbandon, encodeDeclareAbandoned, encodeDeliverMilestone, encodeMilestoneQr, encodeTerminateEarly, milestoneReleaseTypedData } from "../chain/milestones";
 import { RELEASE_VALIDITY_SECONDS, sendViaRelay } from "../chain/orderActions";
 import { readMilestones } from "../chain/reader";
 import { useEvidence, EvidenceGallery, EvidenceUploader } from "../evidence/EvidenceSection";
@@ -43,7 +43,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
 
   if (!board.data || !address) return <Secondary>{t.common.loading}</Secondary>;
   const state = board.data;
-  const action = boardAction({ next: state.next, count: state.count, firstIsAdvance: state.firstIsAdvance, milestones: state.milestones }, role);
+  const action = boardAction({ next: state.next, count: state.count, milestones: state.milestones }, role);
   const current = state.milestones[state.next];
   const items = evidence.data ?? [];
   const mine = items.filter((item) => item.uploader.toLowerCase() === address.toLowerCase());
@@ -104,7 +104,6 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
       })}
       {allPaid(state.milestones) ? <Body>{t.milestonesBoard.allPaid}</Body> : null}
 
-      {action === "claim-advance" ? <Button label={t.milestonesBoard.claimAdvance} onPress={() => run(send(encodeClaimAdvance(BigInt(orderId))), t.milestonesBoard.done)} loading={busy} /> : null}
       {action === "deliver" ? (
         <>
           <Secondary>{t.milestonesBoard.evidenceNeed}</Secondary>

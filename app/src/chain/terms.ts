@@ -11,9 +11,9 @@ export interface MilestoneTerms {
 export const criteriaHash = (milestone: Pick<Milestone, "name" | "criteria" | "evidence">): Hex =>
   keccak256(toBytes(`${milestone.name}\n${milestone.criteria}\n${milestone.evidence}`));
 
-export function milestoneTerms(milestones: Milestone[] | undefined, advance: boolean | undefined, specHash: Hex): MilestoneTerms | null {
+export function milestoneTerms(milestones: Milestone[] | undefined, specHash: Hex): MilestoneTerms | null {
   if (!milestones || milestones.length === 0) return null;
-  return { baseTerms: specHash, amounts: milestones.map((item) => BigInt(item.amount)), criteria: milestones.map(criteriaHash), firstIsAdvance: advance === true };
+  return { baseTerms: specHash, amounts: milestones.map((item) => BigInt(item.amount)), criteria: milestones.map(criteriaHash), firstIsAdvance: false };
 }
 
 export const milestoneTermsHash = (terms: MilestoneTerms): Hex =>
@@ -21,7 +21,6 @@ export const milestoneTermsHash = (terms: MilestoneTerms): Hex =>
 
 export const milestoneTotal = (milestones: Milestone[]): bigint => milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n);
 
-export const MILESTONE_ADVANCE_MAX_BPS = 3000n;
 
 export function milestonesRequired(price: bigint, milestoneThreshold: bigint, durationSeconds: number, minDurationSeconds: number): boolean {
   return price > milestoneThreshold || durationSeconds > minDurationSeconds;

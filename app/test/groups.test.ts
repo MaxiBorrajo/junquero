@@ -31,12 +31,11 @@ const plan: Milestone[] = [
 describe("hash de los términos", () => {
   const base = ("0x" + "11".repeat(32)) as Hex;
   it("da el mismo valor que calcula el servidor", () => {
-    expect(milestoneTermsHash(milestoneTerms(plan, false, base)!)).toBe("0xbf889763243eaf7b0cd5d8af82cecfac5af6d2fca9c8c6cfb3514d06a092758b");
-    expect(milestoneTermsHash(milestoneTerms(plan, true, base)!)).toBe("0x1cc23c0694d0089b6aca4ccce23c0f04ec81dcf7ac91f7692d2d6f6fc6fd0c43");
+    expect(milestoneTermsHash(milestoneTerms(plan, base)!)).toBe("0xbf889763243eaf7b0cd5d8af82cecfac5af6d2fca9c8c6cfb3514d06a092758b");
   });
   it("sin hitos no hay términos y el total suma los montos", () => {
-    expect(milestoneTerms(undefined, undefined, base)).toBeNull();
-    expect(milestoneTerms([], false, base)).toBeNull();
+    expect(milestoneTerms(undefined, base)).toBeNull();
+    expect(milestoneTerms([], base)).toBeNull();
     expect(milestoneTotal(plan)).toBe(100_000_000n);
     expect(criteriaHash(plan[0]!)).toMatch(/^0x[0-9a-f]{64}$/);
   });

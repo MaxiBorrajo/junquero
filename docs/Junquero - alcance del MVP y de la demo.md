@@ -54,7 +54,7 @@ Cuarenta funciones en ocho áreas, con las dependencias que veo; la columna de d
 | 9 | Dinero | Relayer y cargo de red con límites | Stack |  | Entra |
 | 10 | Changa | Publicar y postularse | Idea | 16, 28 | Entra |
 | 11 | Changa | Changa grupal con aportes | Reglas de cierre | 1, 4 | Entra |
-| 12 | Changa | Hitos y anticipo de materiales | Reglas de cierre | 1, 4 | Entra |
+| 12 | Changa | Hitos (el anticipo de materiales quedó fuera) | Reglas de cierre | 1, 4 | Entra |
 | 13 | Changa | Entrega con evidencia: fotos, video, hora y ubicación | Reglas de cierre | 28, 33 | Entra |
 | 14 | Changa | Revisión: el silencio aprueba y la objeción pasa al jurado | Reglas de cierre | 1, 13 | Entra |
 | 15 | Changa | Check-in por proximidad y apretón de manos | Reglas de cierre | 4, 28 | Entra |

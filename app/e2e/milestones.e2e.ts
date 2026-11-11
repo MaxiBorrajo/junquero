@@ -56,7 +56,7 @@ describe("changa con hitos de punta a punta", () => {
     expect(changa.spec.milestones).toHaveLength(2);
 
     await worker.api.send("PUT", `/me/applications/${changa.id}`, { message: "Puedo" });
-    const terms = milestoneTerms(changa.spec.milestones, changa.spec.advance, changa.specHash as `0x${string}`)!;
+    const terms = milestoneTerms(changa.spec.milestones, changa.specHash as `0x${string}`)!;
     const expiry = Math.floor(Date.now() / 1000) + 7200;
     const agreement = { orderId: BigInt(orderId), payer: payer.address, payee: worker.address, price: 100_000_000n, specHash: changa.specHash as `0x${string}`, termsHash: milestoneTermsHash(terms), expiry };
     await payer.api.send("POST", `/me/orders/${orderId}/agreement`, { payee: worker.address, price: "100000000", expiry, signature: await payer.signTyped(agreementTypedData(deployment, agreement)) });

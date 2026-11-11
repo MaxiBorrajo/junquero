@@ -11,13 +11,13 @@ export interface MilestoneTermsData {
 export const criteriaHash = (milestone: { name: string; criteria: string; evidence: string }): Hex =>
   keccak256(toBytes(`${milestone.name}\n${milestone.criteria}\n${milestone.evidence}`));
 
-export function milestoneTerms(spec: Pick<Spec, "milestones" | "advance">, specHash: Hex): MilestoneTermsData | null {
+export function milestoneTerms(spec: Pick<Spec, "milestones">, specHash: Hex): MilestoneTermsData | null {
   if (!spec.milestones || spec.milestones.length === 0) return null;
   return {
     baseTerms: specHash,
     amounts: spec.milestones.map((item) => BigInt(item.amount)),
     criteria: spec.milestones.map(criteriaHash),
-    firstIsAdvance: spec.advance === true,
+    firstIsAdvance: false,
   };
 }
 

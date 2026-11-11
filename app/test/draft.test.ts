@@ -118,14 +118,13 @@ describe("hitos y grupo en el borrador", () => {
     expect(validatePrice(withPlan([m({ amount: "0,3" }), m({ amount: "0,3" })])).amount).toBe("amountMin");
   });
 
-  it("la ficha lleva los hitos en unidades mínimas y el anticipo si se pidió", () => {
-    const spec = buildSpec(withPlan(undefined, { advance: true }), "nonce-12345", NOW);
+  it("la ficha lleva los hitos en unidades mínimas ", () => {
+    const spec = buildSpec(withPlan(), "nonce-12345", NOW);
     expect(spec.milestones).toEqual([
       { name: "Pintar", amount: "50000000", criteria: "Dos manos", evidence: "Foto" },
       { name: "Terminar", amount: "30000000", criteria: "Dos manos", evidence: "Foto" },
     ]);
-    expect(spec.advance).toBe(true);
-    expect(buildSpec(withPlan(), "nonce-12345", NOW).advance).toBeUndefined();
+    expect(spec).not.toHaveProperty("advance");
     expect(buildSpec(base(), "nonce-12345", NOW).milestones).toBeUndefined();
   });
 
@@ -141,9 +140,8 @@ describe("materiales", () => {
     { name: "A", amount: "50", criteria: "Criterio", evidence: "Foto" },
     { name: "B", amount: "30", criteria: "Criterio", evidence: "Foto" },
   ];
-  it("sin elegir, los compra quien publica; con anticipo la ficha lo refleja", () => {
+  it("sin elegir, los compra quien publica", () => {
     expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "" }), "nonce-12345", NOW).materials).toBe("payer");
-    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "", advance: true }), "nonce-12345", NOW).materials).toBe("advance");
     expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "", materials: "worker" }), "nonce-12345", NOW).materials).toBe("worker");
     expect(buildSpec(base(), "nonce-12345", NOW).materials).toBeUndefined();
   });

@@ -53,8 +53,7 @@ export interface Spec {
   evidence: string[];
   attachments: Attachment[];
   milestones?: Milestone[];
-  advance?: boolean;
-  materials?: "payer" | "advance" | "worker";
+  materials?: "payer" | "worker";
   group?: GroupPlan;
 }
 
@@ -81,7 +80,7 @@ export interface Application {
   amount: string | null;
   message: string;
   attachments: Attachment[];
-  plan?: { milestones: Milestone[]; advance: boolean } | null;
+  plan?: { milestones: Milestone[] } | null;
   status: ApplicationStatus;
   createdAt: number;
   updatedAt: number;
@@ -107,7 +106,7 @@ export interface AgreementRecord {
   expiry: number;
   status: AgreementStatus;
   txHash: string | null;
-  plan?: { milestones: Milestone[]; advance: boolean } | null;
+  plan?: { milestones: Milestone[] } | null;
 }
 
 export interface ChatSummary {

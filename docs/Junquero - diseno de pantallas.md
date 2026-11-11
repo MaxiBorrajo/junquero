@@ -354,24 +354,23 @@ Aplica a changas largas: más de 5 días o más de 150 USDC, donde los hitos son
 | # | Pantalla | Quién | Qué muestra | Estados y errores |
 | --- | --- | --- | --- | --- |
 | 12.1 | Plan de hitos | Quien publica | En 3.x: lista de hitos con nombre, monto, criterio de aceptación verificable, evidencia pedida y fecha. Ejemplo de redacción objetiva: "pared lisa y pintada en dos manos" | La suma de montos debe dar el total; criterio o evidencia vacíos: no avanza. Si la changa lo exige y no hay hitos: no se publica |
-| 12.2 | Materiales | Quien publica | Tres opciones: los compra quien publica (por defecto), anticipo acotado, los pone el prestador | Anticipo solo si el prestador tiene al menos 5 changas cerradas sin reclamo; tope 30% del total. Si no cumple, se explica el requisito |
+| 12.2 | Materiales | Quien publica | Dos opciones: los compra quien publica (por defecto) o los pone el prestador | El anticipo acotado quedó fuera del alcance |
 | 12.3 | Ajustar el plan | Ambas partes | En la postulación, el prestador propone cambios a hitos, montos y materiales; se comparan con el plan original | Todo se fija al firmar el acuerdo; después no se edita |
 | 12.4 | Acuerdo con hitos | Ambas partes | Resumen del plan, criterios, materiales y tabla de término anticipado; los criterios se registran como hash al firmar | Igual que el acuerdo común |
 | 12.5 | Tablero de hitos | Ambas partes | Hitos con estado (pendiente, en curso, en revisión, pagado, reclamado), dinero pagado y dinero restante | Retraso: aviso a la otra parte |
-| 12.6 | Comprobantes de materiales | Quien trabaja | Saldo del anticipo, subida de comprobante por cada gasto desde la app | Gasto que supera el saldo: no se registra. Foto ilegible: pide otra |
+| 12.6 | Comprobantes de materiales | Quien trabaja | Fuera del alcance: depende del anticipo | |
 | 12.7 | Entregar hito | Quien trabaja | Criterios del hito junto a la evidencia a subir, botón Terminé el hito | Falta evidencia pedida: no deja entregar |
 | 12.8 | Revisar hito | Quien publicó | Criterios acordados al lado de la evidencia, botones Está todo bien y Tengo un problema | Sin respuesta en 72 horas: el hito se libera solo. Un reclamo congela solo ese hito |
 | 12.9 | Terminar la changa | Quien publicó | Elegir motivo (sin causa, o porque no cumple lo acordado) y ver el resultado: hitos verificados se pagan, hito en curso proporcional, hitos sin empezar vuelven, compensación adicional si es sin causa | Con causa: se objeta el hito y decide el jurado. Si solo dice "no me gusta" y el hito cumple los criterios, se trata como sin causa |
 | 12.10 | Cobrar avance | Quien trabaja | Aviso de término anticipado, carga de evidencia de avance del hito en curso para el pago proporcional | Sin evidencia: no cobra por el hito en curso y puede reclamar |
-| 12.11 | Abandono | Ambas partes | Se detecta por renuncia explícita o por inactividad (sin check-in ni pruebas) pasada la fecha límite; muestra qué se paga, qué se pierde y la deuda de anticipo si hay | El prestador puede mostrar avance sustancial y pedir pago parcial al jurado |
+| 12.11 | Abandono | Ambas partes | Se detecta por renuncia explícita o por inactividad (sin check-in ni pruebas) pasada la fecha límite; muestra qué se paga, qué se pierde | El prestador puede mostrar avance sustancial y pedir pago parcial al jurado |
 | 12.12 | Reponer la changa | Quien publicó | Dinero restante, hitos pagados en el historial y botón Volver a publicar | La changa vuelve a pública con esos fondos; sin fondos restantes no aparece |
 
 ### Decisiones de diseño
 
 - Los criterios de aceptación se muestran siempre junto a la evidencia, porque el jurado juzga contra lo acordado.
 - La compensación por término sin causa se muestra como monto antes de confirmar; nunca se descuenta por sorpresa.
-- Lo gastado en materiales con comprobante queda para quien publicó; lo no gastado del anticipo se recupera de la garantía del prestador, o queda como deuda que bloquea su cuenta hasta saldarla.
-- Los umbrales de hitos, el tope de anticipo y el porcentaje de compensación se leen del contrato de parámetros.
+- Los umbrales de hitos y el porcentaje de compensación se leen del contrato de parámetros.
 
 ## Preguntas abiertas
 

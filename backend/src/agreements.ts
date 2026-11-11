@@ -140,8 +140,8 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
   if (changa.amount !== null && BigInt(input.price) > BigInt(changa.amount)) return { ok: false, status: 400, error: "price exceeds the deposit" };
 
   const spec = JSON.parse(changa.spec) as Spec;
-  const applied = application.plan ? (JSON.parse(application.plan) as { milestones: Spec["milestones"]; advance: boolean }) : null;
-  const terms = milestoneTerms(applied ? { milestones: applied.milestones, advance: applied.advance } : spec, changa.spec_hash as Hex);
+  const applied = application.plan ? (JSON.parse(application.plan) as { milestones: Spec["milestones"] }) : null;
+  const terms = milestoneTerms(applied ? { milestones: applied.milestones } : spec, changa.spec_hash as Hex);
   const planTotal = applied ? (applied.milestones ?? []).reduce((sum, item) => sum + BigInt(item.amount), 0n) : milestoneTotal(spec);
   if (terms && (input.price !== changa.amount || BigInt(input.price) !== planTotal)) {
     return { ok: false, status: 400, error: "with milestones the price must be the published amount, equal to the sum of the milestones" };
@@ -196,8 +196,8 @@ export async function accept(db: D1Database, chain: AgreementChain, orderId: num
   if (!claimed.meta.changes) return { ok: false, status: 409, error: "the agreement is not pending" };
 
   const changa = await db.prepare("SELECT spec FROM changas WHERE order_id = ?").bind(orderId).first<{ spec: string }>();
-  const planned = row.plan ? (JSON.parse(row.plan) as { milestones: Spec["milestones"]; advance: boolean }) : null;
-  const terms = changa ? milestoneTerms(planned ? { milestones: planned.milestones, advance: planned.advance } : (JSON.parse(changa.spec) as Spec), row.spec_hash as Hex) : null;
+  const planned = row.plan ? (JSON.parse(row.plan) as { milestones: Spec["milestones"] }) : null;
+  const terms = changa ? milestoneTerms(planned ? { milestones: planned.milestones } : (JSON.parse(changa.spec) as Spec), row.spec_hash as Hex) : null;
   const outcome = await chain.agree(agreement, row.payer_signature as Hex, signature, terms ?? undefined);
   if (!outcome.ok) {
     await db.prepare("UPDATE agreements SET status = 'pending', updated_at = ? WHERE order_id = ?").bind(nowSeconds, orderId).run();

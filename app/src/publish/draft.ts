@@ -14,7 +14,7 @@ export const ATTACHMENTS_MAX = 10;
 
 export type Modality = "onsite" | "remote";
 export type Kind = "individual" | "group";
-export type Materials = "payer" | "advance" | "worker";
+export type Materials = "payer" | "worker";
 
 export interface MilestoneDraft {
   name: string;
@@ -43,7 +43,6 @@ export interface Draft {
   kind: Kind;
   fundingDays: number;
   useMilestones: boolean;
-  advance: boolean;
   materials: Materials;
   milestones: MilestoneDraft[];
 }
@@ -64,7 +63,6 @@ export const emptyDraft = (): Draft => ({
   kind: "individual",
   fundingDays: 7,
   useMilestones: false,
-  advance: false,
   materials: "payer",
   milestones: [],
 });
@@ -173,8 +171,7 @@ export function buildSpec(draft: Draft, nonce: string, nowSeconds: number = Math
       criteria: item.criteria.trim(),
       evidence: item.evidence.trim(),
     }));
-    if (draft.advance) spec.advance = true;
-    spec.materials = draft.advance && draft.materials === "payer" ? "advance" : draft.materials;
+    spec.materials = draft.materials;
   }
   if (draft.kind === "group") spec.group = { target: (totalAmount(draft) ?? 0n).toString(), fundingDeadline: groupDeadline(draft.fundingDays, nowSeconds) };
   return spec;

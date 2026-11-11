@@ -151,7 +151,7 @@ En changas de más de 5 días o más de 150 USDC el trabajo se divide en hitos o
 | Terminar sin causa | Compensación adicional chica sobre lo que quedaba |
 | Terminar con causa | Se objeta el hito y decide el jurado |
 
-Materiales: por defecto los compra el solicitante. Puede haber un anticipo acotado (hasta 30% del total, solo para prestadores con al menos 5 changas cerradas sin disputa) con comprobante de cada gasto. Si el prestador abandona, los hitos verificados se pagan, pierde el hito en curso y reputación, y la changa vuelve a publicarse con el dinero restante.
+Materiales: por defecto los compra el solicitante. El anticipo para materiales queda fuera del alcance de esta versión (requiere un diseño con garantía del prestador). Si el prestador abandona, los hitos verificados se pagan, pierde el hito en curso y reputación, y la changa vuelve a publicarse con el dinero restante.
 
 ## Pago en efectivo y comisión
 

@@ -35,7 +35,7 @@ export default function ReceivedApplications() {
 
   const choose = async (application: ReceivedApplication, target: Changa) => {
     if (!address || target.orderId === null) return;
-    const plan = milestoneTerms(application.plan?.milestones ?? target.spec.milestones, application.plan ? application.plan.advance : target.spec.advance, target.specHash as `0x${string}`);
+    const plan = milestoneTerms(application.plan?.milestones ?? target.spec.milestones, target.specHash as `0x${string}`);
     const price = plan ? proposalPrice(null, target.amount) : proposalPrice(application.amount, target.amount);
     if (price === null) return;
     setBusy(application.id);

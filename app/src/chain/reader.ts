@@ -182,7 +182,6 @@ export async function readMilestones(orderId: number) {
     milestones: list.map((item) => ({ amount: item.amount, status: item.status, deliveredAt: item.deliveredAt, evidenceHash: item.evidenceHash })),
     next: plan.next,
     count: plan.count,
-    firstIsAdvance: plan.firstIsAdvance,
     paidTotal: plan.paidTotal,
   };
 }

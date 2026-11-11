@@ -39,11 +39,10 @@ describe("acciones de la changa", () => {
 import { allPaid, boardAction, paidCount } from "../src/lib/board";
 
 describe("tablero de hitos", () => {
-  const board = (statuses: number[], next: number, firstIsAdvance = false) => ({ next, count: statuses.length, firstIsAdvance, milestones: statuses.map((status) => ({ status })) });
+  const board = (statuses: number[], next: number) => ({ next, count: statuses.length, milestones: statuses.map((status) => ({ status })) });
   it("elige la acción según rol y estado del hito actual", () => {
     expect(boardAction(board([0, 0], 0), "payee")).toBe("deliver");
-    expect(boardAction(board([0, 0], 0, true), "payee")).toBe("claim-advance");
-    expect(boardAction(board([2, 0], 1, true), "payee")).toBe("deliver");
+    expect(boardAction(board([2, 0], 1), "payee")).toBe("deliver");
     expect(boardAction(board([1, 0], 0), "payee")).toBe("wait-review");
     expect(boardAction(board([1, 0], 0), "payer")).toBe("review");
     expect(boardAction(board([0, 0], 0), "payer")).toBe("wait-delivery");

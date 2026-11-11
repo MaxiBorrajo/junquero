@@ -40,7 +40,7 @@ export default function Apply() {
     setBusy(true);
     setError(null);
     try {
-      const planBody = change && original.length > 0 ? { plan: { milestones: editable.map((item) => ({ name: item.name.trim(), amount: toMicro(item.amount.trim()).toString(), criteria: item.criteria.trim(), evidence: item.evidence.trim() })), advance: changa.data?.spec.advance === true } } : {};
+      const planBody = change && original.length > 0 ? { plan: { milestones: editable.map((item) => ({ name: item.name.trim(), amount: toMicro(item.amount.trim()).toString(), criteria: item.criteria.trim(), evidence: item.evidence.trim() })) } } : {};
       await api.send("PUT", `/me/applications/${changaId}`, { message: message.trim(), ...(offer.value ? { amount: offer.value } : {}), ...planBody });
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
       if (Platform.OS === "android") ToastAndroid.show(t.apply.sent, ToastAndroid.LONG);

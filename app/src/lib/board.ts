@@ -1,11 +1,10 @@
 import { MilestoneStatus } from "../chain/milestones";
 
-export type BoardAction = "claim-advance" | "deliver" | "wait-review" | "review" | "wait-delivery" | "none";
+export type BoardAction = "deliver" | "wait-review" | "review" | "wait-delivery" | "none";
 
 export interface BoardState {
   next: number;
   count: number;
-  firstIsAdvance: boolean;
   milestones: { status: number }[];
 }
 
@@ -13,7 +12,7 @@ export function boardAction(state: BoardState, role: "payer" | "payee" | "viewer
   if (state.next >= state.count) return "none";
   const current = state.milestones[state.next]?.status;
   if (role === "payee") {
-    if (current === MilestoneStatus.Pending) return state.firstIsAdvance && state.next === 0 ? "claim-advance" : "deliver";
+    if (current === MilestoneStatus.Pending) return "deliver";
     if (current === MilestoneStatus.Delivered) return "wait-review";
   }
   if (role === "payer") {

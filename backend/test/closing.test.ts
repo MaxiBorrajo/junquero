@@ -138,7 +138,7 @@ describe("applicant plan", () => {
 
   it("accepts a proposal that adds up to the published amount and shows it to the owner", async () => {
     const p = await published();
-    const response = await p.ctx.call(`/me/applications/${p.id}`, authed(p.worker.body.token, "PUT", { message: "Ajusté los montos", plan: { milestones: adjusted, advance: false } }));
+    const response = await p.ctx.call(`/me/applications/${p.id}`, authed(p.worker.body.token, "PUT", { message: "Ajusté los montos", plan: { milestones: adjusted } }));
     expect(response.status).toBe(201);
     const list = (await (await p.ctx.call(`/me/changas/${p.id}/applications`, authed(p.payer.body.token, "GET"))).json()) as any;
     expect(list.applications[0].plan.milestones[0].amount).toBe("30000000");
@@ -166,7 +166,8 @@ describe("applicant plan", () => {
 
 describe("materials option in the spec", () => {
   it("accepts the three options and rejects anything else", () => {
-    for (const option of ["payer", "advance", "worker"]) expect(validateSpec(futureSpec("nonce-0001", { materials: option }), now()).ok).toBe(true);
+    for (const option of ["payer", "worker"]) expect(validateSpec(futureSpec("nonce-0001", { materials: option }), now()).ok).toBe(true);
+    expect(validateSpec(futureSpec("nonce-0001", { materials: "advance" }), now()).ok).toBe(false);
     expect(validateSpec(futureSpec("nonce-0001", { materials: "other" }), now()).ok).toBe(false);
     expect(validateSpec(futureSpec("nonce-0001", { materials: 3 }), now()).ok).toBe(false);
   });

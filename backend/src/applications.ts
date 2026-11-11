@@ -11,7 +11,7 @@ export interface ApplicationInput {
   amount: string | null;
   message: string;
   attachments: { hash: string; name: string; mime: string; size: number }[];
-  plan: { milestones: Milestone[]; advance: boolean } | null;
+  plan: { milestones: Milestone[] } | null;
 }
 
 export type ApplicationResult = { ok: true; value: ApplicationInput } | { ok: false; error: string };
@@ -69,11 +69,10 @@ export function validateApplication(input: unknown): ApplicationResult {
   let plan: ApplicationInput["plan"] = null;
   if (raw.plan !== undefined && raw.plan !== null) {
     const body = raw.plan as Record<string, unknown>;
-    if (typeof body !== "object" || Object.keys(body).some((key) => key !== "milestones" && key !== "advance")) return { ok: false, error: "invalid plan" };
+    if (typeof body !== "object" || Object.keys(body).some((key) => key !== "milestones")) return { ok: false, error: "invalid plan" };
     const milestones = parseMilestones(body.milestones);
     if (typeof milestones === "string") return { ok: false, error: milestones };
-    if (body.advance !== undefined && typeof body.advance !== "boolean") return { ok: false, error: "advance must be true or false" };
-    plan = { milestones, advance: body.advance === true };
+    plan = { milestones };
   }
   return { ok: true, value: { amount, message, attachments: parsed, plan } };
 }

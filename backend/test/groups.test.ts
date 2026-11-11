@@ -21,10 +21,10 @@ const plan = [
 ];
 
 describe("spec with milestones and group", () => {
-  it("accepts a plan, an advance flag and a group target that matches the plan", () => {
-    const ok = validateSpec(futureSpec("nonce-0001", { milestones: plan, advance: true, group: { target: "100000000", fundingDeadline: now() + 86400 } }), now());
+  it("accepts a plan and a group target that matches the plan", () => {
+    const ok = validateSpec(futureSpec("nonce-0001", { milestones: plan, group: { target: "100000000", fundingDeadline: now() + 86400 } }), now());
     expect(ok.ok).toBe(true);
-    if (ok.ok) expect(ok.spec).toMatchObject({ advance: true, group: { target: "100000000" } });
+    if (ok.ok) expect(ok.spec).toMatchObject({ group: { target: "100000000" } });
   });
 
   it("rejects malformed plans", () => {
@@ -34,7 +34,7 @@ describe("spec with milestones and group", () => {
     expect(bad({ milestones: [plan[0], { ...plan[1], criteria: "" }] }).ok).toBe(false);
     expect(bad({ milestones: [plan[0], { ...plan[1], extra: 1 }] }).ok).toBe(false);
     expect(bad({ milestones: Array.from({ length: 21 }, () => plan[0]) }).ok).toBe(false);
-    expect(bad({ advance: true }).ok).toBe(false);
+    expect(bad({ milestones: plan, advance: true }).ok).toBe(false);
     expect(bad({ milestones: plan, advance: false }).ok).toBe(false);
     expect(bad({ group: { target: "0", fundingDeadline: now() + 86400 } }).ok).toBe(false);
     expect(bad({ group: { target: "100", fundingDeadline: now() + 10 } }).ok).toBe(false);
@@ -52,11 +52,10 @@ describe("spec with milestones and group", () => {
 
 describe("milestone terms hash", () => {
   it("is deterministic and depends on every part of the plan", () => {
-    const spec = { milestones: plan, advance: false };
+    const spec = { milestones: plan };
     const base = milestoneTermsHash(milestoneTerms(spec, ("0x" + "11".repeat(32)) as Hex)!);
     expect(base).toBe(milestoneTermsHash(milestoneTerms(spec, ("0x" + "11".repeat(32)) as Hex)!));
     expect(milestoneTermsHash(milestoneTerms(spec, ("0x" + "22".repeat(32)) as Hex)!)).not.toBe(base);
-    expect(milestoneTermsHash(milestoneTerms({ ...spec, advance: true }, ("0x" + "11".repeat(32)) as Hex)!)).not.toBe(base);
     expect(milestoneTermsHash(milestoneTerms({ milestones: [plan[0]!, { ...plan[1]!, criteria: "Otra" }] }, ("0x" + "11".repeat(32)) as Hex)!)).not.toBe(base);
     expect(milestoneTerms({}, ("0x" + "11".repeat(32)) as Hex)).toBeNull();
     expect(milestoneTotal(spec)).toBe(100_000_000n);

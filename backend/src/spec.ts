@@ -32,13 +32,12 @@ export interface Spec {
   evidence: string[];
   attachments: Attachment[];
   milestones?: Milestone[];
-  advance?: boolean;
   materials?: Materials;
   group?: GroupPlan;
 }
 
-export type Materials = "payer" | "advance" | "worker";
-const MATERIALS = new Set<string>(["payer", "advance", "worker"]);
+export type Materials = "payer" | "worker";
+const MATERIALS = new Set<string>(["payer", "worker"]);
 
 export interface Milestone {
   name: string;
@@ -55,7 +54,7 @@ export interface GroupPlan {
 export type SpecResult = { ok: true; spec: Spec; canonical: string; hash: Hex } | { ok: false; error: string };
 
 const ALLOWED_KEYS = new Set([
-  "v", "title", "description", "category", "modality", "nonce", "area", "startsAt", "deadline", "durationMin", "evidence", "attachments", "milestones", "advance", "materials", "group",
+  "v", "title", "description", "category", "modality", "nonce", "area", "startsAt", "deadline", "durationMin", "evidence", "attachments", "milestones", "materials", "group",
 ]);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -201,12 +200,8 @@ export function validateSpec(input: unknown, nowSeconds: number): SpecResult {
     if (typeof milestones === "string") return { ok: false, error: milestones };
     spec.milestones = milestones;
   }
-  if (input.advance !== undefined) {
-    if (input.advance !== true || spec.milestones === undefined) return { ok: false, error: "advance is only valid as true together with milestones" };
-    spec.advance = true;
-  }
   if (input.materials !== undefined) {
-    if (typeof input.materials !== "string" || !MATERIALS.has(input.materials)) return { ok: false, error: "materials must be payer, advance or worker" };
+    if (typeof input.materials !== "string" || !MATERIALS.has(input.materials)) return { ok: false, error: "materials must be payer or worker" };
     spec.materials = input.materials as Materials;
   }
   if (input.group !== undefined) {

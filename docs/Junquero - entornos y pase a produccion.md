@@ -44,9 +44,9 @@ Qué hay que guardar:
 
 Las claves de MapTiler y Reown de la app son públicas y están en `app/src/config.ts`.
 
-Propuesta: **Doppler** (plan gratuito) como fuente única. Proyecto `junquero` con tres configuraciones: `dev_local`, `dev` y `prod`.
+Propuesta: **Doppler** (plan gratuito) como fuente única. Proyecto `junquero` con tres configuraciones: `dev_local`, `dev` y `prd`.
 - En cada computadora: instalar la CLI, `doppler login` y `bash scripts/pull-secrets.sh`. Es lo único que hay que repetir.
-- Para la nube: la integración de Doppler con Cloudflare Workers sincroniza los secretos de `dev` y `prod` al Worker correspondiente, así que no se cargan a mano con `wrangler secret put`.
+- Para la nube: la integración de Doppler con Cloudflare Workers sincroniza los secretos de `dev` y `prd` al Worker correspondiente, así que no se cargan a mano con `wrangler secret put`.
 - Alternativa sin servicio externo: archivo cifrado con `sops` y `age` dentro del repositorio. Sigue obligando a copiar la clave `age` entre computadoras.
 - Cloudflare Secrets Store no sirve para esto: solo alimenta a los Workers desplegados, no al desarrollo local.
 
@@ -68,7 +68,7 @@ Hacerlo recién cuando todo ande en dev, con una prueba completa de dos cuentas 
 **Servidor**
 8. En el código el nombre de la cadena está fijo como `sepolia` en varios archivos (`index.ts`, `relayChain.ts`, `agreementChain.ts`, `taskChain.ts`, `contracts.ts` y `agreements.ts`, que importa `sepolia.json`). Pasarlo a una variable de entorno o a un archivo de despliegue por entorno.
 9. Crear con `wrangler` una base D1, un bucket R2 y los Durable Objects nuevos para producción. Agregar un bloque `env.prod` en `backend/wrangler.jsonc` con otro nombre, otros `database_id` y bucket, y sin `assets` para que no sirva el panel.
-10. Aplicar las migraciones, cargar los secretos de `prod` (relayer nuevo con saldo mínimo, `AUTH_SECRET` nuevo) y revisar los límites de uso por IP y por cuenta.
+10. Aplicar las migraciones, cargar los secretos de `prd` (relayer nuevo con saldo mínimo, `AUTH_SECRET` nuevo) y revisar los límites de uso por IP y por cuenta.
 11. Proveedor de RPC: plan que alcance para el indexador y el cron. Medir las llamadas antes (ver el plan de optimización del traspaso).
 12. Alarmas del cron y del saldo del relayer.
 

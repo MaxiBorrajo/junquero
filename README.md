@@ -106,6 +106,10 @@ No hay `.env` que cargar para la app: las claves públicas de MapTiler y Reown e
 - **Secretos del Worker** (ya cargados en producción, no hay que repetirlos): `RPC_URL` (Alchemy), `RELAYER_KEY`, `AUTH_SECRET`. Para correr el Worker en local con la cadena real hace falta `backend/.dev.vars` con esas tres variables (el archivo está ignorado por git).
 - **Contratos**: `contracts/.env` (ignorado por git), plantilla en `contracts/.env.example`. Solo se necesita para volver a desplegar o correr scripts contra Sepolia.
 
+## Entornos
+
+Hay tres: local (tu compu), dev (Cloudflare, Sepolia) y prod (todavía no existe, Arbitrum). Servidor local: `cd backend && npm run dev`. Secretos: `bash scripts/pull-secrets.sh` (Doppler) o copiar `backend/.dev.vars.example`. Detalle y checklist del pase a producción en `docs/Junquero - entornos y pase a produccion.md`.
+
 ## Correr la app en el emulador
 
 Con el emulador ya levantado:

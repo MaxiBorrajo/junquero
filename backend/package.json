@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "bash scripts/dev.sh",
     "deploy": "npm --prefix ../admin run build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

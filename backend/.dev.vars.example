@@ -1,0 +1,8 @@
+# Copiar a .dev.vars (ignorado por git) o bajar de Doppler con scripts/pull-secrets.sh
+# Cadena: Sepolia. Usar una clave de relayer PROPIA de desarrollo local (no la del Worker en Cloudflare),
+# con un poco de ETH de Sepolia, para que los dos no se pisen los nonces.
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/TU_CLAVE
+RELAYER_KEY=0x...
+AUTH_SECRET=cualquier-texto-largo-para-desarrollo
+# Desde donde se abre el panel de admin en local
+ADMIN_ORIGINS=http://localhost:5173

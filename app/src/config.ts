@@ -1,4 +1,5 @@
-export const API_URL = "https://junquero-api.maximilianoborrajo0-5a6.workers.dev";
+// Entorno de nube "dev" por defecto. Para el servidor local: EXPO_PUBLIC_API_URL=http://localhost:8787 (con `adb reverse tcp:8787 tcp:8787` en el emulador).
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://junquero-api.maximilianoborrajo0-5a6.workers.dev";
 export const CHAIN_ID = 11155111;
 export const REOWN_PROJECT_ID = "5995d80fe915656a1300e6eb9768d718";
 export const MAPTILER_KEY = "MWJSJ2vhouwJPYtruSKt";

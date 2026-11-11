@@ -135,6 +135,7 @@ cd app && EXPO_PUBLIC_API_URL=http://localhost:8787 npx expo start --dev-client 
 adb shell am start -a android.intent.action.VIEW -d "exp+junquero://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
 ```
 
+- Tienen que quedar corriendo a la vez: el servidor (`npm run dev` en `backend`), Metro (el `expo start`) y el emulador. El `adb reverse` se repite cada vez que se reinicia el emulador.
 - Sin `EXPO_PUBLIC_API_URL` la app habla con el servidor de dev en Cloudflare.
 - La primera vez hay que instalar la app de desarrollo (sección siguiente) y la base local queda vacía: se carga sola al indexar Sepolia.
 - La `RELAYER_KEY` de `dev_local` tiene que ser una cuenta propia con ETH de Sepolia, distinta de la del Worker en Cloudflare.
@@ -241,6 +242,9 @@ Despliegue y scripts de Sepolia: `contracts/README.md` y `contracts/SECURITY.md`
 
 ## Problemas conocidos del entorno
 
+- `emulator: command not found` o `adb: command not found`: el SDK no está en el `PATH`. Agregar a `~/.bashrc` las variables `ANDROID_HOME` y `PATH` de la sección 4 y abrir una terminal nueva (o `source ~/.bashrc`).
+- La app muestra "unexpected end of stream on http://localhost:8081": Metro no está corriendo (se cerró la terminal o se apretó Ctrl+C). Volver a levantarlo y tocar Reload.
+- La app queda en blanco al abrirla: la primera carga del dev client tarda hasta medio minuto. Si sigue en blanco, `adb shell force-stop app.junquero` y volver a abrirla con el `am start` de arriba.
 - Emulador sin textos en el mapa: está corriendo con `-gpu swiftshader`; usar `-gpu host`.
 - Gradle sin memoria o con un fallo de JIT: revisar los `org.gradle.jvmargs` de arriba.
 - El APK release falla en R8 con `Missing class java.awt.Component` (viene de JNA): agregar `-dontwarn java.awt.**` a `app/android/app/proguard-rules.pro` (la carpeta `android` es generada y hay que repetirlo tras `prebuild`).

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Milestone } from "../src/api/types";
 import { checkContribution, contributionLimits, encodeCreateGroup, encodeObject, encodeContribute, fundingProgress, groupAbi, percentOf, vetoOpen } from "../src/chain/group";
 import { encodeDeliverMilestone, encodeMilestoneQr, encodeReleaseMilestone, milestoneAbi, milestoneReleaseTypedData, parseMilestoneQr } from "../src/chain/milestones";
-import { criteriaHash, milestoneTerms, milestoneTermsHash, milestoneTotal, milestonesRequired } from "../src/chain/terms";
+import { criteriaHash, milestoneTerms, milestoneTermsHash, milestoneTotal, suggestMilestones } from "../src/chain/terms";
 import type { Deployment } from "../src/chain/deployment";
 import { hashTypedData, recoverTypedDataAddress } from "viem";
 
@@ -39,10 +39,11 @@ describe("hash de los términos", () => {
     expect(milestoneTotal(plan)).toBe(100_000_000n);
     expect(criteriaHash(plan[0]!)).toMatch(/^0x[0-9a-f]{64}$/);
   });
-  it("los hitos son obligatorios por monto o por duración", () => {
-    expect(milestonesRequired(150_000_001n, 150_000_000n, 0, 5 * 86400)).toBe(true);
-    expect(milestonesRequired(150_000_000n, 150_000_000n, 5 * 86400, 5 * 86400)).toBe(false);
-    expect(milestonesRequired(10n, 150_000_000n, 6 * 86400, 5 * 86400)).toBe(true);
+  it("sugiere hitos por monto o por duración, sin obligar", () => {
+    expect(suggestMilestones(150_000_001n, 0)).toBe(true);
+    expect(suggestMilestones(150_000_000n, 5 * 86400)).toBe(false);
+    expect(suggestMilestones(10n, 6 * 86400)).toBe(true);
+    expect(suggestMilestones(null, 0)).toBe(false);
   });
 });
 

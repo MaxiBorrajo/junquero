@@ -97,6 +97,7 @@ export default function ChangaDetail() {
       <View style={styles.amountBox}>
         <Text style={text.label}>{t.detail.inEscrow}</Text>
         <Text style={text.amount}>{formatUsdc(changa.amount)}</Text>
+        <Secondary>{spec.milestones && spec.milestones.length > 0 ? t.detail.paymentMilestones : t.detail.paymentSingle}</Secondary>
       </View>
       {spec.description ? <Body>{spec.description}</Body> : null}
       <Section label={t.detail.where}>

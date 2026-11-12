@@ -1,87 +1,87 @@
 {
   "chainId": 11155111,
   "mode": "demo",
-  "governanceHandedOver": true,
+  "governanceHandedOver": false,
   "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
   "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
   "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
-  "startBlock": 12087708,
+  "startBlock": 12115214,
   "contracts": {
     "token": {
-      "address": "0x057Dc87344bB1f7B213433C959B23bAACc711EEA",
-      "block": 12087708
+      "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
+      "block": 12115214
     },
     "forwarder": {
-      "address": "0xdcED2C36F0F1ad8F923427D6cc1010785F9C4F02",
-      "block": 12087710
+      "address": "0xcCB173C2E6AB19421aAC62537cfE752F9258b71d",
+      "block": 12115214
     },
     "parameterRegistry": {
-      "address": "0x2fcf110E95EEaF5a47cB3FC39D1aEB403506632d",
-      "block": 12087711
+      "address": "0x27678b49807A463aDDCB1537919179Bc61bAB7Bd",
+      "block": 12115214
     },
     "treasury": {
-      "address": "0xe51e2C9151E51b23b82C87973F138E6D28b86f0c",
-      "block": 12087712
+      "address": "0x8BC2d64942B3f92266dDb75C372CF32f67b1b2C6",
+      "block": 12115214
     },
     "escrow": {
-      "address": "0x739e7c41627E91F541B7DaCe2D5d3BEb997B0C02",
-      "block": 12087715
+      "address": "0x99C9117F940c0a9f8e9C70971d39B3bB6b5697fe",
+      "block": 12115214
     },
     "orderModule": {
-      "address": "0xbf962dfFa3CdAAA27C27633ed867C807F560ed6d",
-      "block": 12087716
+      "address": "0xf216eA84041c39749F9e95C4Ab29Aa097b34f34f",
+      "block": 12115214
     },
     "cancelModule": {
-      "address": "0x1fd66061e54989C752ed3A0Ca8577279b59B0013",
-      "block": 12087718
+      "address": "0x14751CCe32AC64066F9a9ecF183683c78407bfB9",
+      "block": 12115214
     },
     "adminModule": {
-      "address": "0xCd1919e6872cC7C3EC09A0660B628344b5812Da0",
-      "block": 12087721
+      "address": "0xE8A15faD1152b3204b9E0fdcb7655663A47E55A6",
+      "block": 12115214
     },
     "disputeModule": {
-      "address": "0xb3eb2712F4Df72B292695c21cF1d20Fed76AB7c8",
-      "block": 12087723
+      "address": "0xdfd5556923F72b1A6359dc27B3FDF83453eceecf",
+      "block": 12115215
     },
     "milestoneModule": {
-      "address": "0x0d6BC78989509F8Ae5137c3Ae7061e48205F03Ce",
-      "block": 12087725
+      "address": "0x4b4d934353a60482f3dF0b5d33144CBdeb1D72D0",
+      "block": 12115215
     },
     "groupModule": {
-      "address": "0x7258e30C9C93FED52521112f56aC2951bfD8b321",
-      "block": 12087727
+      "address": "0xf284DD1941f72EcD9061d51a5f085340B8f30949",
+      "block": 12115215
     },
     "witnessModule": {
-      "address": "0xCee94046A8a05C52DBd5d9f57Fed26Ac30a1bd6C",
-      "block": 12087730
+      "address": "0xb01c169d84013d3e84C8a0360319af582fd7653e",
+      "block": 12115215
     },
     "credentials": {
-      "address": "0xfEDF26965237c0c9B868e3097E329d679B88B3ca",
-      "block": 12087780
+      "address": "0xE3189cA53B1e1755D6cEaEa02668aa71C01e9B78",
+      "block": 12115215
     },
     "reputation": {
-      "address": "0x59D53e29f2f3996A3a4561325375ADf5C0B64630",
-      "block": 12087781
+      "address": "0x0fd60Ea175141d302E7Fa4B02A1100ea5456e73C",
+      "block": 12115215
     },
     "receipt": {
-      "address": "0x03976cAa4FC4EE252046693D4f6047f1CB613389",
-      "block": 12087782
+      "address": "0x1661861E25C427d35595a083B9b26420843B1049",
+      "block": 12115216
     },
     "arbitration": {
-      "address": "0x1204d91dcD99e9Fb8928Ccf5c3A7c0EcE837a642",
-      "block": 12087785
+      "address": "0x800408863B0164c57bBB31556A537413F984eB18",
+      "block": 12115216
     },
     "votingWeight": {
-      "address": "0x231bbBa8f9F8926D1eAEa6456391050D68b78296",
-      "block": 12087788
+      "address": "0xFfc450E3Da927BCe02b1e1a7575Ce43B3cE1aB19",
+      "block": 12115216
     },
     "timelock": {
-      "address": "0x74C5e4A76E183cC613de7b59dDae4431b376e7B8",
-      "block": 12087789
+      "address": "0x46F88020eE2657DbF8fA05306EC692994cbA2883",
+      "block": 12115216
     },
     "governor": {
-      "address": "0x397F42FAc34e8a983a3731cE458206fd029D8330",
-      "block": 12087790
+      "address": "0xE3dcC63E136ACD897efD89cECfF666f661BB5F20",
+      "block": 12115216
     }
   },
   "abiDirectory": "deployments/abi",

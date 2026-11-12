@@ -98,7 +98,7 @@ contract Verify is Script {
         _check(config.allowed, "token allowed");
         _check(config.method == DepositMethod.Permit, "token method");
         _check(config.smallMax == 20e6 && config.mediumMax == 300e6, "token size thresholds");
-        _check(config.milestoneAmount == 150e6 && config.witnessAmount == 300e6, "token milestone and witness");
+        _check(config.witnessAmount == 300e6, "token witness");
         _check(config.jurorFee == 1e6, "token juror fee");
     }
 

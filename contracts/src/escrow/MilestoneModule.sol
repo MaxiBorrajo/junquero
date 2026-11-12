@@ -63,7 +63,7 @@ contract MilestoneModule is EscrowStorage {
             list.push(Milestone(terms.amounts[i], MilestoneStatus.Pending, 0, bytes32(0)));
         }
 
-        _agree(agreement, payerSignature, payeeSignature, true);
+        _agree(agreement, payerSignature, payeeSignature);
         emit MilestonesAgreed(agreement.orderId, plan.count, terms.firstIsAdvance);
     }
 

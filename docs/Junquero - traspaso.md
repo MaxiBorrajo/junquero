@@ -59,7 +59,7 @@ Nombre público: Junquero (pájaro *Phleocryptes melanops*). Nombre interno de r
 - Cargo de red al costo, se muestra antes de confirmar; el tesoro lo subsidia con tope en el arranque; en Sepolia es cero.
 - Una moneda por changa, de una lista blanca; sin cambio entre monedas.
 - Tamaños: chica hasta 20 USDC (disputa 50/50 sin jurado), media 20 a 300, alta más de 300.
-- Hitos obligatorios: más de 5 días o más de 150 USDC. Anticipo para materiales: máximo 30% y 5 changas cerradas sin disputa.
+- Hitos opcionales: los elige quien publica, sin umbral de monto ni de plazo. La app lo sugiere en trabajos grandes o largos (más de 150 USDC o más de 5 días) pero no obliga. Anticipo para materiales: máximo 30% y 5 changas cerradas sin disputa.
 - Testigo obligatorio por encima de 300 USDC.
 - Grupal: aportes de 5% a 50% por persona; cada aportante hace su propio depósito y puede retirarse hasta el acuerdo; si vence el plazo sin completar, cada uno recupera lo suyo.
 

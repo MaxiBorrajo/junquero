@@ -22,6 +22,9 @@ export const milestoneTermsHash = (terms: MilestoneTerms): Hex =>
 export const milestoneTotal = (milestones: Milestone[]): bigint => milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n);
 
 
-export function milestonesRequired(price: bigint, milestoneThreshold: bigint, durationSeconds: number, minDurationSeconds: number): boolean {
-  return price > milestoneThreshold || durationSeconds > minDurationSeconds;
+export const SUGGEST_MILESTONES_AMOUNT = 150_000_000n;
+export const SUGGEST_MILESTONES_SECONDS = 5 * 86400;
+
+export function suggestMilestones(price: bigint | null, durationSeconds: number): boolean {
+  return (price !== null && price > SUGGEST_MILESTONES_AMOUNT) || durationSeconds > SUGGEST_MILESTONES_SECONDS;
 }

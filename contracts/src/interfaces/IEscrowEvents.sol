@@ -136,7 +136,6 @@ interface IEscrowEvents {
     error NotArbitration(address caller);
     error DisputeCapReached(uint64 max);
     error InvalidShare(uint16 share);
-    error MilestonesRequired();
     error InvalidMilestones();
     error UseMilestones();
     error MilestonesInProgress();

@@ -15,7 +15,7 @@ Este doc fija qué tipos de changa existen, cómo se prueba cada una y qué regl
 3. Changa grupal: aportes libres con mínimo de 5% y tope de 50% por persona; una objeción con peso suficiente congela el pago.
 4. Vínculos entre partes y jurados: protección probabilística con grafo on-chain, recusación sin causa y pool grande de jurados.
 5. Aprobar es por silencio y no requiere transacción; el gas lo adelanta un relayer y se traslada al usuario como cargo de red. Coordinador opcional en grupos.
-6. Pago por hitos obligatorio sobre cierto umbral, con reglas explícitas para terminar antes de tiempo.
+6. Pago por hitos opcional, con reglas explícitas para terminar antes de tiempo.
 
 Además: categorías de riesgo con adicional que puede pedir el prestador, y la app declarada como intermediaria, sin relación laboral con ninguna de las partes. También se definieron el check-in por cercanía con verificación mutua, los materiales y la reposición ante abandono, y la moderación comunitaria de publicaciones prohibidas.
 
@@ -177,7 +177,7 @@ El relayer es un servidor que envía las transacciones que el usuario firma y pa
 
 ## Changas largas: hitos y término anticipado
 
-En changas largas el trabajo se divide en etapas con monto, criterio de aceptación y evidencia, fijados al acordar y registrados como hash. A partir de cierto umbral de monto o duración (lo fija la DAO) los hitos son obligatorios.
+El trabajo puede dividirse en etapas con monto, criterio de aceptación y evidencia, fijados al acordar y registrados como hash. Los hitos son opcionales: no hay umbral de monto ni de duración, y quien publica decide. La app lo sugiere en trabajos grandes o largos.
 
 **Antes de empezar**
 

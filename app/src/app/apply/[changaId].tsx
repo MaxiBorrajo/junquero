@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Alert, Platform, Text, ToastAndroid, View } from "react-native";
 import { useChangaBySpec } from "../../data/useChangas";
 import { formatUsdc, toMicro } from "../../lib/money";
-import { milestoneTotal } from "../../chain/terms";
+import { milestoneTotal, suggestMilestones } from "../../chain/terms";
 import { colors, text } from "../../theme";
 import { Chip, Row } from "../../components/ui";
 import { router, useLocalSearchParams } from "expo-router";
@@ -57,6 +57,7 @@ export default function Apply() {
     <Screen footer={<Button label={t.apply.send} onPress={submit} loading={busy} disabled={!offer.ok || !planValid} />}>
       <Title>{t.apply.title}</Title>
       <Body>{t.apply.explanation}</Body>
+      {plan !== "1" && changa.data && suggestMilestones(max && /^\d+$/.test(max) ? BigInt(max) : null, (changa.data.spec.deadline ? changa.data.spec.deadline - Math.floor(Date.now() / 1000) : 0)) ? <Secondary>{t.apply.singlePaymentLong}</Secondary> : null}
       {plan === "1" ? null : <Field label={t.apply.amount} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={t.apply.amountPlaceholder} error={amountError} hint={t.apply.amountHint} />}
       <Field label={t.apply.message} value={message} onChangeText={setMessage} multiline maxLength={MESSAGE_MAX} hint={`${message.length}/${MESSAGE_MAX}`} />
       {plan === "1" && original.length > 0 ? (

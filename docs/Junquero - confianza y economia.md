@@ -179,8 +179,8 @@ Una changa es chica cuando arbitrarla cuesta más de lo que vale discutirla. Por
 | Tamaño | Monto | Si hay disputa | Otras reglas |
 | --- | --- | --- | --- |
 | Chica | Hasta 20 USDC | Regla automática, sin jurado | Sin testigo ni hitos |
-| Media | De 20 a 300 USDC | Jurado de 3 | Hitos si dura más de 5 días o supera 150 USDC |
-| Alta | Más de 300 USDC | Jurado de 5 | Testigo y hitos obligatorios |
+| Media | De 20 a 300 USDC | Jurado de 3 | Hitos opcionales (la app los sugiere) |
+| Alta | Más de 300 USDC | Jurado de 5 | Testigo obligatorio; hitos opcionales |
 
 Regla automática en las changas chicas: si el solicitante rechaza la entrega, el prestador cobra 50% y el resto vuelve al solicitante, y cada uno suma una disputa a su historial. El reparto 50/50 deja un incentivo a rechazar para pagar la mitad; se compensa con el registro de disputas en la reputación de cada rol y con un tope de disputas por mes y por cuenta. Los umbrales son hipótesis: dependen del costo real de arbitrar y de los precios de las changas, que no relevamos.
 
@@ -297,7 +297,7 @@ Ninguno sale de datos reales: son valores de partida que se cambian por votació
 | Disputa en una changa chica | Reparto 50/50 automático | Cada disputa queda en la reputación de cada rol |
 | Ventana de espera del prestador | 20 minutos |  |
 | Radio de check-in | 150 metros | El GPS tiene error de decenas de metros, mayor en interiores |
-| Hitos obligatorios | Más de 5 días o más de 150 USDC |  |
+| Hitos | Opcionales, sin umbral; la app los sugiere sobre 5 días o 150 USDC |  |
 | Testigo obligatorio | Más de 300 USDC |  |
 | Tope de anticipo para materiales | 30% del monto total |  |
 | Reputación mínima para anticipo | 5 changas cerradas sin disputa | O una garantía equivalente |

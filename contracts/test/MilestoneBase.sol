@@ -26,11 +26,6 @@ abstract contract MilestoneBase is EscrowBase {
 
     function setUp() public virtual override {
         super.setUp();
-        TokenConfig memory config = escrow.tokenConfig(address(usdc));
-        config.milestoneAmount = uint128(150 * USDC);
-        vm.prank(admin);
-        escrow.configureToken(address(usdc), config);
-
         vm.prank(admin);
         registry.defineParameter(ParameterKeys.REPUTATION_PAIR_CAP, 1, 10, 2);
         reputation = new Reputation(admin, IParameterRegistry(address(registry)));

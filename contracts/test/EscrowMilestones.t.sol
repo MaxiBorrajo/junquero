@@ -46,40 +46,15 @@ contract EscrowMilestonesTest is MilestoneBase {
         escrow.agreeWithMilestones(a, terms, payerSig, payeeSig);
     }
 
-    function _expectPlainAgreeRevert(uint256 orderId, uint256 price, bytes memory reason) internal {
-        Agreement memory a = _agreement(orderId, price);
-        bytes32 structHash = _agreementHash(a);
-        bytes memory payerSig = _sign(payerKey, structHash);
-        bytes memory payeeSig = _sign(payeeKey, structHash);
-        vm.expectRevert(reason);
-        vm.prank(relayer);
-        escrow.agree(a, payerSig, payeeSig);
-    }
-
-    function test_plainAgreementIsRejectedAboveTheMilestoneThreshold() public {
-        uint256 orderId = _createUsdc(200 * USDC);
-        _expectPlainAgreeRevert(orderId, 200 * USDC, abi.encodeWithSelector(IEscrowEvents.MilestonesRequired.selector));
-    }
-
-    function test_plainAgreementIsAllowedAtTheThreshold() public {
-        uint256 orderId = _createUsdc(150 * USDC);
-        _agree(orderId, 150 * USDC);
+    function test_plainAgreementIsAllowedForABigPrice() public {
+        uint256 orderId = _createUsdc(5000 * USDC);
+        _agree(orderId, 5000 * USDC);
         assertEq(uint8(_order(orderId).status), uint8(OrderStatus.Agreed));
     }
 
-    function test_longDurationRequiresMilestonesEvenForSmallPrices() public {
+    function test_plainAgreementIsAllowedForALongDeadline() public {
         CreateParams memory params = _params(address(usdc), 50 * USDC);
-        params.deadline = uint40(block.timestamp + 5 days + 1);
-        DepositAuth memory auth = _permitAuth(50 * USDC);
-        vm.prank(payer);
-        uint256 orderId = escrow.createOrder(params, auth);
-
-        _expectPlainAgreeRevert(orderId, 50 * USDC, abi.encodeWithSelector(IEscrowEvents.MilestonesRequired.selector));
-    }
-
-    function test_exactlyTheMinimumDurationStillAllowsAPlainAgreement() public {
-        CreateParams memory params = _params(address(usdc), 50 * USDC);
-        params.deadline = uint40(block.timestamp + 5 days);
+        params.deadline = uint40(block.timestamp + 120 days);
         DepositAuth memory auth = _permitAuth(50 * USDC);
         vm.prank(payer);
         uint256 orderId = escrow.createOrder(params, auth);

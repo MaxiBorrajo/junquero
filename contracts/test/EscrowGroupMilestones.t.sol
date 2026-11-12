@@ -36,7 +36,7 @@ contract EscrowGroupMilestonesTest is GroupBase {
         assertEq(afterwards[3] - before[3], d);
     }
 
-    function test_aBigGroupOrderStillNeedsMilestones() public {
+    function test_aBigGroupOrderCanAgreeWithoutMilestones() public {
         uint256 orderId = _createGroup(200 * USDC);
         _contribute(orderId, 0, 80 * USDC);
         _contribute(orderId, 1, 60 * USDC);
@@ -49,8 +49,8 @@ contract EscrowGroupMilestonesTest is GroupBase {
         bytes32 structHash = _agreementHash(a);
         bytes memory payerSig = _sign(payerKey, structHash);
         bytes memory payeeSig = _sign(payeeKey, structHash);
-        vm.expectRevert(IEscrowEvents.MilestonesRequired.selector);
         escrow.agree(a, payerSig, payeeSig);
+        assertEq(uint8(_order(orderId).status), uint8(OrderStatus.Agreed));
     }
 
     function test_theMilestoneAgreementAlsoNeedsTheGroupProposal() public {

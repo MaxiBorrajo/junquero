@@ -134,14 +134,6 @@ export const readCommitters = (caseId: number, round: number): Promise<readonly 
 export const readRevealers = (caseId: number, round: number): Promise<readonly Address[]> =>
   readContract(config(), { address: deployment.arbitration, abi: arbitrationAbi, functionName: "revealersOf", args: [BigInt(caseId), round] });
 
-export async function readMilestoneRule(): Promise<{ threshold: bigint; minDuration: bigint }> {
-  const [config, minDuration] = await Promise.all([
-    readContract(config_(), { address: deployment.escrow, abi: escrowAbi, functionName: "tokenConfig", args: [deployment.token] }),
-    readParam("MILESTONE_MIN_DURATION"),
-  ]);
-  return { threshold: config.milestoneAmount, minDuration };
-}
-
 const config_ = () => wagmiAdapter.wagmiConfig;
 
 import { groupAbi } from "./group";

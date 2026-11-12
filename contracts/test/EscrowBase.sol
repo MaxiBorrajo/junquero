@@ -81,7 +81,6 @@ abstract contract EscrowBase is Test {
         registry.defineParameter(ParameterKeys.OBJECTION_MONEY_BPS, 100, 10_000, 2500);
         registry.defineParameter(ParameterKeys.OBJECTION_MIN_PEOPLE, 1, 10, 2);
         registry.defineParameter(ParameterKeys.GROUP_VETO_WINDOW, 1 hours, 7 days, 24 hours);
-        registry.defineParameter(ParameterKeys.MILESTONE_MIN_DURATION, 1 hours, 90 days, 5 days);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_MILESTONE, 1 hours, 14 days, 72 hours);
         registry.defineParameter(ParameterKeys.ADVANCE_MAX_BPS, 0, 5000, 3000);
         registry.defineParameter(ParameterKeys.ADVANCE_MIN_CLOSED_ORDERS, 0, 100, 5);
@@ -122,7 +121,6 @@ abstract contract EscrowBase is Test {
             method: method,
             smallMax: uint128(20 * USDC),
             mediumMax: uint128(300 * USDC),
-            milestoneAmount: type(uint128).max,
             witnessAmount: type(uint128).max,
             reputationMin: uint128(5 * USDC),
             feeFloor: uint128(USDC / 4),

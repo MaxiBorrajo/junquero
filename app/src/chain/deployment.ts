@@ -3,11 +3,11 @@ import { CHAIN_ID } from "../config";
 
 export const deployment = {
   chainId: CHAIN_ID,
-  token: "0x057Dc87344bB1f7B213433C959B23bAACc711EEA" as Address,
-  forwarder: "0xdcED2C36F0F1ad8F923427D6cc1010785F9C4F02" as Address,
-  escrow: "0x739e7c41627E91F541B7DaCe2D5d3BEb997B0C02" as Address,
-  parameterRegistry: "0x2fcf110E95EEaF5a47cB3FC39D1aEB403506632d" as Address,
-  arbitration: "0x1204d91dcD99e9Fb8928Ccf5c3A7c0EcE837a642" as Address,
+  token: "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc" as Address,
+  forwarder: "0xcCB173C2E6AB19421aAC62537cfE752F9258b71d" as Address,
+  escrow: "0x99C9117F940c0a9f8e9C70971d39B3bB6b5697fe" as Address,
+  parameterRegistry: "0x27678b49807A463aDDCB1537919179Bc61bAB7Bd" as Address,
+  arbitration: "0x800408863B0164c57bBB31556A537413F984eB18" as Address,
   tokenName: "USDC",
   tokenPermitVersion: "1",
   tokenDecimals: 6,

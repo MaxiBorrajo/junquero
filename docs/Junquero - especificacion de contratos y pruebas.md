@@ -79,7 +79,7 @@ Todos los contratos con acciones de usuario usan `ERC2771Context` con el `Forwar
 
 ### 3.3 Hitos, anticipo y abandono
 
-- Al acordar, una changa larga (más de `MILESTONE_MIN_DURATION` o más de `milestoneAmount`) exige la lista de hitos: montos que suman el precio, y un hash de criterios y evidencia pedida por hito. Esa lista queda en el `termsHash` firmado; en el contrato se guardan los montos y el estado de cada hito (pendiente, entregado, pagado).
+- Los hitos son opcionales, sin umbral de monto ni de plazo en el contrato. Si se usan, al acordar se exige la lista de hitos: montos que suman el precio, y un hash de criterios y evidencia pedida por hito. Esa lista queda en el `termsHash` firmado; en el contrato se guardan los montos y el estado de cada hito (pendiente, entregado, pagado).
 - `deliverMilestone(orderId, index, evidenceHash)`, `release` por hito (el `Release` suma `milestoneIndex`) y `autoRelease` por hito a las `AUTO_RELEASE_MILESTONE` (72 horas).
 - **Anticipo:** `releaseAdvance(orderId)` entrega al prestador hasta `ADVANCE_MAX_BPS` (30%) al empezar, solo si `Reputation` informa al menos `ADVANCE_MIN_CLOSED_ORDERS` changas cerradas sin disputa. El prestador lo justifica con comprobantes (hash por gasto, off-chain); lo no gastado se descuenta de lo que cobre después.
 - **Término anticipado por el solicitante** (`terminateEarly`): paga los hitos verificados completos, una parte proporcional del hito en curso según la evidencia de avance que el prestador haya registrado, devuelve los hitos sin empezar y cobra la compensación de terminar sin causa (10% de lo que quedaba). Con causa, el solicitante objeta el hito y decide el jurado.

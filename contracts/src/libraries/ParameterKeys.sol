@@ -38,7 +38,6 @@ library ParameterKeys {
     bytes32 internal constant FREE_CANCELS_PER_PAIR_MONTH = keccak256("FREE_CANCELS_PER_PAIR_MONTH");
     bytes32 internal constant ADVANCE_MAX_BPS = keccak256("ADVANCE_MAX_BPS");
     bytes32 internal constant ADVANCE_MIN_CLOSED_ORDERS = keccak256("ADVANCE_MIN_CLOSED_ORDERS");
-    bytes32 internal constant MILESTONE_MIN_DURATION = keccak256("MILESTONE_MIN_DURATION");
     bytes32 internal constant CONTRIBUTION_MIN_BPS = keccak256("CONTRIBUTION_MIN_BPS");
     bytes32 internal constant CONTRIBUTION_MAX_BPS = keccak256("CONTRIBUTION_MAX_BPS");
     bytes32 internal constant OBJECTION_MONEY_BPS = keccak256("OBJECTION_MONEY_BPS");

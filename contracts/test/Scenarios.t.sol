@@ -62,7 +62,6 @@ contract ScenariosTest is Test {
             method: DepositMethod.Permit,
             smallMax: uint128(20 * USDC),
             mediumMax: uint128(300 * USDC),
-            milestoneAmount: uint128(150 * USDC),
             witnessAmount: uint128(300 * USDC),
             reputationMin: uint128(5 * USDC),
             feeFloor: uint128(USDC / 4),

@@ -1612,11 +1612,6 @@
       "internalType": "uint128"
      },
      {
-      "name": "milestoneAmount",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
       "name": "witnessAmount",
       "type": "uint128",
       "internalType": "uint128"
@@ -2093,11 +2088,6 @@
  {
   "type": "error",
   "name": "MilestonesInProgress",
-  "inputs": []
- },
- {
-  "type": "error",
-  "name": "MilestonesRequired",
   "inputs": []
  },
  {
@@ -2910,11 +2900,6 @@
       "internalType": "uint128"
      },
      {
-      "name": "milestoneAmount",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
       "name": "witnessAmount",
       "type": "uint128",
       "internalType": "uint128"
@@ -3228,11 +3213,6 @@
      },
      {
       "name": "mediumMax",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
-      "name": "milestoneAmount",
       "type": "uint128",
       "internalType": "uint128"
      },

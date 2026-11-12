@@ -5,8 +5,8 @@ import { Pressable, Text, View } from "react-native";
 import { Button, Chip, Field, Row, Secondary } from "../../components/ui";
 import { WizardStep } from "../../components/Wizard";
 import { protocolFee } from "../../chain/fee";
-import { milestonesRequired } from "../../chain/terms";
-import { readFeeRule, readMilestoneRule } from "../../chain/reader";
+import { suggestMilestones } from "../../chain/terms";
+import { readFeeRule } from "../../chain/reader";
 import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
 import { EVIDENCE_MAX, FUNDING_DAYS, MAX_MILESTONES, MIN_MILESTONES, emptyMilestone, parseAmount, totalAmount, validateMilestones, validatePrice } from "../../publish/draft";
@@ -18,18 +18,16 @@ export default function PublishPrice() {
   const [touched, setTouched] = useState(false);
   const amount = totalAmount(draft);
   const fee = useQuery({ queryKey: ["feeRule"], queryFn: readFeeRule, staleTime: 5 * 60_000 });
-  const rule = useQuery({ queryKey: ["milestoneRule"], queryFn: readMilestoneRule, staleTime: 5 * 60_000 });
   const feeAmount = amount !== null && fee.data ? protocolFee(amount, fee.data.bps, fee.data.floor, fee.data.cap) : null;
 
   const span = draft.deadline && (draft.startsAt ?? Math.floor(Date.now() / 1000)) ? draft.deadline - Math.floor(Date.now() / 1000) : 0;
-  const required = amount !== null && rule.data ? milestonesRequired(amount, rule.data.threshold, span, Number(rule.data.minDuration)) : false;
-  const useMilestones = draft.useMilestones || required;
-  const errors = touched ? validatePrice(required && !draft.useMilestones ? { ...draft, useMilestones: true } : draft) : {};
+  const useMilestones = draft.useMilestones;
+  const suggest = !useMilestones && suggestMilestones(amount, span);
+  const errors = touched ? validatePrice(draft) : {};
 
   const next = () => {
     setTouched(true);
-    const current = required && !draft.useMilestones ? { ...draft, useMilestones: true } : draft;
-    if (Object.keys(validatePrice(current)).length === 0) router.push("/publish/review");
+    if (Object.keys(validatePrice(draft)).length === 0) router.push("/publish/review");
   };
 
   const setEvidence = (index: number, value: string) => update((d) => ({ ...d, evidence: d.evidence.length === 0 ? [value] : d.evidence.map((item, i) => (i === index ? value : item)) }));
@@ -52,9 +50,10 @@ export default function PublishPrice() {
       <Text style={text.label}>{t.publish.milestonesLabel}</Text>
       <Row>
         <Chip label={t.publish.yes} selected={useMilestones} onPress={() => { const was = useMilestones; toggleMilestones(true); if (!was) router.push("/publish/milestones"); }} />
-        <Chip label={t.publish.no} selected={!useMilestones} onPress={() => !required && toggleMilestones(false)} />
+        <Chip label={t.publish.no} selected={!useMilestones} onPress={() => toggleMilestones(false)} />
       </Row>
-      <Secondary>{required ? t.publish.milestonesRequired : t.publish.milestonesOptional}</Secondary>
+      <Secondary>{t.publish.milestonesOptional}</Secondary>
+      {suggest ? <Secondary style={{ color: colors.error }}>{t.publish.milestonesSuggest}</Secondary> : null}
 
       {useMilestones ? (
         <>

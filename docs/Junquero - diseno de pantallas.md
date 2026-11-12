@@ -24,7 +24,7 @@
 | Plazo de respuesta a un reclamo | 72 horas |
 | Gobernanza | Por rol de contrato; un solo administrador por ahora, sin cambios en las pantallas |
 | Changa grupal | Entra al TP; pantallas 11.1 a 11.13; aportes de 5% a 50%, objeción desde 25% del dinero o dos personas |
-| Hitos | Entran al TP; pantallas 12.1 a 12.12; obligatorios sobre 5 días o 150 USDC |
+| Hitos | Entran al TP; pantallas 12.1 a 12.12; opcionales; la app los sugiere sobre 5 días o 150 USDC |
 
 ## Navegación
 
@@ -349,7 +349,7 @@ Varias personas juntan dinero para un mismo trabajo (arreglar la plaza, pintar e
 
 ## Hitos y término anticipado
 
-Aplica a changas largas: más de 5 días o más de 150 USDC, donde los hitos son obligatorios. Las changas cortas no tienen estas pantallas y no se despiden a mitad: solo se cancelan antes de empezar. Funciona igual en changas individuales y grupales.
+Aplica a las changas con hitos, que son opcionales (la app los sugiere sobre 5 días o 150 USDC). Las changas cortas no tienen estas pantallas y no se despiden a mitad: solo se cancelan antes de empezar. Funciona igual en changas individuales y grupales.
 
 | # | Pantalla | Quién | Qué muestra | Estados y errores |
 | --- | --- | --- | --- | --- |

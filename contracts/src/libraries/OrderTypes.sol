@@ -207,7 +207,6 @@ struct TokenConfig {
     DepositMethod method;
     uint128 smallMax;
     uint128 mediumMax;
-    uint128 milestoneAmount;
     uint128 witnessAmount;
     uint128 reputationMin;
     uint128 feeFloor;

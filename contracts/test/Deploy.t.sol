@@ -75,7 +75,6 @@ contract DeployTest is Test {
 
     function test_milestoneModuleIsRoutedAndItsParametersExist() public view {
         assertTrue(deployment.escrow.moduleOf(IEscrow.agreeWithMilestones.selector) != address(0));
-        assertEq(deployment.registry.get(ParameterKeys.MILESTONE_MIN_DURATION), 5 days);
         assertEq(deployment.registry.get(ParameterKeys.AUTO_RELEASE_MILESTONE), 72 hours);
         assertEq(deployment.registry.get(ParameterKeys.ADVANCE_MAX_BPS), 3000);
         assertEq(deployment.registry.get(ParameterKeys.ADVANCE_MIN_CLOSED_ORDERS), 5);

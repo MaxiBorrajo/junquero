@@ -112,8 +112,8 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: no tiene pin; aparece en la lista de remotas y con el filtro "A distancia".
 
 **2.5 Publicar con hitos** · Rol: Ana
-- [ ] Pasos: monto alto (más de 150 USDC) o plazo largo → armar 2 o más hitos con monto, criterio y evidencia → publicar.
-- Esperado: los montos de los hitos suman el total, de lo contrario no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
+- [ ] Pasos: monto alto (más de 150 USDC) o plazo largo → ver el aviso que sugiere hitos, elegir Sí y armar 2 o más hitos con monto, criterio y evidencia → publicar.
+- Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". Los montos de los hitos suman el total, de lo contrario no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
 
 **2.6 Cancelar una changa abierta** · Rol: Ana
 - [ ] Pasos: cancelar una changa sin postulaciones ni prestador reservado.

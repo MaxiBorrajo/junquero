@@ -120,7 +120,7 @@ contract OrderModule is EscrowStorage {
         external
         nonReentrant
     {
-        _agree(agreement, payerSignature, payeeSignature, false);
+        _agree(agreement, payerSignature, payeeSignature);
     }
 
     function deliver(uint256 orderId, bytes32 evidenceHash) external {

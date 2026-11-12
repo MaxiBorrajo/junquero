@@ -286,20 +286,10 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         return SizeClass.Large;
     }
 
-    function _requiresMilestones(Order storage order, uint128 price) internal view returns (bool) {
-        if (order.mode != PaymentMode.Escrowed) return false;
-        if (price > _tokenConfigs[order.token].milestoneAmount) return true;
-        uint40 deadline = order.deadline;
-        return
-            deadline > block.timestamp
-                && deadline - block.timestamp > registry.get(ParameterKeys.MILESTONE_MIN_DURATION);
-    }
-
     function _agree(
         Agreement calldata agreement,
         bytes calldata payerSignature,
-        bytes calldata payeeSignature,
-        bool milestoned
+        bytes calldata payeeSignature
     ) internal {
         Order storage order = _orders[agreement.orderId];
         OrderStatus status = order.status;
@@ -318,7 +308,6 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         if (escrowed && agreement.price > order.deposited) {
             revert PriceExceedsDeposit(agreement.price, order.deposited);
         }
-        if (!milestoned && _requiresMilestones(order, agreement.price)) revert MilestonesRequired();
         if (order.isGroup) _checkGroupProposal(agreement.orderId, agreement.payee);
 
         bytes32 digest = _hashTypedDataV4(EscrowHashes.hash(agreement));

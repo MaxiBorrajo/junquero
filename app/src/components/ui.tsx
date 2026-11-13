@@ -117,9 +117,19 @@ export function ErrorText({ children }: { children: ReactNode }) {
 export function Field({ label, hint, error, ...input }: TextInputProps & { label: string; hint?: string; error?: string | null }) {
   return (
     <View style={styles.field}>
-      <Text style={text.label}>{label}</Text>
+      {label ? <Text style={text.label}>{label}</Text> : null}
       <TextInput placeholderTextColor={colors.muted} style={[styles.input, input.multiline ? styles.multiline : null, error ? styles.inputError : null]} {...input} />
       {error ? <Text style={styles.fieldError}>{error}</Text> : hint ? <Text style={text.secondary}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+export function Labeled({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <View style={styles.field}>
+      <Text style={text.label}>{label}</Text>
+      {hint ? <Text style={text.secondary}>{hint}</Text> : null}
+      {children}
     </View>
   );
 }

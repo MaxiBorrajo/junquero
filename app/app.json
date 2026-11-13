@@ -10,7 +10,7 @@
     "android": {
       "package": "app.junquero",
       "adaptiveIcon": {
-        "backgroundColor": "#8F2F22",
+        "backgroundColor": "#F4EEE6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -32,7 +32,7 @@
         {
           "backgroundColor": "#F4EEE6",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120
+          "imageWidth": 235
         }
       ],
       [

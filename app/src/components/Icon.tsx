@@ -21,6 +21,7 @@ export const icons = {
   close: [path("M18 6 6 18"), path("m6 6 12 12")],
   calendar: [path("M8 2v4"), path("M16 2v4"), { kind: "rect", x: 3, y: 4, width: 18, height: 18, rx: 2 }, path("M3 10h18")],
   pin: [path("M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"), { kind: "circle", cx: 12, cy: 10, r: 3 }],
+  trash: [path("M3 6h18"), path("M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"), path("M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"), path("M10 11v6"), path("M14 11v6")],
   minus: [path("M5 12h14")],
   plus: [path("M5 12h14"), path("M12 5v14")],
   expand: [path("M8 3H5a2 2 0 0 0-2 2v3"), path("M21 8V5a2 2 0 0 0-2-2h-3"), path("M3 16v3a2 2 0 0 0 2 2h3"), path("M16 21h3a2 2 0 0 0 2-2v-3")],

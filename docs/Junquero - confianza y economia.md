@@ -297,7 +297,7 @@ Ninguno sale de datos reales: son valores de partida que se cambian por votació
 | Disputa en una changa chica | Reparto 50/50 automático | Cada disputa queda en la reputación de cada rol |
 | Ventana de espera del prestador | 20 minutos |  |
 | Radio de check-in | 150 metros | El GPS tiene error de decenas de metros, mayor en interiores |
-| Hitos | Opcionales, sin umbral; la app los sugiere sobre 5 días o 150 USDC |  |
+| Hitos | Opcionales, sin umbral; la app los sugiere sobre 5 días o 500 USDC |  |
 | Testigo obligatorio | Más de 300 USDC |  |
 | Tope de anticipo para materiales | 30% del monto total |  |
 | Reputación mínima para anticipo | 5 changas cerradas sin disputa | O una garantía equivalente |

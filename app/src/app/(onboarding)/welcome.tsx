@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+import { Logo } from "../../components/Logo";
 import { Button, Screen, Secondary } from "../../components/ui";
 import { t } from "../../i18n";
 import { setFirstScreen } from "../../session/intent";
@@ -23,6 +24,7 @@ export default function Welcome() {
       }
     >
       <View style={styles.hero}>
+        <Logo size={140} />
         <Text style={styles.name}>{t.welcome.title}</Text>
         <Secondary style={styles.slogan}>{t.welcome.slogan}</Secondary>
       </View>
@@ -33,5 +35,5 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   hero: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm },
   name: { ...text.title, fontSize: 44, color: colors.brick },
-  slogan: { textAlign: "center", paddingHorizontal: spacing.lg },
+  slogan: { textAlign: "center", paddingHorizontal: spacing.lg, color: colors.ink, fontSize: 15 },
 });

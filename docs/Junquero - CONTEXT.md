@@ -77,7 +77,7 @@ Estándares: EIP-712, EIP-2612 (permit), Permit2, ERC-20 con SafeERC20, Signatur
 - Cancelación: gratis sin prestador reservado; con prestador reservado, gratis dentro de un período de gracia y después una compensación lineal con máximo y tope por moneda; 10% tras acordar (mayoría para el prestador); gratis con 24 horas de anticipación en changas con fecha fija, 2 por mes por cuenta y 1 por mes por pareja.
 - Compensación por no presentarse: 10% del monto.
 - Tamaño de changa: chica hasta 20 USDC (disputa 50/50 automática), media 20 a 300, alta más de 300.
-- Hitos opcionales: los elige quien publica, sin umbral de monto ni de plazo. La app lo sugiere en trabajos grandes o largos (más de 150 USDC o más de 5 días) pero no obliga. Anticipo para materiales: máximo 30%, con 5 changas cerradas sin disputa.
+- Hitos opcionales: los elige quien publica, sin umbral de monto ni de plazo. La app lo sugiere en trabajos grandes o largos (más de 500 USDC o más de 5 días) pero no obliga. Anticipo para materiales: máximo 30%, con 5 changas cerradas sin disputa.
 - Testigo obligatorio: más de 300 USDC.
 - Changa grupal: aportes de 5% a 50% por persona; cada aportante hace su propio depósito (una transacción con permiso firmado, cargo de red a su cargo) y puede retirarse hasta el acuerdo; si vence el plazo sin completar la meta, cada uno recupera lo suyo.
 

@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text } from "react-native";
-import { Button, Chip, ErrorText, Field, Row, Screen, Title } from "../components/ui";
+import { Button, Chip, ErrorText, Field, Labeled, Row, Screen, Title } from "../components/ui";
 import { getFilters, setFilters } from "../data/filterStore";
 import { t } from "../i18n";
 import { noFilters, validateFilters, type Filters } from "../lib/filters";
@@ -36,16 +36,18 @@ export default function FiltersScreen() {
       }
     >
       <Title>{t.filters.title}</Title>
-      <Text style={text.label}>{t.filters.category}</Text>
-      <Row>
-        <Chip label={t.filters.all} selected={draft.category === null} onPress={() => setDraft({ ...draft, category: null })} />
-        {t.publish.categories.map((name, index) => (
-          <Chip key={name} label={name} selected={draft.category === index} onPress={() => setDraft({ ...draft, category: index })} />
-        ))}
-      </Row>
-      <Text style={text.label}>{t.filters.amount}</Text>
+      <Labeled label={t.filters.category}>
+        <Row>
+          <Chip label={t.filters.all} selected={draft.category === null} onPress={() => setDraft({ ...draft, category: null })} />
+          {t.publish.categories.map((name, index) => (
+            <Chip key={name} label={name} selected={draft.category === index} onPress={() => setDraft({ ...draft, category: index })} />
+          ))}
+        </Row>
+      </Labeled>
+      <Labeled label={t.filters.amount}>
       <Field label={t.filters.min} value={draft.minAmount} onChangeText={(minAmount) => setDraft({ ...draft, minAmount })} keyboardType="decimal-pad" />
       <Field label={t.filters.max} value={draft.maxAmount} onChangeText={(maxAmount) => setDraft({ ...draft, maxAmount })} keyboardType="decimal-pad" />
+      </Labeled>
       {touched && !valid ? <ErrorText>{t.filters.invalid}</ErrorText> : null}
     </Screen>
   );

@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Button, Chip, Field, Row, Secondary } from "../../components/ui";
+import { Icon } from "../../components/Icon";
+import { Button, Chip, Field, Labeled, Row, Secondary } from "../../components/ui";
 import { WizardStep } from "../../components/Wizard";
 import { protocolFee } from "../../chain/fee";
 import { suggestMilestones } from "../../chain/terms";
@@ -11,7 +12,7 @@ import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
 import { EVIDENCE_MAX, FUNDING_DAYS, MAX_MILESTONES, MIN_MILESTONES, emptyMilestone, parseAmount, totalAmount, validateMilestones, validatePrice } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
-import { colors, text } from "../../theme";
+import { colors, fonts, text } from "../../theme";
 
 export default function PublishPrice() {
   const { draft, update } = useDraft();
@@ -47,13 +48,19 @@ export default function PublishPrice() {
         />
       ) : null}
 
-      <Text style={text.label}>{t.publish.milestonesLabel}</Text>
-      <Row>
-        <Chip label={t.publish.yes} selected={useMilestones} onPress={() => { const was = useMilestones; toggleMilestones(true); if (!was) router.push("/publish/milestones"); }} />
-        <Chip label={t.publish.no} selected={!useMilestones} onPress={() => toggleMilestones(false)} />
-      </Row>
+      <Labeled label={t.publish.milestonesLabel}>
+        <Row>
+          <Chip label={t.publish.yes} selected={useMilestones} onPress={() => { const was = useMilestones; toggleMilestones(true); if (!was) router.push("/publish/milestones"); }} />
+          <Chip label={t.publish.no} selected={!useMilestones} onPress={() => toggleMilestones(false)} />
+        </Row>
+      </Labeled>
       <Secondary>{t.publish.milestonesOptional}</Secondary>
-      {suggest ? <Secondary style={{ color: colors.error }}>{t.publish.milestonesSuggest}</Secondary> : null}
+      {suggest ? (
+        <Text style={[text.secondary, { color: colors.error }]}>
+          <Text style={{ fontFamily: fonts.semibold }}>{t.publish.milestonesSuggestTitle} </Text>
+          {t.publish.milestonesSuggest}
+        </Text>
+      ) : null}
 
       {useMilestones ? (
         <>
@@ -73,11 +80,12 @@ export default function PublishPrice() {
           })}
           {draft.milestones.length < MIN_MILESTONES || incomplete ? <Button label={t.publish.milestonesLoad} variant="secondary" onPress={() => router.push("/publish/milestones")} /> : null}
           {draft.milestones.length >= MIN_MILESTONES && draft.milestones.length < MAX_MILESTONES ? <Button label={t.publish.addMilestone} variant="secondary" onPress={() => { update((d) => ({ ...d, milestones: [...d.milestones, emptyMilestone()] })); openMilestone(draft.milestones.length); }} /> : null}
-          <Text style={text.label}>{t.publish.materialsLabel}</Text>
-          <Row>
-            <Chip label={t.publish.materialsPayer} selected={draft.materials === "payer"} onPress={() => update({ materials: "payer" })} />
-            <Chip label={t.publish.materialsWorker} selected={draft.materials === "worker"} onPress={() => update({ materials: "worker" })} />
-          </Row>
+          <Labeled label={t.publish.materialsLabel}>
+            <Row>
+              <Chip label={t.publish.materialsPayer} selected={draft.materials === "payer"} onPress={() => update({ materials: "payer" })} />
+              <Chip label={t.publish.materialsWorker} selected={draft.materials === "worker"} onPress={() => update({ materials: "worker" })} />
+            </Row>
+          </Labeled>
           {errors.milestones ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.milestonesError}</Text> : null}
           {errors.amount === "amountMin" ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.amountMinError}</Text> : null}
         </>
@@ -85,25 +93,38 @@ export default function PublishPrice() {
 
       {draft.kind === "group" ? (
         <>
-          <Text style={text.label}>{t.publish.fundingLabel}</Text>
-          <Row>
-            {FUNDING_DAYS.map((days) => (
-              <Chip key={days} label={`${days} ${t.publish.fundingDays}`} selected={draft.fundingDays === days} onPress={() => update({ fundingDays: days })} />
-            ))}
-          </Row>
+          <Labeled label={t.publish.fundingLabel}>
+            <Row>
+              {FUNDING_DAYS.map((days) => (
+                <Chip key={days} label={`${days} ${t.publish.fundingDays}`} selected={draft.fundingDays === days} onPress={() => update({ fundingDays: days })} />
+              ))}
+            </Row>
+          </Labeled>
         </>
       ) : null}
 
       {!useMilestones ? (
         <>
-      <Text style={text.label}>{t.publish.evidenceLabel}</Text>
-      {(draft.evidence.length > 0 ? draft.evidence : [""]).map((item, index, list) => (
-        <View key={index} style={{ gap: 4 }}>
-          <Field label="" value={item} onChangeText={(value) => setEvidence(index, value)} maxLength={120} placeholder={t.publish.evidencePlaceholder} error={index === 0 && errors.evidence === "required" ? t.publish.evidenceRequired : null} />
-          {list.length > 1 ? <Button label={t.publish.evidenceRemove} variant="ghost" onPress={() => update((d) => ({ ...d, evidence: d.evidence.filter((_, i) => i !== index) }))} /> : null}
-        </View>
-      ))}
-      {draft.evidence.length < EVIDENCE_MAX ? <Button label={t.publish.evidenceAdd} variant="ghost" onPress={() => update((d) => ({ ...d, evidence: [...d.evidence, ""] }))} /> : null}
+      <Labeled label={t.publish.evidenceLabel}>
+        {(draft.evidence.length > 0 ? draft.evidence : [""]).map((item, index, list) => (
+          <View key={index} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Field label="" value={item} onChangeText={(value) => setEvidence(index, value)} maxLength={120} placeholder={t.publish.evidencePlaceholder} error={index === 0 && errors.evidence === "required" ? t.publish.evidenceRequired : null} />
+            </View>
+            {list.length > 1 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.publish.evidenceRemove}
+                onPress={() => update((d) => ({ ...d, evidence: d.evidence.filter((_, i) => i !== index) }))}
+                style={{ width: 52, height: 52, borderRadius: 12, borderWidth: 1.5, borderColor: colors.brick, alignItems: "center", justifyContent: "center" }}
+              >
+                <Icon name="trash" size={20} color={colors.brick} />
+              </Pressable>
+            ) : null}
+          </View>
+        ))}
+      </Labeled>
+      {draft.evidence.length < EVIDENCE_MAX ? <Button label={t.publish.evidenceAdd} variant="outline" icon="plus" onPress={() => update((d) => ({ ...d, evidence: [...d.evidence, ""] }))} /> : null}
         </>
       ) : null}
 
@@ -112,7 +133,9 @@ export default function PublishPrice() {
           <Line label={useMilestones ? t.publish.milestonesTotal : t.publish.breakdownAmount} value={formatUsdc(amount.toString())} />
           {feeAmount !== null ? <Line label={t.publish.breakdownFee} value={formatUsdc(feeAmount.toString())} /> : null}
           <Secondary>{t.publish.breakdownFeeNote}</Secondary>
-          <Line label={draft.kind === "group" ? t.publish.targetLabel : t.publish.breakdownTotal} value={formatUsdc(amount.toString())} strong />
+          <View style={{ marginTop: 10 }}>
+            <Line label={draft.kind === "group" ? t.publish.targetLabel : t.publish.breakdownTotal} value={formatUsdc(amount.toString())} strong />
+          </View>
         </View>
       ) : parseAmount(draft.amount) === null && !useMilestones ? null : null}
     </WizardStep>

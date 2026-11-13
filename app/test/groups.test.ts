@@ -40,8 +40,8 @@ describe("hash de los términos", () => {
     expect(criteriaHash(plan[0]!)).toMatch(/^0x[0-9a-f]{64}$/);
   });
   it("sugiere hitos por monto o por duración, sin obligar", () => {
-    expect(suggestMilestones(150_000_001n, 0)).toBe(true);
-    expect(suggestMilestones(150_000_000n, 5 * 86400)).toBe(false);
+    expect(suggestMilestones(500_000_001n, 0)).toBe(true);
+    expect(suggestMilestones(500_000_000n, 5 * 86400)).toBe(false);
     expect(suggestMilestones(10n, 6 * 86400)).toBe(true);
     expect(suggestMilestones(null, 0)).toBe(false);
   });

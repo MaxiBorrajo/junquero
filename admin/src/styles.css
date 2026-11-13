@@ -17,7 +17,9 @@ body { margin: 0; font-family: "Outfit", system-ui, sans-serif; background: var(
 
 .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100%; }
 .sidebar { background: var(--brick); color: var(--white); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
-.sidebar h1 { font-size: 20px; font-weight: 800; margin: 0 8px 16px; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; margin: 0 8px 16px; }
+.sidebar .brand .logo { height: 32px; width: auto; }
+.sidebar h1 { font-size: 20px; font-weight: 800; margin: 0; }
 .sidebar button { background: transparent; border: 0; color: var(--white); text-align: left; padding: 10px 12px; border-radius: 8px; font: inherit; font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .sidebar button[aria-current="page"] { background: rgba(255, 255, 255, 0.16); font-weight: 700; }
 .sidebar button:hover { background: rgba(255, 255, 255, 0.1); }
@@ -57,6 +59,7 @@ textarea { width: 100%; min-height: 70px; resize: vertical; }
 
 .login-wrap { min-height: 100%; display: grid; place-items: center; padding: 16px; }
 .login { width: 100%; max-width: 420px; background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 16px; }
+.login .logo { height: 72px; width: auto; align-self: flex-start; }
 .login h1 { margin: 0; color: var(--brick); font-weight: 800; }
 
 .review { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 24px; align-items: start; }

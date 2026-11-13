@@ -7,7 +7,7 @@ import { VOTE_PAYEE, VOTE_PAYER } from "../../chain/arbitrationAbi";
 import { encodeCommitVote, encodeRevealVote, jurorAction, phaseView, randomHex32, voteCommitment } from "../../chain/jury";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readJurorCase } from "../../chain/reader";
-import { Body, Button, Chip, ErrorText, Row, Screen, Secondary, Title } from "../../components/ui";
+import { Body, Button, Chip, ErrorText, Labeled, Row, Screen, Secondary, Title } from "../../components/ui";
 import { useCaseState } from "../../data/useCases";
 import { EvidenceGallery, useEvidence } from "../../evidence/EvidenceSection";
 import { loadVote, saveVote } from "../../jury/secrets";
@@ -100,11 +100,12 @@ export default function JurorCase() {
 
       {action === "commit-vote" ? (
         <>
-          <Text style={text.label}>{t.jury.voteFor}</Text>
-          <Row>
-            <Chip label={t.jury.partyA} selected={choice === VOTE_PAYER} onPress={() => setChoice(VOTE_PAYER)} />
-            <Chip label={t.jury.partyB} selected={choice === VOTE_PAYEE} onPress={() => setChoice(VOTE_PAYEE)} />
-          </Row>
+          <Labeled label={t.jury.voteFor}>
+            <Row>
+              <Chip label={t.jury.partyA} selected={choice === VOTE_PAYER} onPress={() => setChoice(VOTE_PAYER)} />
+              <Chip label={t.jury.partyB} selected={choice === VOTE_PAYEE} onPress={() => setChoice(VOTE_PAYEE)} />
+            </Row>
+          </Labeled>
           <Button label={t.jury.commitVote} onPress={commit} loading={busy} disabled={choice === null} />
         </>
       ) : null}

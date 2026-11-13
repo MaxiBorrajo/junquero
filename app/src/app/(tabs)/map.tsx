@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { Changa } from "../../api/types";
 import { ChangaCard } from "../../components/ChangaCard";
 import { Icon, type IconName } from "../../components/Icon";
+import { PlaceSearch } from "../../components/PlaceSearch";
 import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
 import { Button, ErrorText, Secondary } from "../../components/ui";
@@ -124,6 +125,7 @@ export default function MapScreen() {
                 "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["get", "size"]],
                 "icon-size": 0.85,
                 "icon-allow-overlap": true,
+                "text-optional": true,
                 "text-field": ["get", "label"],
                 "text-size": 12,
                 "text-font": ["Noto Sans Bold"],
@@ -167,6 +169,7 @@ export default function MapScreen() {
           {remote.data && remote.data.length > 0 ? <Pill icon="globe" label={`${t.map.remoteChip} · ${remote.data.length}`} onPress={() => router.push("/remote")} /> : null}
         </View>
         {mode === "list" ? <SearchField value={query} onChange={setQuery} placeholder={t.map.searchList} /> : null}
+        {mode === "map" ? <PlaceSearch near={center} onSelect={(place) => camera.current?.easeTo({ center: [place.lng, place.lat], zoom: 15, duration: 600 })} /> : null}
         {nearby.isError ? <ErrorText>{t.map.loadError}</ErrorText> : null}
         {mode === "map" && nearby.isSuccess && changas.length === 0 ? (
           <View style={styles.empty}>

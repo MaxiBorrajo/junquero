@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import { Text } from "react-native";
-import { Chip, Button, Row, Secondary } from "../../components/ui";
+import { Chip, Button, Labeled, Row, Secondary } from "../../components/ui";
 import { DateTimeField } from "../../components/DateTimeField";
 import { WizardStep } from "../../components/Wizard";
 import { ZonePicker } from "../../components/ZonePicker";
@@ -46,8 +46,9 @@ export default function PublishWhen() {
     <WizardStep step={2} title={t.publish.whenTitle} onNext={next}>
       {onsite ? (
         <>
-          <Text style={text.label}>{t.publish.wherePoint}</Text>
-          <ZonePicker center={draft.point ?? fallback} radiusM={0} onChange={setPoint} />
+          <Labeled label={t.publish.wherePoint}>
+            <ZonePicker center={draft.point ?? fallback} radiusM={0} onChange={setPoint} />
+          </Labeled>
           <Secondary>{t.publish.wherePrivacy}</Secondary>
           <Button label={t.profile.useMyLocation} variant="ghost" onPress={useMyLocation} />
           {errors.point ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.pointError}</Text> : null}
@@ -56,18 +57,19 @@ export default function PublishWhen() {
         </>
       ) : (
         <>
-          <Text style={text.label}>{t.publish.deadlineLabel}</Text>
-          <DateTimeField value={draft.deadline} onChange={(deadline) => update({ deadline })} />
+          <Labeled label={t.publish.deadlineLabel}>
+            <DateTimeField value={draft.deadline} onChange={(deadline) => update({ deadline })} />
+          </Labeled>
           {errors.deadline ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.dateError}</Text> : null}
         </>
       )}
-      <Text style={text.label}>{t.publish.durationLabel}</Text>
-      <Secondary>{t.publish.durationHint}</Secondary>
-      <Row>
-        {t.publish.durations.map((minutes) => (
-          <Chip key={minutes} label={formatDuration(minutes)} selected={draft.durationMin === minutes} onPress={() => update({ durationMin: draft.durationMin === minutes ? null : minutes })} />
-        ))}
-      </Row>
+      <Labeled label={t.publish.durationLabel} hint={t.publish.durationHint}>
+        <Row>
+          {t.publish.durations.map((minutes) => (
+            <Chip key={minutes} label={formatDuration(minutes)} selected={draft.durationMin === minutes} onPress={() => update({ durationMin: draft.durationMin === minutes ? null : minutes })} />
+          ))}
+        </Row>
+      </Labeled>
     </WizardStep>
   );
 }

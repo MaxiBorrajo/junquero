@@ -5,8 +5,10 @@ import { Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } fr
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "./ui";
 import { Icon } from "./Icon";
+import { PlaceSearch } from "./PlaceSearch";
 import { t } from "../i18n";
 import { MAP_STYLE_URL } from "../config";
+import type { Place } from "../lib/geocode";
 import { circlePolygon, distanceM, type LatLng } from "../lib/geo";
 import { colors, radius, spacing } from "../theme";
 
@@ -19,13 +21,13 @@ export function ZonePicker({ center, radiusM, onChange, height = 300 }: { center
   const [full, setFull] = useState(false);
   return (
     <View style={[styles.frame, { height }]}>
-      <ZoneMap center={center} radiusM={radiusM} onChange={onChange} style={styles.map} />
+      <ZoneMap center={center} radiusM={radiusM} onChange={onChange} style={styles.map} searchStyle={styles.searchWithExpand} />
       <Pressable accessibilityRole="button" accessibilityLabel={t.common.fullScreen} onPress={() => setFull(true)} style={styles.expand}>
         <Icon name="expand" size={20} color={colors.ink} />
       </Pressable>
       <Modal visible={full} animationType="slide" onRequestClose={() => setFull(false)} statusBarTranslucent>
         <View style={styles.full}>
-          {full ? <ZoneMap center={center} radiusM={radiusM} onChange={onChange} style={styles.map} /> : null}
+          {full ? <ZoneMap center={center} radiusM={radiusM} onChange={onChange} style={styles.map} searchStyle={styles.searchFull} /> : null}
           <SafeAreaView style={styles.done} pointerEvents="box-none">
             <Button label={t.common.done} onPress={() => setFull(false)} />
           </SafeAreaView>
@@ -35,7 +37,7 @@ export function ZonePicker({ center, radiusM, onChange, height = 300 }: { center
   );
 }
 
-function ZoneMap({ center, radiusM, onChange, style }: { center: LatLng; radiusM: number; onChange: (center: LatLng) => void; style: StyleProp<ViewStyle> }) {
+function ZoneMap({ center, radiusM, onChange, style, searchStyle }: { center: LatLng; radiusM: number; onChange: (center: LatLng) => void; style: StyleProp<ViewStyle>; searchStyle?: StyleProp<ViewStyle> }) {
   const camera = useRef<CameraRef>(null);
   const reported = useRef<LatLng>(center);
   const area = useMemo(() => circlePolygon(center, Math.max(radiusM, 1)), [center, radiusM]);
@@ -49,6 +51,12 @@ function ZoneMap({ center, radiusM, onChange, style }: { center: LatLng; radiusM
   useEffect(() => {
     if (radiusM > 0) camera.current?.easeTo({ center: [reported.current.lng, reported.current.lat], zoom: zoomForRadius(radiusM), duration: 300 });
   }, [radiusM]);
+
+  const pickPlace = (place: Place) => {
+    reported.current = { lat: place.lat, lng: place.lng };
+    camera.current?.easeTo({ center: [place.lng, place.lat], zoom: radiusM > 0 ? zoomForRadius(radiusM) : 15, duration: 500 });
+    onChange({ lat: place.lat, lng: place.lng });
+  };
 
   const onRegionChange = (event: NativeSyntheticEvent<ViewStateChangeEvent>) => {
     if (!event.nativeEvent.userInteraction) return;
@@ -71,6 +79,9 @@ function ZoneMap({ center, radiusM, onChange, style }: { center: LatLng; radiusM
       <View style={styles.pin} pointerEvents="none">
         <Icon name="pin" size={PIN_SIZE} color={colors.brick} />
       </View>
+      <View style={[styles.search, searchStyle]}>
+        <PlaceSearch near={center} limit={4} onSelect={pickPlace} />
+      </View>
     </View>
   );
 }
@@ -81,5 +92,8 @@ const styles = StyleSheet.create({
   full: { flex: 1, backgroundColor: colors.map },
   done: { position: "absolute", left: 0, right: 0, bottom: 0, padding: spacing.md },
   expand: { position: "absolute", top: spacing.sm, right: spacing.sm, width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.white, alignItems: "center", justifyContent: "center" },
+  search: { position: "absolute", top: spacing.sm, left: spacing.sm, right: spacing.sm },
+  searchWithExpand: { right: spacing.sm + 40 + spacing.sm },
+  searchFull: { top: 48 },
   pin: { position: "absolute", top: "50%", left: "50%", marginLeft: -PIN_SIZE / 2, marginTop: -PIN_SIZE, width: PIN_SIZE, height: PIN_SIZE },
 });

@@ -47,7 +47,7 @@ Una misma persona puede ser solicitante, prestador, testigo o jurado en distinta
 | Modalidad | Presencial o a distancia | La presencial aparece como pin en el mapa y usa check-in y QR. La remota no tiene pin ni check-in: se ve con un chip "A distancia" que abre la lista, la evidencia son entregables con su hash, no usa QR y se libera con "Está todo bien" o por liberación automática, con hasta 2 pedidos de cambios |
 | Pago | Por la plataforma o en efectivo | Ver Pago en efectivo y comisión |
 | Tamaño | Chica (hasta 20 USDC), media (20 a 300) o alta (más de 300) | Define cómo se resuelve una disputa y si hace falta testigo |
-| Duración | Corta o larga | Quien publica decide si divide en hitos; la app lo sugiere sobre 5 días o 150 USDC |
+| Duración | Corta o larga | Quien publica decide si divide en hitos; la app lo sugiere sobre 5 días o 500 USDC |
 | Autoría | Individual o grupal | Ver Changa individual y grupal |
 
 ## Ciclo de vida de una changa
@@ -141,7 +141,7 @@ Si el solicitante no responde, el pago se libera solo a las 24 horas en changas 
 
 ## Changas largas: hitos y término anticipado
 
-Quien publica puede dividir el trabajo en hitos; es opcional y no hay umbral de monto ni de plazo. La app lo sugiere en trabajos de más de 5 días o más de 150 USDC, y cada changa muestra si el pago es por hitos o único. Cada hito tiene monto, criterio de aceptación verificable (por ejemplo, "pared lisa y pintada en dos manos") y evidencia pedida, y se fija al acordar, registrado como hash. El jurado juzga contra lo acordado. Las changas cortas no se dan por terminadas a mitad: solo se cancelan antes de empezar.
+Quien publica puede dividir el trabajo en hitos; es opcional y no hay umbral de monto ni de plazo. La app lo sugiere en trabajos de más de 5 días o más de 500 USDC, y cada changa muestra si el pago es por hitos o único. Cada hito tiene monto, criterio de aceptación verificable (por ejemplo, "pared lisa y pintada en dos manos") y evidencia pedida, y se fija al acordar, registrado como hash. El jurado juzga contra lo acordado. Las changas cortas no se dan por terminadas a mitad: solo se cancelan antes de empezar.
 
 | Si el solicitante termina a mitad de camino | Regla |
 | --- | --- |

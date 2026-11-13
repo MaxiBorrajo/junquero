@@ -95,24 +95,24 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 ## 2. Publicar y explorar
 
 **2.1 Publicar changa individual presencial** · Rol: Ana
-- [ ] Pasos: Publicar → completar los cinco pasos (qué necesitás, dónde y cuándo, fotos, cuánto pagás, revisar) → firmar el permiso del depósito → publicar.
+- [ x ] Pasos: Publicar → completar los cinco pasos (qué necesitás, dónde y cuándo, fotos, cuánto pagás, revisar) → firmar el permiso del depósito → publicar.
 - Esperado: el saldo de Ana baja por el monto más la comisión. La changa aparece en el mapa con un pin de precio. Pasa de "borrador" a abierta cuando el indexador ve el depósito.
 - Observaciones: _
 
 **2.2 Borrador y reanudación** · Rol: Ana
-- [ ] Pasos: empezar a publicar, salir de la app a mitad, volver.
+- [ x ] Pasos: empezar a publicar, salir de la app a mitad, volver.
 - Esperado: el borrador se conserva y se puede retomar.
 
 **2.3 Explorar sin sesión y con sesión** · Rol: invitado y Beto
-- [ ] Pasos: "Mirar el mapa primero" → mapa, lista, buscador y filtros.
+- [ x ] Pasos: "Mirar el mapa primero" → mapa, lista, buscador y filtros.
 - Esperado: se ven las changas abiertas sin necesidad de ingresar. Para postularse pide ingresar.
 
 **2.4 Changa a distancia** · Rol: Ana
-- [ ] Pasos: publicar eligiendo "A distancia" (sin ubicación, con plazo de entrega).
+- [ x ] Pasos: publicar eligiendo "A distancia" (sin ubicación, con plazo de entrega).
 - Esperado: no tiene pin; aparece en la lista de remotas y con el filtro "A distancia".
 
 **2.5 Publicar con hitos** · Rol: Ana
-- [ ] Pasos: monto alto (más de 150 USDC) o plazo largo → ver el aviso que sugiere hitos, elegir Sí y armar 2 o más hitos con monto, criterio y evidencia → publicar.
+- [ x ] Pasos: monto alto (más de 500 USDC) o plazo largo → ver el aviso que sugiere hitos, elegir Sí y armar 2 o más hitos con monto, criterio y evidencia → publicar.
 - Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". Los montos de los hitos suman el total, de lo contrario no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
 
 **2.6 Cancelar una changa abierta** · Rol: Ana

@@ -49,6 +49,7 @@ function Login() {
   return (
     <div className="login-wrap">
     <div className="login">
+      <img className="logo" src="/logo.svg" alt="" />
       <h1>Junquero</h1>
       <div>Panel de administración. Ingresá con la billetera autorizada y firmá el mensaje para confirmar que sos vos.</div>
       {error ? <div className="error">{error}</div> : null}
@@ -70,7 +71,10 @@ function Panel() {
   return (
     <div className="layout">
       <nav className="sidebar">
-        <h1>Junquero</h1>
+        <div className="brand">
+          <img className="logo" src="/logo.svg" alt="" />
+          <h1>Junquero</h1>
+        </div>
         {PAGES.map((item) => (
           <button key={item.id} aria-current={page === item.id ? "page" : undefined} onClick={() => setPage(item.id)}>
             {item.label}

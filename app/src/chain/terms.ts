@@ -22,7 +22,7 @@ export const milestoneTermsHash = (terms: MilestoneTerms): Hex =>
 export const milestoneTotal = (milestones: Milestone[]): bigint => milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n);
 
 
-export const SUGGEST_MILESTONES_AMOUNT = 150_000_000n;
+export const SUGGEST_MILESTONES_AMOUNT = 500_000_000n;
 export const SUGGEST_MILESTONES_SECONDS = 5 * 86400;
 
 export function suggestMilestones(price: bigint | null, durationSeconds: number): boolean {

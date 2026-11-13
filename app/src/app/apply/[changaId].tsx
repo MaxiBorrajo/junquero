@@ -4,7 +4,7 @@ import { useChangaBySpec } from "../../data/useChangas";
 import { formatUsdc, toMicro } from "../../lib/money";
 import { milestoneTotal, suggestMilestones } from "../../chain/terms";
 import { colors, text } from "../../theme";
-import { Chip, Row } from "../../components/ui";
+import { Chip, Labeled, Row } from "../../components/ui";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ApiError } from "../../api/client";
@@ -62,11 +62,12 @@ export default function Apply() {
       <Field label={t.apply.message} value={message} onChangeText={setMessage} multiline maxLength={MESSAGE_MAX} hint={`${message.length}/${MESSAGE_MAX}`} />
       {plan === "1" && original.length > 0 ? (
         <>
-          <Text style={text.label}>{t.planChange.toggle}</Text>
-          <Row>
-            <Chip label={t.publish.yes} selected={change} onPress={() => setChange(true)} />
-            <Chip label={t.publish.no} selected={!change} onPress={() => setChange(false)} />
-          </Row>
+          <Labeled label={t.planChange.toggle}>
+            <Row>
+              <Chip label={t.publish.yes} selected={change} onPress={() => setChange(true)} />
+              <Chip label={t.publish.no} selected={!change} onPress={() => setChange(false)} />
+            </Row>
+          </Labeled>
           {change ? (
             <>
               <Secondary>{t.planChange.note}</Secondary>

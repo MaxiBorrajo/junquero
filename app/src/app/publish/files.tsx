@@ -1,10 +1,11 @@
+import { File } from "expo-file-system";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Linking, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { ChoiceSheet } from "../../components/ChoiceSheet";
-import { ImageViewer } from "../../components/ImageViewer";
 import type { Attachment } from "../../api/types";
 import { AttachmentTile } from "../../components/AttachmentTile";
+import { useAttachmentViewer } from "../../components/useAttachmentViewer";
 import { Body, Button, ErrorText, Secondary } from "../../components/ui";
 import { WizardStep } from "../../components/Wizard";
 import { t } from "../../i18n";
@@ -16,43 +17,45 @@ import { previewFor, rememberPreview } from "../../publish/previews";
 import { useSession } from "../../session/SessionProvider";
 import { spacing } from "../../theme";
 
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
+
 export default function PublishFiles() {
   const { draft, update } = useDraft();
   const { api } = useSession();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"media" | "document" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState(false);
-  const [viewing, setViewing] = useState<string | null>(null);
+  const attachmentViewer = useAttachmentViewer();
   const room = ATTACHMENTS_MAX - draft.attachments.length;
 
-  const upload = async (files: PickedFile[]) => {
-    setBusy(true);
+  const upload = async (files: PickedFile[], kind: "media" | "document") => {
+    setBusy(kind);
     setError(null);
-    try {
-      const added: Attachment[] = [];
-      for (const file of files.slice(0, room)) {
+    const added: Attachment[] = [];
+    let tooBig = 0;
+    let failed = 0;
+    for (const file of files.slice(0, room)) {
+      try {
+        if (new File(file.uri).size > MAX_FILE_BYTES) {
+          tooBig += 1;
+          continue;
+        }
         const bytes = await readBytes(file.uri);
         const uploaded = await uploadBytes(api, "/me/files", bytes, file.mime);
         rememberPreview(`0x${uploaded.hash}`, file.uri);
         added.push({ hash: `0x${uploaded.hash}`, name: file.name, mime: file.mime, size: bytes.byteLength });
+      } catch {
+        failed += 1;
       }
-      update((d) => ({ ...d, attachments: [...d.attachments, ...added] }));
-    } catch {
-      setError(t.publish.uploadFailed);
-    } finally {
-      setBusy(false);
     }
+    if (added.length > 0) update((d) => ({ ...d, attachments: [...d.attachments, ...added] }));
+    setError(tooBig > 0 ? t.publish.fileTooBig(tooBig) : failed > 0 ? t.publish.uploadFailed : null);
+    setBusy(null);
   };
 
-  const fromCamera = async () => upload(await takeMedia());
-  const fromGallery = async () => upload(await pickMedia(room));
-  const fromDocuments = async () => upload(await pickDocuments());
-
-  const open = (mime: string, uri?: string) => {
-    if (!uri) return;
-    if (mime.startsWith("image/")) setViewing(uri);
-    else void Linking.openURL(uri).catch(() => undefined);
-  };
+  const fromCamera = async () => upload(await takeMedia(), "media");
+  const fromGallery = async () => upload(await pickMedia(room), "media");
+  const fromDocuments = async () => upload(await pickDocuments(), "document");
 
   const remove = (hash: string) => update((d) => ({ ...d, attachments: d.attachments.filter((item) => item.hash !== hash) }));
 
@@ -61,7 +64,7 @@ export default function PublishFiles() {
       <Body>{t.publish.filesWarning}</Body>
       <View style={styles.grid}>
         {draft.attachments.map((file) => (
-          <AttachmentTile key={file.hash} name={file.name} mime={file.mime} uri={previewFor(file.hash)} onRemove={() => remove(file.hash)} onOpen={() => open(file.mime, previewFor(file.hash))} />
+          <AttachmentTile key={file.hash} name={file.name} mime={file.mime} uri={previewFor(file.hash)} onRemove={() => remove(file.hash)} onOpen={() => { const uri = previewFor(file.hash); if (uri) attachmentViewer.open({ uri, mime: file.mime, name: file.name }); }} />
         ))}
       </View>
       <ChoiceSheet
@@ -72,10 +75,10 @@ export default function PublishFiles() {
           { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void fromGallery() },
         ]}
       />
-      <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
+      {attachmentViewer.viewer}
       {room <= 0 ? <Secondary>{t.publish.maxFiles}</Secondary> : null}
-      <Button label={t.publish.addPhotos} variant="secondary" onPress={() => setSheet(true)} loading={busy} disabled={room <= 0} />
-      <Button label={t.publish.addDocument} variant="secondary" onPress={fromDocuments} disabled={busy || room <= 0} />
+      <Button label={t.publish.addPhotos} variant="secondary" icon="image" onPress={() => setSheet(true)} loading={busy === "media"} disabled={busy !== null || room <= 0} />
+      <Button label={t.publish.addDocument} variant="secondary" icon="file" onPress={fromDocuments} loading={busy === "document"} disabled={busy !== null || room <= 0} />
       {error ? <ErrorText>{error}</ErrorText> : null}
     </WizardStep>
   );

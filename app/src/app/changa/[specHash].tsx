@@ -2,13 +2,13 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { deployment } from "../../chain/deployment";
 import { encodeCancel, sendViaRelay } from "../../chain/orderActions";
 import { readForwarderNonce } from "../../chain/reader";
 import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
 import { Icon } from "../../components/Icon";
-import { ImageViewer } from "../../components/ImageViewer";
+import { useAttachmentViewer } from "../../components/useAttachmentViewer";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
 import { API_URL } from "../../config";
 import { useChangaBySpec } from "../../data/useChangas";
@@ -43,7 +43,7 @@ export default function ChangaDetail() {
   const cancelling = useCancelling();
   const switchAccount = useSwitchAccount();
   const query = useChangaBySpec(String(specHash));
-  const [viewing, setViewing] = useState<string | null>(null);
+  const attachmentViewer = useAttachmentViewer();
 
   if (query.isLoading) {
     return (
@@ -149,24 +149,27 @@ export default function ChangaDetail() {
       {spec.attachments.length > 0 ? (
         <Section label={t.detail.attachments}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
-            {spec.attachments.map((file) =>
-              file.mime.startsWith("image/") ? (
-                <Pressable key={file.hash} accessibilityRole="imagebutton" onPress={() => setViewing(fileUrl(changa.owner, file.hash))}>
-                  <Image source={{ uri: fileUrl(changa.owner, file.hash) }} style={styles.thumb} contentFit="cover" />
+            {spec.attachments.map((file) => {
+              const uri = fileUrl(changa.owner, file.hash);
+              return (
+                <Pressable key={file.hash} accessibilityRole="button" onPress={() => attachmentViewer.open({ uri, mime: file.mime, name: file.name })} style={file.mime.startsWith("image/") ? undefined : [styles.thumb, styles.fileTile]}>
+                  {file.mime.startsWith("image/") ? (
+                    <Image source={{ uri }} style={styles.thumb} contentFit="cover" />
+                  ) : (
+                    <>
+                      <Icon name={file.mime.startsWith("video/") ? "play" : "file"} size={28} color={colors.brick} />
+                      <Text style={[text.secondary, styles.fileName]} numberOfLines={2}>
+                        {file.name}
+                      </Text>
+                    </>
+                  )}
                 </Pressable>
-              ) : (
-                <Pressable key={file.hash} accessibilityRole="link" onPress={() => void Linking.openURL(fileUrl(changa.owner, file.hash))} style={[styles.thumb, styles.fileTile]}>
-                  <Icon name="file" size={28} color={colors.brick} />
-                  <Text style={[text.secondary, styles.fileName]} numberOfLines={2}>
-                    {file.name}
-                  </Text>
-                </Pressable>
-              ),
-            )}
+              );
+            })}
           </ScrollView>
         </Section>
       ) : null}
-      <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
+      {attachmentViewer.viewer}
       {groupButton && changa.status === "open" ? groupButton : null}
       {block !== "anonymous" && block !== "own" ? <Button label={t.report.changa} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } })} /> : null}
       {isOwner && !isCancelling && changa.status === "open" && changa.orderId !== null ? (

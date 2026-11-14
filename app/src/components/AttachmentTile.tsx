@@ -14,7 +14,7 @@ export function AttachmentTile({ name, mime, uri, onRemove, onOpen }: { name: st
         <Image source={{ uri }} style={styles.fill} contentFit="cover" />
       ) : (
         <View style={[styles.fill, styles.generic]}>
-          <Icon name={mime.startsWith("video/") ? "camera" : "file"} size={28} color={colors.brick} />
+          <Icon name={mime.startsWith("video/") ? "play" : "file"} size={28} color={colors.brick} />
           <Text style={[text.secondary, styles.name]} numberOfLines={2}>
             {name}
           </Text>

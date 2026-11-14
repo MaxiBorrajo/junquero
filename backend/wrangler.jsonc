@@ -23,5 +23,5 @@
     { "name": "AUTH_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
     { "name": "WRITE_LIMITER", "namespace_id": "1004", "simple": { "limit": 20, "period": 60 } }
   ],
-  "vars": { "CONFIRMATIONS": "2", "BLOCK_CHUNK": "10", "CHUNKS_PER_RUN": "6", "TASK_BATCH": "40", "TASK_MAX_SENDS": "5", "REQUIRE_VERIFIED_APPLICANT": "false", "ADMIN_ADDRESSES": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511" }
+  "vars": { "CONFIRMATIONS": "2", "HOOK_CONFIRMATIONS": "0", "BLOCK_CHUNK": "10", "CHUNKS_PER_RUN": "6", "TASK_BATCH": "40", "TASK_MAX_SENDS": "5", "REQUIRE_VERIFIED_APPLICANT": "false", "ADMIN_ADDRESSES": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511" }
 }

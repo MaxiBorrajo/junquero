@@ -6,3 +6,6 @@ RELAYER_KEY=0x...
 AUTH_SECRET=cualquier-texto-largo-para-desarrollo
 # Desde donde se abre el panel de admin en local
 ADMIN_ORIGINS=http://localhost:5173
+
+# Clave de firma del webhook de Alchemy (Notify > Address Activity); sin ella /hooks/chain responde 503
+ALCHEMY_WEBHOOK_SIGNING_KEY=

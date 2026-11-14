@@ -9,6 +9,7 @@ import type { Env } from "./env";
 import { processEvents } from "./eventStream";
 import { runIndexerRounds, type ChainClient } from "./indexer";
 import { purgeOrphanFiles } from "./files";
+import { hasNoLogs, verifySignature, withSyncLock } from "./hook";
 import { isPurgeMinute, purgeOldLogs } from "./maintenance";
 import { deliverDue, notificationsHandler, purgeSentNotifications } from "./notifications";
 import { createPublicClient, http } from "viem";
@@ -32,8 +33,24 @@ function chainClient(rpcUrl: string): ChainClient {
 
 const changasHandler = createChangasHandler(deployedTokenDecimals);
 
-async function processAndRun(env: Env, nowSeconds: number): Promise<void> {
-  await processEvents(env.DB, [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler], EVENT_SCAN_LIMIT);
+const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler];
+
+// Indexa la cadena y después arma las tablas de consulta con los eventos nuevos, en ese orden y de una sola vez.
+async function syncChain(env: Env, confirmations: number): Promise<void> {
+  await withSyncLock(env.DB, Date.now(), async () => {
+    const options = {
+      contracts: indexedContracts,
+      startBlock,
+      confirmations,
+      chunk: Number(env.BLOCK_CHUNK),
+      maxBlocksWithLogs: MAX_BLOCKS_WITH_LOGS,
+    };
+    await runIndexerRounds(env.DB, chainClient(env.RPC_URL), options, Number(env.CHUNKS_PER_RUN));
+    await processEvents(env.DB, projections, EVENT_SCAN_LIMIT);
+  });
+}
+
+async function runRobot(env: Env, nowSeconds: number): Promise<void> {
   if (!env.RELAYER_KEY) return;
   const options = {
     batchSize: Number(env.TASK_BATCH),
@@ -44,24 +61,29 @@ async function processAndRun(env: Env, nowSeconds: number): Promise<void> {
   await runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY), options, nowSeconds);
 }
 
+async function chainHook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (!env.ALCHEMY_WEBHOOK_SIGNING_KEY) return new Response("hook not configured", { status: 503 });
+  const body = await request.text();
+  if (!(await verifySignature(body, env.ALCHEMY_WEBHOOK_SIGNING_KEY, request.headers.get("x-alchemy-signature")))) return new Response("invalid signature", { status: 401 });
+  if (hasNoLogs(body)) return new Response("ok");
+  ctx.waitUntil(syncChain(env, Number(env.HOOK_CONFIRMATIONS ?? "0")).catch((error) => console.error("hook sync failed", error)));
+  return new Response("ok");
+}
+
 export { ChatRoom } from "./chatRoom";
 
 export default {
-  fetch: app.fetch,
+  fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    if (request.method === "POST" && new URL(request.url).pathname === "/hooks/chain") return chainHook(request, env, ctx);
+    return app.fetch(request, env, ctx);
+  },
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const nowSeconds = Math.floor(event.scheduledTime / 1000);
     if (isPurgeMinute(event.scheduledTime)) {
       ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds), purgeSentNotifications(env.DB, nowSeconds, 7 * 24 * 3600), purgeAgreements(env.DB, nowSeconds), purgeReleases(env.DB, nowSeconds)]));
     }
-    const options = {
-      contracts: indexedContracts,
-      startBlock,
-      confirmations: Number(env.CONFIRMATIONS),
-      chunk: Number(env.BLOCK_CHUNK),
-      maxBlocksWithLogs: MAX_BLOCKS_WITH_LOGS,
-    };
-    ctx.waitUntil(runIndexerRounds(env.DB, chainClient(env.RPC_URL), options, Number(env.CHUNKS_PER_RUN)));
+    ctx.waitUntil(syncChain(env, Number(env.CONFIRMATIONS)).catch((error) => console.error("sync failed", error)));
     ctx.waitUntil(deliverDue(env.DB, (url, init) => fetch(url, init), nowSeconds).catch((error) => console.error("push failed", error)));
-    ctx.waitUntil(processAndRun(env, nowSeconds).catch((error) => console.error("processing failed", error)));
+    ctx.waitUntil(runRobot(env, nowSeconds).catch((error) => console.error("processing failed", error)));
   },
 };

@@ -14,7 +14,9 @@ export interface Env {
   AUTH_LIMITER: Limiter;
   FILE_LIMITER: Limiter;
   WRITE_LIMITER: Limiter;
+  ALCHEMY_WEBHOOK_SIGNING_KEY?: string;
   CONFIRMATIONS: string;
+  HOOK_CONFIRMATIONS?: string;
   BLOCK_CHUNK: string;
   CHUNKS_PER_RUN: string;
   TASK_BATCH: string;

@@ -13,13 +13,13 @@ export const PUBLIC_MIME = new Set([
   "text/csv",
 ]);
 export const SELFIE_MIME = new Set(["image/jpeg", "image/png"]);
-export const MAX_PUBLIC_BYTES = 25 * 1024 * 1024;
+export const MAX_PUBLIC_BYTES = 100 * 1024 * 1024;
 export const MAX_EVIDENCE_BYTES = 30 * 1024 * 1024;
 export const MAX_EVIDENCE_BYTES_PER_OWNER = 300 * 1024 * 1024;
 export const EVIDENCE_MIME = new Set(["application/octet-stream"]);
 export const MAX_SELFIE_BYTES = 2 * 1024 * 1024;
 export const MAX_FILES_PER_OWNER = 200;
-export const MAX_BYTES_PER_OWNER = 200 * 1024 * 1024;
+export const MAX_BYTES_PER_OWNER = 1024 * 1024 * 1024;
 export const ORPHAN_TTL_SECONDS = 24 * 3600;
 const HEX32 = /^[0-9a-f]{64}$/;
 const INLINE_MIME = /^(image\/|video\/|application\/pdf$|text\/plain$)/;

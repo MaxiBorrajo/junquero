@@ -59,7 +59,7 @@ describe("public files", () => {
     const huge = await ctx.call("/me/files", {
       method: "PUT",
       body: png,
-      headers: { authorization: `Bearer ${body.token}`, "content-type": "image/png", "content-length": String(26 * 1024 * 1024), "x-content-sha256": sha256(png) },
+      headers: { authorization: `Bearer ${body.token}`, "content-type": "image/png", "content-length": String(101 * 1024 * 1024), "x-content-sha256": sha256(png) },
     });
     expect(huge.status).toBe(413);
   });

@@ -30,7 +30,7 @@ Devuelve `{ token, expiresAt, address }`. El token dura 7 días y va en `Authori
 
 Se guardan en R2 (bucket `junquero`, binding `FILES`), con clave `files/<dirección>/<sha256>`. El hash de un archivo es su **SHA-256**, que la app calcula antes de subir; R2 lo verifica al recibirlo sin gastar CPU del Worker.
 
-- `PUT /me/files`: cuerpo con los bytes del archivo y encabezados `Content-Type`, `Content-Length` y `X-Content-SHA256` (64 caracteres hexadecimales). Devuelve `{ hash, url }` (201 si es nuevo, 200 si ya estaba). Tipos admitidos: JPEG, PNG, WebP, MP4, MOV, PDF, Word, Excel, TXT y CSV, hasta 25 MB. Cuota por cuenta: 200 archivos y 200 MB.
+- `PUT /me/files`: cuerpo con los bytes del archivo y encabezados `Content-Type`, `Content-Length` y `X-Content-SHA256` (64 caracteres hexadecimales). Devuelve `{ hash, url }` (201 si es nuevo, 200 si ya estaba). Tipos admitidos: JPEG, PNG, WebP, MP4, MOV, PDF, Word, Excel, TXT y CSV, hasta 100 MB. Cuota por cuenta: 200 archivos y 1 GB.
 - `GET /files/:dirección/:hash`: público, con caché inmutable. Los documentos se descargan, no se abren en el navegador.
 - En una ficha de changa o en una postulación, cada adjunto `{ hash: "0x" + sha256, name, mime, size }` debe coincidir con un archivo subido por la misma cuenta; si no, 400.
 - Un archivo que nadie referencia (ficha, postulación o foto de perfil) se borra a las 24 horas.

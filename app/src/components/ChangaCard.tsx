@@ -7,7 +7,7 @@ import { formatUsdc } from "../lib/money";
 import { statusLabel } from "../lib/status";
 import { colors, radius, spacing, text } from "../theme";
 
-const WARN_STATUSES = new Set(["disputed", "cancelled"]);
+const WARN_STATUSES = new Set(["disputed", "cancelled", "cancelling"]);
 
 export function ChangaCard({ changa, distanceM, onPress, status, action, unavailable = false }: { changa: Changa; distanceM?: number; onPress: () => void; status?: string; action?: { label: string; onPress: () => void }; unavailable?: boolean }) {
   const { spec } = changa;

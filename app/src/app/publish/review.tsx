@@ -13,7 +13,8 @@ import { formatAmount, formatUsdc } from "../../lib/money";
 import { totalAmount, validateAll } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { useSession } from "../../session/SessionProvider";
-import { isRejection, signTyped } from "../../wallet/sign";
+import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
+import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { text } from "../../theme";
 
 const STEP_TEXT: Record<PublishStep, string> = {
@@ -31,12 +32,15 @@ export default function PublishReview() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<PublishStep | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const switchAccount = useSwitchAccount();
   const amount = totalAmount(draft);
   const invalid = amount === null || Object.keys(validateAll(draft, Math.floor(Date.now() / 1000))).length > 0;
 
   const publish = async () => {
     if (invalid || !address || amount === null) return;
     setError(null);
+    setStale(false);
     const account = address as `0x${string}`;
     try {
       const result = await publishChanga(
@@ -63,6 +67,7 @@ export default function PublishReview() {
       setStep(null);
       if (failure instanceof InsufficientBalance) setError(t.publish.insufficient.replace("{amount}", formatAmount(failure.missing.toString())));
       else if (isRejection(failure)) setError(t.publish.rejected);
+      else if (isStaleWalletSession(failure)) setStale(true);
       else if (failure instanceof ApiError) setError(t.publish.failed);
       else setError(t.publish.failed);
     }
@@ -82,7 +87,14 @@ export default function PublishReview() {
         {draft.attachments.length > 0 ? <Secondary>{`${draft.attachments.length} ${t.detail.attachments.toLowerCase()}`}</Secondary> : null}
       </View>
       <Secondary>{t.publish.reviewNote}</Secondary>
+      <Secondary>{t.publish.reviewReservationNote}</Secondary>
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {stale ? (
+        <>
+          <ErrorText>{t.common.walletStale}</ErrorText>
+          <Button label={t.common.walletReconnect} variant="outline" onPress={() => void switchAccount("/connect")} />
+        </>
+      ) : null}
     </Screen>
   );
 }

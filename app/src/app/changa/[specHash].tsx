@@ -6,7 +6,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Vi
 import { deployment } from "../../chain/deployment";
 import { encodeCancel, sendViaRelay } from "../../chain/orderActions";
 import { readForwarderNonce } from "../../chain/reader";
-import { isRejection, signTyped } from "../../wallet/sign";
+import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
 import { Icon } from "../../components/Icon";
 import { ImageViewer } from "../../components/ImageViewer";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -16,7 +16,9 @@ import { t } from "../../i18n";
 import { applyBlock, type ApplyBlock } from "../../lib/apply";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
+import { effectiveStatus, markCancelling, useCancelling } from "../../data/cancelling";
 import { useSession } from "../../session/SessionProvider";
+import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { colors, radius, spacing, text } from "../../theme";
 
 const fileUrl = (owner: string, hash: string): string => `${API_URL}/files/${owner}/${hash.replace(/^0x/, "")}`;
@@ -37,6 +39,9 @@ export default function ChangaDetail() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [stale, setStale] = useState(false);
+  const cancelling = useCancelling();
+  const switchAccount = useSwitchAccount();
   const query = useChangaBySpec(String(specHash));
   const [viewing, setViewing] = useState<string | null>(null);
 
@@ -59,6 +64,7 @@ export default function ChangaDetail() {
   const { spec } = changa;
   const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null });
   const isOwner = block === "own";
+  const isCancelling = effectiveStatus(changa, cancelling) === "cancelling";
   const isGroup = Boolean(spec.group);
   const cancelChanga = async () => {
     if (changa.orderId === null || !address) return;
@@ -66,23 +72,26 @@ export default function ChangaDetail() {
     setBusy(true);
     setNote(null);
     setFailed(false);
+    setStale(false);
     try {
       await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(changa.orderId)));
       setNote(t.detail.cancelDone);
+      markCancelling(changa.id);
       setConfirmCancel(false);
       await queryClient.invalidateQueries();
     } catch (error) {
       if (isRejection(error)) setNote(t.detail.cancelSigned);
+      else if (isStaleWalletSession(error)) setStale(true);
       else setFailed(true);
     } finally {
       setBusy(false);
     }
   };
   const groupButton =
-    isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") ? (
+    !isCancelling && isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") ? (
       <Button label={changa.status === "funding" ? t.publish.goToGroup : t.group.title} variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
     ) : null;
-  const action = changa.status === "funding" ? groupButton :
+  const action = isCancelling ? null : changa.status === "funding" ? groupButton :
     isOwner && changa.status === "open" ? (
       <Button label={t.mine.viewApplications} onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
     ) : block === null ? (
@@ -160,7 +169,7 @@ export default function ChangaDetail() {
       <ImageViewer uri={viewing} onClose={() => setViewing(null)} />
       {groupButton && changa.status === "open" ? groupButton : null}
       {block !== "anonymous" && block !== "own" ? <Button label={t.report.changa} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } })} /> : null}
-      {isOwner && changa.status === "open" && changa.orderId !== null ? (
+      {isOwner && !isCancelling && changa.status === "open" && changa.orderId !== null ? (
         confirmCancel ? (
           <View style={{ gap: spacing.sm }}>
             <Secondary>{t.detail.cancelConfirm}</Secondary>
@@ -171,8 +180,14 @@ export default function ChangaDetail() {
           <Button label={t.detail.cancelChanga} variant="ghost" onPress={() => setConfirmCancel(true)} />
         )
       ) : null}
-      {note ? <Secondary>{note}</Secondary> : null}
+      {note ? <Secondary>{note}</Secondary> : isCancelling ? <Secondary>{t.detail.cancelling}</Secondary> : null}
       {failed ? <ErrorText>{t.detail.cancelFailed}</ErrorText> : null}
+      {stale ? (
+        <>
+          <ErrorText>{t.common.walletStale}</ErrorText>
+          <Button label={t.common.walletReconnect} variant="outline" onPress={() => void switchAccount("/connect")} />
+        </>
+      ) : null}
       {block && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
     </Screen>
   );

@@ -7,6 +7,7 @@ import { ChangaCard } from "../../components/ChangaCard";
 import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
 import { Button, Chip, Row, Secondary, Title } from "../../components/ui";
+import { effectiveStatus, useCancelling } from "../../data/cancelling";
 import { useMyAgreements, useMyApplications, useMyChangas, useMyContributions } from "../../data/useMine";
 import { t } from "../../i18n";
 import { matchesQuery } from "../../lib/search";
@@ -112,17 +113,18 @@ function AgreementBanner({ agreement }: { agreement: AgreementRecord }) {
 }
 
 function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }) {
+  const status = effectiveStatus(changa, useCancelling());
   const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
   const hasOrder = changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status);
   const action =
-    changa.status === "open"
+    status === "open"
       ? { label: t.mine.viewApplications, onPress: () => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } }) }
       : hasOrder
         ? { label: t.mine.openOrder, onPress: () => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: changa.spec.title } }) }
         : undefined;
   return (
     <View style={styles.item}>
-      <ChangaCard changa={changa} status={changa.status} action={action} onPress={changa.status === "draft" ? () => undefined : open} />
+      <ChangaCard changa={changa} status={status} action={action} onPress={changa.status === "draft" ? () => undefined : open} />
       {waiting ? <Secondary>{t.mine.waitingAgreement}</Secondary> : null}
     </View>
   );

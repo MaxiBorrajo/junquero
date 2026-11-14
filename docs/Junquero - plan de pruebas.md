@@ -116,7 +116,7 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". Los montos de los hitos suman el total, de lo contrario no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
 
 **2.6 Cancelar una changa abierta** · Rol: Ana
-- [ ] Pasos: cancelar una changa sin postulaciones ni prestador reservado.
+- [ x ] Pasos: cancelar una changa sin postulaciones ni prestador reservado.
 - Esperado: no tiene costo y el depósito vuelve a Ana.
 
 ---

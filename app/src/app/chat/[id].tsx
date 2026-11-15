@@ -4,6 +4,8 @@ import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../da
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
+import { AgreementCard } from "../../components/AgreementCard";
+import { useSession } from "../../session/SessionProvider";
 import { Avatar } from "../../components/Avatar";
 import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
@@ -53,7 +55,11 @@ export default function ChatScreen() {
   const { choose } = useChooseApplicant();
   const counterpartProfile = usePublicProfile(String(counterpart));
   const counterpartName = counterpartProfile.data?.name;
+  const { address: me } = useSession();
   const agreements = useMyAgreements().data ?? [];
+  const ownerAddress = room.access.role === "owner" ? me : String(counterpart);
+  const applicantAddress = room.access.role === "owner" ? String(counterpart) : me;
+  const proposal = agreements.find((item) => item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;
   const ownChanga = (useMyChangas().data ?? []).find((item) => item.id === room.access.changaId) ?? null;
   const application = (useReceivedApplications(room.access.changaId, room.access.role === "owner").data ?? []).find((item) => item.id === Number(id)) ?? null;
   const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null && !agreements.some((item) => item.orderId === ownChanga.orderId && (item.status === "pending" || item.status === "sending"));
@@ -182,6 +188,7 @@ export default function ChatScreen() {
               </View>
             </View>
           }
+          ListFooterComponent={proposal ? <View style={styles.proposal}><AgreementCard agreement={proposal} role={room.access.role} title={String(title ?? "")} counterpartName={counterpartName ?? t.chat.unknownUser} /></View> : undefined}
           onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
           renderItem={({ item, index }) => (
             <View style={styles.entry}>
@@ -301,6 +308,7 @@ const styles = StyleSheet.create({
   protectedBody: { ...text.secondary, color: colors.ink },
   applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.xs },
   entry: { gap: spacing.sm },
+  proposal: { marginTop: spacing.sm },
   day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   time: { alignSelf: "flex-end" },
   bubble: { maxWidth: "80%", borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.xs },

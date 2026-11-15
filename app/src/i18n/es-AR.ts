@@ -357,6 +357,18 @@ export const esAR = {
     expired: "El acuerdo venció. El trabajo vuelve a estar abierto.",
     cancelled: "Cancelaste la confirmación. No se movió plata.",
     notFound: "No encontramos este acuerdo.",
+    rejectedDone: "Rechazaste la propuesta. No se movió plata.",
+    cancelledDone: "Cancelaste la propuesta. El trabajo sigue abierto.",
+    card: {
+      title: "Propuesta de acuerdo",
+      sent: "Propuesta enviada",
+      waiting: "Esperando que {name} acepte. No se mueve plata hasta entonces.",
+      accept: "Aceptar",
+      reject: "Rechazar",
+      cancel: "Cancelar propuesta",
+      confirming: "Confirmando el acuerdo en la red. Tarda unos segundos.",
+      expires: "Vence {date}",
+    },
   },
   chat: {
     title: "Mensajes",

@@ -1,12 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "./Card";
+import { StatusChip } from "./StatusChip";
 import { Icon } from "./Icon";
 import type { Changa } from "../api/types";
 import { t } from "../i18n";
 import { formatDate, formatDistance } from "../lib/format";
 import { formatUsdc } from "../lib/money";
 import { statusLabel } from "../lib/status";
-import { colors, radius, spacing, text } from "../theme";
+import { colors, spacing, text } from "../theme";
 
 const WARN_STATUSES = new Set(["disputed", "cancelled", "cancelling"]);
 
@@ -27,9 +28,7 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
       {status || unavailable || action ? (
         <View style={styles.footer}>
           {status ? (
-            <View style={[styles.badge, WARN_STATUSES.has(status) && styles.badgeWarn]}>
-              <Text style={[styles.badgeText, WARN_STATUSES.has(status) && styles.badgeWarnText]}>{statusLabel(status)}</Text>
-            </View>
+            <StatusChip label={statusLabel(status)} warn={WARN_STATUSES.has(status)} />
           ) : null}
           {unavailable ? <Text style={styles.unavailable}>{t.map.unavailable}</Text> : null}
           {action ? (
@@ -49,10 +48,6 @@ const styles = StyleSheet.create({
   title: { ...text.subtitle, flex: 1 },
   amount: { ...text.subtitle, color: colors.brick },
   footer: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.xs },
-  badge: { backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
-  badgeText: { ...text.label, color: colors.ink },
-  badgeWarn: { backgroundColor: colors.error },
-  badgeWarnText: { color: colors.white },
   action: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 2 },
   actionLabel: { ...text.label, color: colors.brick },
   unavailable: { ...text.label, color: colors.error },

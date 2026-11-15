@@ -11,6 +11,8 @@ import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrde
 import { encodeObject } from "../../chain/group";
 import { disputeCost, reasonHash } from "../../chain/jury";
 import { formatAmount } from "../../lib/money";
+import { Banner } from "../../components/Banner";
+import { StatusChip } from "../../components/StatusChip";
 import { Journey, type JourneyStep } from "../../components/Journey";
 import { Card } from "../../components/Card";
 import { DetailActions } from "../../components/DetailActions";
@@ -139,6 +141,13 @@ export default function OrderScreen() {
     { key: "done", ...j.payer.done },
   ];
   const settled = view === "settled";
+  const chip: { label: string; warn?: boolean } | null =
+    view === "worker-working" || view === "payer-waiting-work" ? { label: t.order.statusAgreed }
+    : view === "worker-waiting-review" || view === "payer-reviewing" ? { label: t.order.statusDelivered }
+    : settled ? { label: t.mine.status.settled }
+    : view === "disputed" ? { label: t.order.statusDisputed, warn: true }
+    : view === "cancelled" ? { label: t.order.statusCancelled, warn: true }
+    : null;
   let journey: { steps: JourneyStep[]; current: number } | null = null;
   if (!state.hasMilestones && !contributor) {
     if (role === "payee" && (view === "worker-working" || view === "worker-waiting-review" || settled)) {
@@ -163,6 +172,12 @@ export default function OrderScreen() {
       }
     >
       <Title>{title ?? t.order.title}</Title>
+      <View style={styles.titleRow}>
+        <View style={{ flex: 1 }}>
+          <Title>{title ?? t.order.title}</Title>
+        </View>
+        {chip ? <StatusChip label={chip.label} warn={chip.warn} /> : null}
+      </View>
       <Secondary>{role === "payer" ? t.order.role.payer : role === "payee" ? t.order.role.payee : ""}</Secondary>
       <Card gap="xs">
         <Text style={text.label}>{t.order.amount}</Text>
@@ -177,7 +192,6 @@ export default function OrderScreen() {
 
       {!state.hasMilestones && view === "worker-working" ? (
         <>
-          <Body>{t.order.statusAgreed}</Body>
           {state.modality === 0 && state.checkedInAt === 0 ? <DetailActions actions={[{ key: "arrived", label: t.order.arrived, icon: "pin", onPress: () => void arrive() }]} /> : null}
           {state.checkedInAt > 0 ? <Secondary>{t.order.arrivedDone}</Secondary> : null}
           <Text style={text.subtitle}>{t.order.evidenceTitle}</Text>
@@ -190,7 +204,6 @@ export default function OrderScreen() {
 
       {!state.hasMilestones && view === "worker-waiting-review" ? (
         <>
-          <Body>{t.order.statusDelivered}</Body>
           <Secondary>{t.order.autoRelease}</Secondary>
           {remote.data ? (
             <>
@@ -201,7 +214,6 @@ export default function OrderScreen() {
         </>
       ) : null}
 
-      {!state.hasMilestones && view === "payer-waiting-work" ? <Body>{t.order.statusAgreed}</Body> : null}
 
       {!state.hasMilestones && view === "payer-reviewing" ? (
         <>
@@ -230,7 +242,6 @@ export default function OrderScreen() {
         </>
       ) : null}
 
-      {contributor && view === "payer-waiting-work" ? <Body>{t.order.statusAgreed}</Body> : null}
       {contributor && state.status === 4 ? (
         <>
           <Body>{t.group.reviewTitle}</Body>
@@ -247,17 +258,16 @@ export default function OrderScreen() {
       ) : null}
       {view === "disputed" ? (
         <>
-          <Body>{t.order.statusDisputed}</Body>
           {myCase ? <Button label={t.order.openCase} icon="scale" onPress={() => router.push({ pathname: "/case/[caseId]", params: { caseId: String(myCase.caseId) } })} /> : null}
         </>
       ) : null}
-      {view === "settled" ? <Body>{t.order.released}</Body> : null}
-      {view === "cancelled" ? <Body>{t.order.statusCancelled}</Body> : null}
+      {settled ? <Banner tone="success" icon="check">{t.order.released}</Banner> : null}
       {failed ? <ErrorText>{failed}</ErrorText> : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   qr: { alignItems: "center", gap: spacing.md, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
 });

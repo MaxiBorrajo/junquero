@@ -51,6 +51,7 @@ La pregunta es: ¿qué le pasó a la persona?
 - **`Card`**: la única forma de agrupar información. Blanca, borde `line`, radio `md`, padding `md`. `gap` según el contenido (`xs` para datos juntos, `sm` para bloques). Con `onPress` se vuelve tocable. No se arman tarjetas con estilos propios.
 - **`Banner`**: aviso que se queda en pantalla. Tonos: `sand` (invitación o contexto), `info`, `success`, `warning`, `error`. Lleva siempre ícono y, si hace falta, una acción en texto.
 - **Filas de lista** (mensajes, notificaciones, postulaciones, jurado): tarjeta con el mismo padding, separación `sm` entre filas y la información principal a la izquierda. El estado (no leído, en revisión) se marca con un número, un ícono o una palabra, no solo con color.
+- **Estado de algo** (en curso, juntando aportes, en revisión, cancelada): siempre en una pastilla (`StatusChip`) al lado del título. Nunca como texto suelto en el cuerpo de la pantalla. Lo que sigue vigente y pide acción va en un `Banner`.
 - **Etiqueta de pertenencia**: "Publicaste este trabajo" va arriba del título (`OwnerTag`).
 - **Adjuntos**: siempre como miniatura (`AttachmentTile`): foto con vista previa o ícono y nombre para otros archivos, con una X para quitarlo. Si son varios van en una fila con desplazamiento horizontal y aire arriba y abajo. Tocar una miniatura la abre en grande (visor de imágenes, video o documento), igual en el chat, las postulaciones, la evidencia y la publicación.
 - **Hojas de opciones** (`ChoiceSheet`): para elegir entre acciones que no entran en la pantalla (sacar foto, elegir de la galería, menú de tres puntos).
@@ -87,6 +88,7 @@ La pregunta es: ¿qué le pasó a la persona?
 - [ ] ¿Las acciones secundarias están juntas en una tarjeta de acciones, con las destructivas al final y en rojo?
 - [ ] ¿Las confirmaciones salen como toast y no como texto fijo?
 - [ ] ¿Las acciones sobre la cadena esperan la confirmación antes de decir "Listo"?
+- [ ] ¿Los estados van en una pastilla al lado del título y no como texto suelto?
 - [ ] ¿Las tarjetas y avisos usan `Card` y `Banner`?
 - [ ] ¿Los colores, tamaños y espacios salen de `theme`?
 - [ ] ¿Los textos están en voseo y dicen qué pasó y qué sigue?

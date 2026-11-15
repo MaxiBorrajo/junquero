@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
+import { StatusChip } from "../../components/StatusChip";
 import { StatusStrip, type StripData } from "../../components/StatusStrip";
 import { Banner } from "../../components/Banner";
 import { ChangaCard } from "../../components/ChangaCard";
@@ -86,8 +87,10 @@ export default function MyChangas() {
           ListEmptyComponent={<Secondary>{t.contributions.empty}</Secondary>}
           renderItem={({ item }) => (
             <View style={styles.item}>
-              <Text style={text.subtitle}>{item.title ?? `#${item.orderId}`}</Text>
-              <Text style={styles.status}>{statusLabel(item.status ?? "")}</Text>
+              <View style={styles.titleRow}>
+                <Text style={[text.subtitle, { flex: 1 }]}>{item.title ?? `#${item.orderId}`}</Text>
+                <StatusChip label={statusLabel(item.status ?? "")} />
+              </View>
               <Button label={t.contributions.open} icon="users" variant="outline" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} />
               {item.status === "delivered" || item.status === "agreed" ? <Button label={t.mine.openOrder} icon="briefcase" variant="ghost" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} /> : null}
             </View>
@@ -165,6 +168,5 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md, gap: spacing.md },
   item: { gap: spacing.xs },
   titleRow: { flexDirection: "row", gap: spacing.sm },
-  status: { ...text.label, color: colors.brick },
   banner: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
 });

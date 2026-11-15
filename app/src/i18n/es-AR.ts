@@ -719,6 +719,8 @@ export const esAR = {
     noEvidence: "Todavía nadie compartió pruebas con vos.",
   },
   group: {
+    statusFunding: "Juntando aportes",
+    statusFunded: "Meta cumplida",
     inviteCreator: "Todavía no hiciste tu aporte. Sumá el tuyo para arrancar y compartí el enlace para que se sumen los demás.",
     title: "Trabajo grupal",
     funding: "Juntando aportes",

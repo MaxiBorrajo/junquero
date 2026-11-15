@@ -8,6 +8,7 @@ import { checkContribution, contributionLimits, encodeContribute, encodeSupportC
 import { OrderStatus } from "../../chain/orderAbi";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readContributionRule, readGroup, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { StatusChip } from "../../components/StatusChip";
 import { Journey } from "../../components/Journey";
 import { Banner } from "../../components/Banner";
 import { Card } from "../../components/Card";
@@ -94,6 +95,12 @@ export default function GroupScreen() {
   return (
     <Screen footer={funding ? <Button label={t.group.contribute} icon="wallet" onPress={contribute} loading={busy} disabled={!check.ok} /> : null}>
       <Title>{title ?? t.group.title}</Title>
+      <View style={styles.titleRow}>
+        <View style={{ flex: 1 }}>
+          <Title>{title ?? t.group.title}</Title>
+        </View>
+        {funding || open ? <StatusChip label={funding ? t.group.statusFunding : t.group.statusFunded} /> : null}
+      </View>
       <Journey
         title={t.journeyGroup.title}
         steps={[
@@ -104,7 +111,7 @@ export default function GroupScreen() {
         ]}
         current={funding ? 0 : open ? (hasProposal ? 2 : 1) : 3}
       />
-      <Body>{funding ? t.group.funding : open ? t.group.funded : ""}</Body>
+      {funding || open ? <Secondary>{funding ? t.group.funding : t.group.funded}</Secondary> : null}
       <Card>
         <Text style={text.label}>{t.group.raised}</Text>
         <Text style={text.amount}>{formatUsdc(info.totalContributed.toString())}</Text>
@@ -147,6 +154,7 @@ export default function GroupScreen() {
 }
 
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   bar: { height: 10, borderRadius: radius.pill, backgroundColor: colors.line, overflow: "hidden" },
   fill: { height: 10, backgroundColor: colors.brick },
   row: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },

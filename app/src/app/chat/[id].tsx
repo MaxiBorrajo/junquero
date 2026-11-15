@@ -169,7 +169,7 @@ export default function ChatScreen() {
           data={room.view}
           keyExtractor={(item) => item.key}
           ListHeaderComponent={
-            <View style={{ gap: spacing.sm }}>
+            <View style={{ gap: spacing.xs }}>
               <ProtectedCard />
               <View style={styles.applicationCard}>
                 <Pressable accessibilityRole="button" accessibilityLabel={t.received.viewProfile} onPress={() => router.push({ pathname: "/profile-public", params: { address: String(counterpart) } })}>
@@ -291,15 +291,15 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, padding: spacing.md, gap: spacing.md, justifyContent: "center" },
-  header: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
-  headerText: { flex: 1, gap: spacing.xs },
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
+  headerText: { flex: 1, gap: 0 },
   iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  messages: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.sm },
+  messages: { paddingHorizontal: spacing.md, paddingTop: spacing.xs, paddingBottom: spacing.md, gap: spacing.sm },
   protectedHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   protectedTitle: { flex: 1, ...text.secondary, fontFamily: fonts.semibold, color: colors.success },
   protectedToggle: { ...text.label },
   protectedBody: { ...text.secondary, color: colors.ink },
-  applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.sm },
+  applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.xs },
   entry: { gap: spacing.sm },
   day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   time: { alignSelf: "flex-end" },

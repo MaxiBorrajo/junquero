@@ -10,6 +10,7 @@ import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../compone
 import { API_URL } from "../../config";
 import { useChangaBySpec } from "../../data/useChangas";
 import { t } from "../../i18n";
+import { useMyApplications } from "../../data/useMine";
 import { applyBlock, type ApplyBlock } from "../../lib/apply";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
@@ -25,12 +26,14 @@ const BLOCK_TEXT: Record<ApplyBlock, string | null> = {
   selfie: t.detail.needSelfie,
   own: t.detail.ownChanga,
   closed: t.detail.notOpen,
+  applied: t.detail.alreadyApplied,
 };
 
 export default function ChangaDetail() {
   const { specHash } = useLocalSearchParams<{ specHash: string }>();
   const { address, profile, api } = useSession();
   const cancelling = useCancelling();
+  const mine = useMyApplications();
   const query = useChangaBySpec(String(specHash));
   const attachmentViewer = useAttachmentViewer();
 
@@ -51,7 +54,8 @@ export default function ChangaDetail() {
   }
 
   const { spec } = changa;
-  const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null });
+  const applied = (mine.data ?? []).some((item) => item.changa.specHash === changa.specHash && (item.status === "active" || item.status === "chosen"));
+  const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null, applied });
   const isOwner = block === "own";
   const isCancelling = effectiveStatus(changa, cancelling) === "cancelling";
   const isGroup = Boolean(spec.group);

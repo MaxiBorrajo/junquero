@@ -132,6 +132,7 @@ export const esAR = {
     needSelfie: "Tu selfie todavía no fue verificada. Podés explorar, pero no postularte.",
     ownChangaTag: "Publicaste este trabajo",
     ownChanga: "Este trabajo es tuyo.",
+    alreadyApplied: "Ya te postulaste a este trabajo. Seguí la conversación desde Mensajes.",
     notOpen: "Este trabajo ya no recibe postulaciones.",
     minutes: "min",
     hours: "h",

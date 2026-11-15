@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { useSession } from "../session/SessionProvider";
@@ -18,6 +19,7 @@ function open(data: Record<string, unknown> | undefined) {
 
 export function PushHandler() {
   const { status, api, address, refresh } = useSession();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (status !== "ready" || !address) return;
@@ -28,9 +30,12 @@ export function PushHandler() {
 
   useEffect(() => {
     if (status !== "ready") return;
-    const subscription = Notifications.addNotificationReceivedListener(() => void refresh().catch(() => {}));
+    const subscription = Notifications.addNotificationReceivedListener(() => {
+      void refresh().catch(() => {});
+      for (const key of ["notifications", "chats", "applications", "agreements", "changas"]) void queryClient.invalidateQueries({ queryKey: [key] });
+    });
     return () => subscription.remove();
-  }, [status, refresh]);
+  }, [status, refresh, queryClient]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => open(response.notification.request.content.data));

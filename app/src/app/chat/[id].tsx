@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   failedRow: { flexDirection: "row", gap: spacing.sm },
   link: { textDecorationLine: "underline" },
   notice: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.line },
-  hint: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+  hint: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   blocked: { marginHorizontal: spacing.md, marginTop: spacing.sm, padding: spacing.sm + 4, borderRadius: radius.md, borderWidth: 1, borderColor: colors.error, backgroundColor: colors.white, gap: 2 },
   blockedTitle: { ...text.body, color: colors.error, fontFamily: fonts.semibold },
   tray: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, paddingHorizontal: spacing.md, paddingTop: spacing.sm },

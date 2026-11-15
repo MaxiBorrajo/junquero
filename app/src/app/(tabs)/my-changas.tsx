@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { Card } from "../../components/Card";
 import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -131,15 +132,17 @@ function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }
 }
 
 function AppliedItem({ application }: { application: MyApplication }) {
+  const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } });
+  const chosen = application.status === "chosen" && application.changa.orderId !== null;
   return (
-    <View style={styles.item}>
-      <Text style={text.subtitle}>{statusLabel(application.status)}</Text>
-      <Secondary>{application.message || " "}</Secondary>
-      {application.status === "chosen" && application.changa.orderId !== null ? (
-        <Button label={t.mine.openOrder} icon="briefcase" variant="outline" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} />
-      ) : null}
-      <Button label={t.mine.viewChanga} icon="briefcase" variant="ghost" onPress={() => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } })} />
-    </View>
+    <Card gap="xs" onPress={open}>
+      <Text style={text.subtitle} numberOfLines={2}>{application.changa.title}</Text>
+      <View style={styles.statusPill}>
+        <Text style={text.label}>{statusLabel(application.status)}</Text>
+      </View>
+      {application.message ? <Text style={text.secondary} numberOfLines={2}>{application.message}</Text> : null}
+      {chosen ? <Button label={t.mine.openOrder} icon="briefcase" variant="outline" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} /> : null}
+    </Card>
   );
 }
 
@@ -149,5 +152,6 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md, gap: spacing.md },
   item: { gap: spacing.xs },
   status: { ...text.label, color: colors.brick },
+  statusPill: { alignSelf: "flex-start", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   banner: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
 });

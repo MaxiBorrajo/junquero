@@ -16,7 +16,7 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications", address],
     enabled: Boolean(address),
-    refetchInterval: 60_000,
+    refetchInterval: 20_000,
     queryFn: async () => (await api.get<{ notifications: NotificationItem[] }>("/me/notifications")).notifications,
   });
 }

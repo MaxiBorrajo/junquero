@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { Avatar } from "../../components/Avatar";
+import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
 import { router } from "expo-router";
 import { FlatList, StyleSheet, Text, View } from "react-native";
@@ -34,6 +36,7 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
       return sealed ?? (chat.lastBody ? null : await loadPreview(api, secureKeyStorage, address as string, chat));
     },
   });
+  const profile = usePublicProfile(chat.counterpart);
   const name = chat.counterpartName ?? t.chat.unknownUser;
   const unread = chat.unreadCount > 0;
   const mine = chat.lastSender !== null && address !== null && chat.lastSender.toLowerCase() === address.toLowerCase();
@@ -54,7 +57,7 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
       style={styles.row}
     >
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{name.trim().charAt(0).toUpperCase() || "?"}</Text>
+        <Avatar profile={profile.data} name={name} size={44} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.line}>
@@ -124,8 +127,7 @@ const styles = StyleSheet.create({
   pad: { padding: spacing.md, gap: spacing.md },
   list: { padding: spacing.md, gap: spacing.sm },
   row: { flexDirection: "row", alignItems: "center" },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
-  avatarText: { ...text.subtitle, color: colors.brick },
+  avatar: { marginRight: spacing.md },
   line: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   name: { flex: 1, ...text.body, fontFamily: fonts.semibold },
   preview: { flex: 1, ...text.secondary },

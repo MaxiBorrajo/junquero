@@ -22,11 +22,12 @@ export function PersonCard({ address, label, note }: { address: string; label: s
         </View>
         <Icon name="chevron" size={20} color={colors.muted} />
       </View>
-      {note ? <Text style={text.secondary}>{note}</Text> : null}
+      {note ? <Text style={[text.secondary, styles.note]}>{note}</Text> : null}
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  note: { marginTop: spacing.xs },
 });

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useFocusedInterval } from "../../lib/useFocusedInterval";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -27,7 +28,7 @@ export default function JurorCase() {
   const orderId = state.data?.snapshot.orderId ?? 0;
   const evidence = useEvidence(orderId);
   const juror = address as `0x${string}`;
-  const mine = useQuery({ queryKey: ["jurorCase", id, address], enabled: Boolean(address), refetchInterval: 15_000, queryFn: () => readJurorCase(id, juror) });
+  const mine = useQuery({ queryKey: ["jurorCase", id, address], enabled: Boolean(address), refetchInterval: useFocusedInterval(30_000), queryFn: () => readJurorCase(id, juror) });
   const [choice, setChoice] = useState<number | null>(null);
   const { run, busy, error } = useRunAction();
 

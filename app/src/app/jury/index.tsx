@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useFocusedInterval } from "../../lib/useFocusedInterval";
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -29,7 +30,7 @@ export default function JuryHub() {
   const { run: runAction, busy, error } = useRunAction();
 
   const juror = address as `0x${string}`;
-  const account = useQuery({ queryKey: ["juror", address], enabled: Boolean(address), refetchInterval: 20_000, queryFn: () => readJurorAccount(juror) });
+  const account = useQuery({ queryKey: ["juror", address], enabled: Boolean(address), refetchInterval: useFocusedInterval(60_000), queryFn: () => readJurorAccount(juror) });
   const required = useQuery({ queryKey: ["param", "JUROR_STAKE"], queryFn: () => readParam("JUROR_STAKE"), staleTime: 5 * 60_000 });
   const reward = useQuery({ queryKey: ["reward", address], enabled: Boolean(address), queryFn: () => readReward(juror) });
 
@@ -114,7 +115,7 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
   const { run, busy, error } = useRunAction();
   const state = useQuery({
     queryKey: ["seed", item.caseId, juror],
-    refetchInterval: 20_000,
+    refetchInterval: useFocusedInterval(60_000),
     queryFn: async () => {
       const snapshot = await readCase(item.caseId);
       if (snapshot.phase !== CasePhase.Seed) return null;

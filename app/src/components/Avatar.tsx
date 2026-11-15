@@ -8,7 +8,7 @@ import { colors, text } from "../theme";
 export function Avatar({ profile, name, size = 44 }: { profile?: Pick<PublicProfile, "photo" | "name"> | null; name?: string; size?: number }) {
   const label = (profile?.name ?? name ?? "?").trim().charAt(0).toUpperCase() || "?";
   const box = { width: size, height: size, borderRadius: size / 2 };
-  if (profile?.photo) return <Image source={{ uri: `${API_URL}${profile.photo.url}` }} style={box} contentFit="cover" />;
+  if (profile?.photo) return <Image source={{ uri: `${API_URL}${profile.photo.url}` }} style={box} contentFit="cover" cachePolicy="memory-disk" />;
   return (
     <View style={[styles.initial, box]}>
       <Text style={[text.subtitle, { color: colors.brick }]}>{label}</Text>

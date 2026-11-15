@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { useFocusedInterval } from "../lib/useFocusedInterval";
 import { readOrder } from "../chain/reader";
 
 export function useOrder(orderId: number) {
-  return useQuery({ queryKey: ["order", orderId], refetchInterval: 15_000, queryFn: () => readOrder(orderId) });
+  return useQuery({ queryKey: ["order", orderId], refetchInterval: useFocusedInterval(60_000), queryFn: () => readOrder(orderId) });
 }
 
 export interface EvidenceItem {

@@ -101,24 +101,30 @@ export async function markRead(db: D1Database, applicationId: number, address: s
     .run();
 }
 
-export async function listChats(db: D1Database, address: string, limit: number) {
-  const { results } = await db
-    .prepare(
-      `SELECT a.id AS application_id, a.status AS app_status, a.changa_id AS changa_id, a.applicant AS applicant,
-              c.owner AS owner, c.status AS changa_status, c.spec AS spec,
+// Los dos lados de la lista (las postulaciones propias y las de mis changas) se piden por separado con su índice y se juntan:
+// un `WHERE a.applicant = ? OR c.owner = ?` obligaba a recorrer todas las postulaciones.
+const CHAT_COLUMNS = `a.id AS application_id, a.status AS app_status, a.changa_id AS changa_id, a.applicant AS applicant,
+              c.owner AS owner, c.status AS changa_status, json_extract(c.spec, '$.title') AS title,
               COALESCE(m.last_seq, 0) AS last_seq, m.last_sender AS last_sender, m.last_at AS last_at,
               COALESCE(r.seq, 0) AS read_seq, COALESCE(m.owner_replied, 0) AS owner_replied,
               m.last_nonce AS last_nonce, m.last_body AS last_body, cp.name AS counterpart_name,
-              EXISTS (SELECT 1 FROM user_blocks b WHERE (b.blocker = c.owner AND b.blocked = a.applicant) OR (b.blocker = a.applicant AND b.blocked = c.owner)) AS is_blocked
-       FROM applications a
-       JOIN changas c ON c.id = a.changa_id
-       LEFT JOIN chat_meta m ON m.application_id = a.id
-       LEFT JOIN chat_reads r ON r.application_id = a.id AND r.address = ?
-       LEFT JOIN profiles cp ON cp.address = CASE WHEN c.owner = ? THEN a.applicant ELSE c.owner END
-       WHERE a.applicant = ? OR c.owner = ?
-       ORDER BY COALESCE(m.last_at, a.updated_at) DESC LIMIT ?`,
+              cp.photo AS counterpart_photo, cp.selfie_status AS counterpart_selfie, CASE WHEN c.owner = ?1 THEN a.applicant ELSE c.owner END AS counterpart_address,
+              EXISTS (SELECT 1 FROM user_blocks b WHERE (b.blocker = c.owner AND b.blocked = a.applicant) OR (b.blocker = a.applicant AND b.blocked = c.owner)) AS is_blocked,
+              COALESCE(m.last_at, a.updated_at) AS sort_at`;
+const CHAT_JOINS = `LEFT JOIN chat_meta m ON m.application_id = a.id
+       LEFT JOIN chat_reads r ON r.application_id = a.id AND r.address = ?1
+       LEFT JOIN profiles cp ON cp.address = CASE WHEN c.owner = ?1 THEN a.applicant ELSE c.owner END`;
+
+export async function listChats(db: D1Database, address: string, limit: number) {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM (
+         SELECT ${CHAT_COLUMNS} FROM applications a JOIN changas c ON c.id = a.changa_id ${CHAT_JOINS} WHERE a.applicant = ?1
+         UNION ALL
+         SELECT ${CHAT_COLUMNS} FROM changas c JOIN applications a ON a.changa_id = c.id ${CHAT_JOINS} WHERE c.owner = ?1
+       ) ORDER BY sort_at DESC LIMIT ?2`,
     )
-    .bind(address, address, address, address, limit)
+    .bind(address, limit)
     .all<{
       application_id: number;
       app_status: string;
@@ -126,7 +132,7 @@ export async function listChats(db: D1Database, address: string, limit: number) 
       applicant: string;
       owner: string;
       changa_status: string;
-      spec: string;
+      title: string | null;
       last_seq: number;
       last_sender: string | null;
       last_at: number | null;
@@ -136,20 +142,24 @@ export async function listChats(db: D1Database, address: string, limit: number) 
       last_nonce: string | null;
       last_body: string | null;
       counterpart_name: string | null;
+      counterpart_photo: string | null;
+      counterpart_selfie: string | null;
+      counterpart_address: string;
     }>();
   return results.map((row) => {
-    const spec = JSON.parse(row.spec) as { title: string };
     const writable = row.is_blocked === 0 && (row.app_status === "active" || row.app_status === "chosen") && !FINISHED.has(row.changa_status);
     const role = address === row.owner ? "owner" : "applicant";
     return {
       applicationId: row.application_id,
       changaId: row.changa_id,
-      title: spec.title,
+      title: row.title ?? "",
       counterpart: address === row.owner ? row.applicant : row.owner,
       role,
       writable,
       waitingForOwner: writable && role === "applicant" && row.owner_replied === 0,
       counterpartName: row.counterpart_name,
+      counterpartPhoto: row.counterpart_photo ? { hash: row.counterpart_photo, url: `/files/${row.counterpart_address}/${row.counterpart_photo}` } : null,
+      counterpartVerified: row.counterpart_selfie === "approved",
       lastSeq: row.last_seq,
       lastSender: row.last_sender,
       lastAt: row.last_at,

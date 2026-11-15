@@ -1,6 +1,6 @@
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold, useFonts } from "@expo-google-fonts/outfit";
 import { AppKit, AppKitProvider } from "@reown/appkit-react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { LogBox, View } from "react-native";
 import { WagmiProvider } from "wagmi";
 import { ToastProvider } from "../components/Toast";
+import { createQueryClient } from "../lib/queryClient";
 import { colors } from "../theme";
 import { PushHandler } from "../push/PushHandler";
 import { ChatKeyProvider } from "../chat/ChatKeyProvider";
@@ -38,7 +39,7 @@ function Shell() {
 }
 
 export default function RootLayout() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => createQueryClient());
   return (
     <AppKitProvider instance={appKit}>
       <WagmiProvider config={wagmiAdapter.wagmiConfig}>

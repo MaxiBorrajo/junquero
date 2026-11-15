@@ -140,9 +140,17 @@ export default function ChatScreen() {
 
   const openAttachment = async (file: ChatFile) => {
     try {
+      // Si la miniatura ya se bajó y descifró, se abre ese mismo archivo en vez de bajarlo otra vez.
+      const cached = queryClient.getQueryData<string | null>(["chat-thumb", file.hash]);
+      if (cached) {
+        attachmentViewer.open({ uri: cached, mime: file.mime, name: file.name });
+        return;
+      }
       const bytes = await room.fetchAttachment(file);
       if (!bytes) throw new Error("no se pudo descifrar");
-      attachmentViewer.open({ uri: writeTempFile(bytes, file.name), mime: file.mime, name: file.name });
+      const uri = writeTempFile(bytes, file.name);
+      queryClient.setQueryData(["chat-thumb", file.hash], uri);
+      attachmentViewer.open({ uri, mime: file.mime, name: file.name });
     } catch {
       toast({ text: t.chat.attachOpenFailed, tone: "error" });
     }

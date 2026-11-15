@@ -8,7 +8,7 @@ export function usePublicProfile(address: string | null | undefined) {
   return useQuery({
     queryKey: ["profile", address],
     enabled: Boolean(address),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     queryFn: async () => (await api.get<{ profile: PublicProfile }>(`/profiles/${address}`)).profile,
   });
 }

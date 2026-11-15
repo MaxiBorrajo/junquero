@@ -1,4 +1,5 @@
 import { useAppKit } from "@reown/appkit-react-native";
+import { useFocusedInterval } from "../../lib/useFocusedInterval";
 import { Card } from "../../components/Card";
 import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
@@ -40,7 +41,7 @@ export default function Profile() {
   const balance = useQuery({
     queryKey: ["balance", address],
     enabled: Boolean(address),
-    refetchInterval: 30_000,
+    refetchInterval: useFocusedInterval(60_000),
     queryFn: () => readTokenBalance(address as `0x${string}`),
   });
 

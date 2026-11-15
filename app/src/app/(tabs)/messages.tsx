@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Avatar } from "../../components/Avatar";
-import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
 import { router } from "expo-router";
 import { FlatList, StyleSheet, Text, View } from "react-native";
@@ -36,7 +35,6 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
       return sealed ?? (chat.lastBody ? null : await loadPreview(api, secureKeyStorage, address as string, chat));
     },
   });
-  const profile = usePublicProfile(chat.counterpart);
   const name = chat.counterpartName ?? t.chat.unknownUser;
   const unread = chat.unreadCount > 0;
   const mine = chat.lastSender !== null && address !== null && chat.lastSender.toLowerCase() === address.toLowerCase();
@@ -57,7 +55,7 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
       style={styles.row}
     >
       <View style={styles.avatar}>
-        <Avatar profile={profile.data} name={name} size={44} />
+        <Avatar profile={{ photo: chat.counterpartPhoto ?? null, name }} name={name} size={44} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.line}>

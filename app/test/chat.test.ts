@@ -113,7 +113,7 @@ describe("gestor de claves", () => {
     const ok = createApi({ baseUrl: "https://x", fetcher: async () => new Response(JSON.stringify({ publicKey: publicKeyHex(pair) }), { status: 200 }), getToken: () => "t" });
     expect(Array.from((await fetchCounterpartKey(ok, "0xAB"))!)).toEqual(Array.from(pair.publicKey));
     const none = createApi({ baseUrl: "https://x", fetcher: async () => new Response("{}", { status: 404 }), getToken: () => "t" });
-    expect(await fetchCounterpartKey(none, "0xAB")).toBeNull();
+    expect(await fetchCounterpartKey(none, "0xCD")).toBeNull();
     expect(open).toBeDefined();
   });
 });

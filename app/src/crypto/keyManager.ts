@@ -35,13 +35,29 @@ export async function loadChatKey(deps: KeyDeps): Promise<ChatKeyPair> {
   return pair;
 }
 
-export async function fetchCounterpartKey(api: Api, address: string): Promise<Uint8Array | null> {
-  try {
-    const { publicKey } = await api.get<{ publicKey: string }>(`/me/chat-keys/${address.toLowerCase()}`);
-    const bytes = new Uint8Array(32);
-    for (let i = 0; i < 32; i += 1) bytes[i] = parseInt(publicKey.slice(i * 2, i * 2 + 2), 16);
-    return bytes;
-  } catch {
-    return null;
-  }
+// La clave pública de chat de una persona no cambia (sale de una firma fija), así que se pide una sola vez por sesión.
+// Solo se guardan los éxitos: si todavía no la registró, se vuelve a preguntar la próxima vez.
+const counterpartKeys = new Map<string, Promise<Uint8Array | null>>();
+
+export const clearCounterpartKeys = (): void => counterpartKeys.clear();
+
+export function fetchCounterpartKey(api: Api, address: string): Promise<Uint8Array | null> {
+  const id = address.toLowerCase();
+  const known = counterpartKeys.get(id);
+  if (known) return known;
+  const request = (async () => {
+    try {
+      const { publicKey } = await api.get<{ publicKey: string }>(`/me/chat-keys/${id}`);
+      const bytes = new Uint8Array(32);
+      for (let i = 0; i < 32; i += 1) bytes[i] = parseInt(publicKey.slice(i * 2, i * 2 + 2), 16);
+      return bytes;
+    } catch {
+      return null;
+    }
+  })();
+  counterpartKeys.set(id, request);
+  void request.then((key) => {
+    if (key === null && counterpartKeys.get(id) === request) counterpartKeys.delete(id);
+  });
+  return request;
 }

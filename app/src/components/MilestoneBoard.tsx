@@ -1,4 +1,5 @@
 import { useRunAction } from "../lib/useRunAction";
+import { useFocusedInterval } from "../lib/useFocusedInterval";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -29,7 +30,7 @@ import { Stars } from "./Stars";
 export function MilestoneBoard({ orderId, role, counterpart, changa, payee, deadline }: { orderId: number; role: "payer" | "payee" | "viewer"; counterpart: string; changa: Changa | null; payee: string; deadline: number }) {
   const { api, address } = useSession();
   const queryClient = useQueryClient();
-  const board = useQuery({ queryKey: ["milestones", orderId], refetchInterval: 15_000, queryFn: () => readMilestones(orderId) });
+  const board = useQuery({ queryKey: ["milestones", orderId], refetchInterval: useFocusedInterval(30_000), queryFn: () => readMilestones(orderId) });
   const evidence = useEvidence(orderId);
   const { run: runAction, busy, error } = useRunAction();
   const [rating, setRating] = useState(5);
@@ -39,7 +40,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   const remote = useQuery({
     queryKey: ["release", orderId, address, "m"],
     enabled: Boolean(address),
-    refetchInterval: 15_000,
+    refetchInterval: useFocusedInterval(30_000),
     queryFn: async () => (await api.get<{ release: RemoteRelease | null }>(`/me/orders/${orderId}/release`)).release,
   });
 

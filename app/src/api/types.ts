@@ -115,6 +115,8 @@ export interface ChatSummary {
   title: string;
   counterpart: string;
   counterpartName: string | null;
+  counterpartPhoto?: FileRef | null;
+  counterpartVerified?: boolean;
   role: "owner" | "applicant";
   writable: boolean;
   waitingForOwner: boolean;

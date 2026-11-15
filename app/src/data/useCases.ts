@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useFocusedInterval } from "../lib/useFocusedInterval";
 import { readCase, readJurors } from "../chain/reader";
 import { useSession } from "../session/SessionProvider";
 
@@ -18,7 +19,7 @@ export function useMyCases() {
   return useQuery({
     queryKey: ["cases", address],
     enabled: Boolean(address),
-    refetchInterval: 30_000,
+    refetchInterval: useFocusedInterval(60_000),
     queryFn: () => api.get<MyCases>("/me/cases"),
   });
 }
@@ -26,7 +27,10 @@ export function useMyCases() {
 export function useCaseState(caseId: number) {
   return useQuery({
     queryKey: ["case", caseId],
-    refetchInterval: 15_000,
-    queryFn: async () => ({ snapshot: await readCase(caseId), jurors: await readJurors(caseId) }),
+    refetchInterval: useFocusedInterval(30_000),
+    queryFn: async () => {
+      const [snapshot, jurors] = await Promise.all([readCase(caseId), readJurors(caseId)]);
+      return { snapshot, jurors };
+    },
   });
 }

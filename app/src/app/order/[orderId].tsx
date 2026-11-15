@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useFocusedInterval } from "../../lib/useFocusedInterval";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -6,7 +7,7 @@ import QRCode from "react-native-qrcode-svg";
 import { deployment } from "../../chain/deployment";
 import { approveRemotely, releaseCall, type RemoteRelease } from "../../chain/remoteRelease";
 import { encodeCheckIn, encodeDeliver, encodeReleaseQr, releaseTypedData, sendViaRelay, RELEASE_VALIDITY_SECONDS } from "../../chain/orderActions";
-import { readContributionOf, readForwarderNonce, readGroup, readJurorFee, readParam, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { readContributionOf, readForwarderNonce, readJurorFee, readParam, readTokenBalance, readTokenNonce } from "../../chain/reader";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
 import { encodeObject } from "../../chain/group";
 import { disputeCost, reasonHash } from "../../chain/jury";
@@ -14,6 +15,7 @@ import { payeeCurrent, payeeSteps, payerCurrent, payerSteps } from "../../lib/jo
 import { Banner } from "../../components/Banner";
 import { StatusChip } from "../../components/StatusChip";
 import { OwnerTag } from "../../components/OwnerTag";
+import { useGroup } from "../../data/useGroup";
 import { PersonCard } from "../../components/PersonCard";
 import { Journey, type JourneyStep } from "../../components/Journey";
 import { Card } from "../../components/Card";
@@ -55,12 +57,12 @@ export default function OrderScreen() {
     enabled: Boolean(order.data?.isGroup && address),
     queryFn: () => readContributionOf(id, address as `0x${string}`),
   });
-  const groupInfo = useQuery({ queryKey: ["group", id], enabled: Boolean(order.data?.isGroup), refetchInterval: 20_000, queryFn: () => readGroup(id) });
+  const groupInfo = useGroup(id, Boolean(order.data?.isGroup));
   const [objection, setObjection] = useState("");
   const remote = useQuery({
     queryKey: ["release", id, address],
     enabled: Boolean(address && order.data && !order.data.hasMilestones && order.data.status === 4),
-    refetchInterval: 15_000,
+    refetchInterval: useFocusedInterval(30_000),
     queryFn: async () => (await api.get<{ release: RemoteRelease | null }>(`/me/orders/${id}/release`)).release,
   });
 

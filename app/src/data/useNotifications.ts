@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusedInterval } from "../lib/useFocusedInterval";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "../session/SessionProvider";
 
@@ -17,7 +18,7 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications", address],
     enabled: Boolean(address),
-    refetchInterval: 20_000,
+    refetchInterval: 120_000,
     queryFn: async () => (await api.get<{ notifications: NotificationItem[] }>("/me/notifications")).notifications,
   });
 }

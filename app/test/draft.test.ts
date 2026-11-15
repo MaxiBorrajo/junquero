@@ -129,12 +129,6 @@ describe("hitos y grupo en el borrador", () => {
     expect(validatePrice(withPlan([m({ amount: "2,99" }), m({ amount: "2" })])).amount).toBe("amountMin");
   });
 
-  it("el aporte inicial de un grupo con hitos se mide contra la suma de los hitos", () => {
-    const group = withPlan(undefined, { kind: "group", ownContribution: "4" });
-    expect(validatePrice(group).ownContribution).toBeUndefined();
-    expect(validatePrice({ ...group, ownContribution: "41" }).ownContribution).toBe("range");
-  });
-
   it("la ficha lleva los hitos en unidades mínimas ", () => {
     const spec = buildSpec(withPlan(), "nonce-12345", NOW);
     expect(spec.milestones).toEqual([

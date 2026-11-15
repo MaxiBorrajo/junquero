@@ -42,8 +42,6 @@ export interface Draft {
   amount: string;
   kind: Kind;
   fundingDays: number;
-  // Aporte del que crea la changa grupal (opcional). Se suma recién cuando el grupo queda confirmado.
-  ownContribution: string;
   useMilestones: boolean;
   materials: Materials;
   milestones: MilestoneDraft[];
@@ -64,7 +62,6 @@ export const emptyDraft = (): Draft => ({
   amount: "",
   kind: "individual",
   fundingDays: 7,
-  ownContribution: "",
   useMilestones: false,
   materials: "payer",
   milestones: [],
@@ -140,25 +137,11 @@ export function validateMilestones(draft: Draft): DraftErrors {
   return errors;
 }
 
-// Un aporte individual a una changa grupal va de 5% a 50% de la meta (valores iniciales del contrato).
-export const GROUP_CONTRIBUTION_MIN_BPS = 500n;
-export const GROUP_CONTRIBUTION_MAX_BPS = 5000n;
-
-export function groupContributionRange(target: bigint): { min: bigint; max: bigint } {
-  return { min: (target * GROUP_CONTRIBUTION_MIN_BPS) / 10_000n, max: (target * GROUP_CONTRIBUTION_MAX_BPS) / 10_000n };
-}
-
 export function validatePrice(draft: Draft): DraftErrors {
   const errors: DraftErrors = {};
   const amount = totalAmount(draft);
   if (amount === null) errors.amount = "amount";
   else if (amount < MIN_AMOUNT_MICRO) errors.amount = "amountMin";
-  if (draft.kind === "group" && draft.ownContribution.trim() !== "" && amount !== null) {
-    const own = parseAmount(draft.ownContribution);
-    const range = groupContributionRange(amount);
-    if (own === null || own <= 0n) errors.ownContribution = "amount";
-    else if (own < range.min || own > range.max) errors.ownContribution = "range";
-  }
   return errors;
 }
 

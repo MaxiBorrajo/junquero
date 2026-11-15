@@ -2,7 +2,7 @@ const TEXTS: Record<string, { title: string; body: string }> = {
   application_new: { title: "Nueva postulación", body: "Un junquero se postuló a tu trabajo." },
   agreement_proposed: { title: "Te eligieron", body: "Te eligieron para un trabajo. Confirmá el acuerdo." },
   published: { title: "Trabajo publicado", body: "Tu trabajo ya está confirmado y aparece en el mapa." },
-  group_published: { title: "Trabajo grupal publicado", body: "Tu trabajo grupal ya puede recibir aportes. Compartilo para juntar la meta." },
+  group_published: { title: "Trabajo grupal publicado", body: "Tu trabajo grupal ya está confirmado. Entrá, hacé tu aporte y compartilo para juntar la meta." },
   agreed: { title: "Trabajo acordado", body: "Quedó acordado. Abrí el trabajo para ver los detalles." },
   chat: { title: "Mensaje nuevo", body: "Tenés un mensaje nuevo." },
   delivered: { title: "Entrega registrada", body: "Revisá el trabajo: si no respondés a tiempo, se aprueba solo." },

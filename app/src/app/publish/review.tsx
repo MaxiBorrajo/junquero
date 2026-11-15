@@ -10,7 +10,7 @@ import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../compone
 import { t } from "../../i18n";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatAmount, formatUsdc } from "../../lib/money";
-import { parseAmount, totalAmount, validateAll } from "../../publish/draft";
+import { totalAmount, validateAll } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { useSession } from "../../session/SessionProvider";
 import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
@@ -66,8 +66,7 @@ export default function PublishReview() {
       void queryClient.invalidateQueries({ queryKey: ["changas"] });
       const group = draft.kind === "group";
       reset();
-      const own = group && draft.ownContribution.trim() !== "" ? parseAmount(draft.ownContribution) : null;
-      router.replace({ pathname: "/publish/done", params: { confirmed: "0", group: group ? "1" : "0", spec: result.specHash, ...(own !== null ? { own: own.toString() } : {}) } });
+      router.replace({ pathname: "/publish/done", params: { confirmed: "0", group: group ? "1" : "0", spec: result.specHash } });
     } catch (failure) {
       running.current = false;
       setStep(null);
@@ -92,7 +91,6 @@ export default function PublishReview() {
         {draft.durationMin ? <Secondary>{formatDuration(draft.durationMin)}</Secondary> : null}
         {draft.attachments.length > 0 ? <Secondary>{`${draft.attachments.length} ${t.detail.attachments.toLowerCase()}`}</Secondary> : null}
       </View>
-      {draft.kind === "group" && parseAmount(draft.ownContribution) !== null ? <Secondary>{`${t.publish.ownContributionReview}: ${formatUsdc((parseAmount(draft.ownContribution) as bigint).toString())}`}</Secondary> : null}
       <Secondary>{t.publish.reviewNote}</Secondary>
       <Secondary>{t.publish.reviewReservationNote}</Secondary>
       {error ? <ErrorText>{error}</ErrorText> : null}

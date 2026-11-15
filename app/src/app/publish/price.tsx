@@ -7,8 +7,8 @@ import { WizardStep } from "../../components/Wizard";
 import { protocolFee } from "../../chain/fee";
 import { readFeeRule } from "../../chain/reader";
 import { t } from "../../i18n";
-import { formatAmount, formatUsdc } from "../../lib/money";
-import { groupContributionRange, totalAmount, validatePrice } from "../../publish/draft";
+import { formatUsdc } from "../../lib/money";
+import { totalAmount, validatePrice } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { colors, fonts, spacing, text } from "../../theme";
 import { suggestMilestones } from "../../chain/terms";
@@ -27,9 +27,6 @@ export default function PublishPrice() {
     setTouched(true);
     if (Object.keys(validatePrice(draft)).length === 0) router.push(draft.useMilestones ? "/publish/review" : "/publish/evidence");
   };
-
-  const range = amount !== null ? groupContributionRange(amount) : null;
-  const ownRange = { min: range ? formatAmount(range.min.toString()) : "–", max: range ? formatAmount(range.max.toString()) : "–" };
 
   return (
     <WizardStep step={5} title={t.publish.priceTitle} onNext={next}>
@@ -62,16 +59,6 @@ export default function PublishPrice() {
         </View>
       ) : null}
 
-      {draft.kind === "group" ? (
-        <Field
-          label={t.publish.ownContributionLabel}
-          value={draft.ownContribution}
-          onChangeText={(value) => update({ ownContribution: value })}
-          keyboardType="decimal-pad"
-          error={errors.ownContribution ? (errors.ownContribution === "range" ? t.publish.ownContributionRange.replace("{min}", ownRange.min).replace("{max}", ownRange.max) : t.publish.ownContributionAmount) : null}
-          hint={t.publish.ownContributionHint.replace("{min}", ownRange.min).replace("{max}", ownRange.max)}
-        />
-      ) : null}
 
       {amount !== null ? (
         <View style={{ gap: 4 }}>

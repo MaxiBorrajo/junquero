@@ -16,6 +16,7 @@ import { formatAmount, formatUsdc, toMicro } from "../../lib/money";
 import { relayDepsFor } from "../../lib/relayHelpers";
 import { useSession } from "../../session/SessionProvider";
 import { isRejection, signTyped } from "../../wallet/sign";
+import { Icon } from "../../components/Icon";
 import { colors, radius, spacing, text } from "../../theme";
 
 export default function GroupScreen() {
@@ -121,6 +122,12 @@ export default function GroupScreen() {
         </View>
       ))}
 
+      {funding && order.data.payer.toLowerCase() === me && mine === 0n ? (
+        <View style={styles.invite}>
+          <Icon name="wallet" size={20} color={colors.brick} />
+          <Text style={[text.body, { flex: 1 }]}>{t.group.inviteCreator}</Text>
+        </View>
+      ) : null}
       {funding ? (
         <>
           <Field label={t.group.amountLabel} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={hint} />
@@ -148,6 +155,7 @@ export default function GroupScreen() {
 }
 
 const styles = StyleSheet.create({
+  invite: { flexDirection: "row", alignItems: "center", gap: spacing.sm + 4, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md },
   box: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.line },
   bar: { height: 10, borderRadius: radius.pill, backgroundColor: colors.line, overflow: "hidden" },
   fill: { height: 10, backgroundColor: colors.brick },

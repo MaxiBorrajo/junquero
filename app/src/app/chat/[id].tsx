@@ -4,6 +4,8 @@ import { useMyAgreements, useMyApplications, useMyChangas, useReceivedApplicatio
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
+import { useChatEvents } from "../../data/useChatEvents";
+import { buildTimeline, eventText } from "../../lib/chatTimeline";
 import { StepCard } from "../../components/StepCard";
 import { AgreementCard } from "../../components/AgreementCard";
 import { useSession } from "../../session/SessionProvider";
@@ -58,6 +60,8 @@ export default function ChatScreen() {
   const counterpartName = counterpartProfile.data?.name;
   const { address: me } = useSession();
   const agreements = useMyAgreements().data ?? [];
+  const events = useChatEvents(Number(id)).data ?? [];
+  const timeline = buildTimeline(room.view, events);
   const ownerAddress = room.access.role === "owner" ? me : String(counterpart);
   const applicantAddress = room.access.role === "owner" ? String(counterpart) : me;
   const proposal = agreements.find((item) => item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;
@@ -175,8 +179,8 @@ export default function ChatScreen() {
         <FlatList
           ref={list}
           contentContainerStyle={styles.messages}
-          data={room.view}
-          keyExtractor={(item) => item.key}
+          data={timeline}
+          keyExtractor={(row) => row.key}
           ListHeaderComponent={
             <View style={{ gap: spacing.xs }}>
               <ProtectedCard />
@@ -203,13 +207,20 @@ export default function ChatScreen() {
             ) : undefined
           }
           onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
-          renderItem={({ item, index }) => (
+          renderItem={({ item: row, index }) => (
             <View style={styles.entry}>
-              {index === 0 || !sameDay(room.view[index - 1]!.createdAt, item.createdAt) ? (
+              {index === 0 || !sameDay(timeline[index - 1]!.createdAt, row.createdAt) ? (
                 <View style={styles.day}>
-                  <Text style={text.label}>{formatDayLabel(item.createdAt)}</Text>
+                  <Text style={text.label}>{formatDayLabel(row.createdAt)}</Text>
                 </View>
               ) : null}
+            {row.type === "event" ? (
+              <View style={styles.event}>
+                <Icon name="check" size={14} color={colors.muted} />
+                <Text style={[text.secondary, styles.eventText]}>{eventText(row.event, me, counterpartName ?? t.chat.unknownUser, t.chat.events)}</Text>
+                <Text style={text.label}>{formatClock(row.event.createdAt)}</Text>
+              </View>
+            ) : (() => { const item = row.message; return (
             <View style={[styles.bubble, item.mine ? styles.mine : styles.theirs]}>
               {item.text === null ? <Text style={[text.body, item.mine && styles.mineText]}>{t.chat.unreadable}</Text> : null}
               {item.text ? <Text style={[text.body, item.mine && styles.mineText]}>{item.text}</Text> : null}
@@ -228,6 +239,7 @@ export default function ChatScreen() {
                 </View>
               ) : null}
             </View>
+            ); })()}
             </View>
           )}
         />
@@ -322,6 +334,8 @@ const styles = StyleSheet.create({
   applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.xs },
   entry: { gap: spacing.sm },
   proposal: { marginTop: spacing.sm },
+  event: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs, paddingHorizontal: spacing.md },
+  eventText: { flexShrink: 1, textAlign: "center" },
   day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   time: { alignSelf: "flex-end" },
   bubble: { maxWidth: "80%", borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.xs },

@@ -41,6 +41,7 @@ import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
+import { listChatEvents, recordAgreementEvent } from "./chatEvents";
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
 import { createRelayChain, relayTargets } from "./relayChain";
@@ -471,6 +472,12 @@ app.get("/me/chat-keys/:address", async (c) => {
   return row ? c.json({ address, publicKey: row.public_key }) : c.json({ error: "no chat key" }, 404);
 });
 
+app.get("/me/chats/:id/events", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  return c.json({ events: await listChatEvents(c.env.DB, chat.applicationId) });
+});
+
 app.get("/me/chats", async (c) => c.json({ chats: await listChats(c.env.DB, c.get("address"), OWN_CHANGAS_LIMIT) }));
 
 app.get("/me/chats/:id/messages", async (c) => {
@@ -655,6 +662,7 @@ app.post("/me/orders/:orderId/agreement", async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const result = await propose(c.env.DB, c.get("address"), orderId, parsed.value, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
+  await recordAgreementEvent(c.env.DB, "proposed", orderId, result.row.payee, c.get("address"), nowSeconds()).run();
   return c.json({ agreement: presentAgreement(result.row, nowSeconds()) }, 201);
 });
 
@@ -731,14 +739,17 @@ app.post("/me/orders/:orderId/agreement/accept", async (c) => {
   if (!body || typeof body.signature !== "string" || !isHex(body.signature)) return c.json({ error: "invalid signature" }, 400);
   const result = await acceptAgreement(c.env.DB, createAgreementChain(c.env.RPC_URL, c.env.RELAYER_KEY), orderId, c.get("address"), body.signature, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
+  await recordAgreementEvent(c.env.DB, "accepted", orderId, c.get("address"), c.get("address"), nowSeconds()).run();
   return c.json({ txHash: result.txHash });
 });
 
 app.delete("/me/orders/:orderId/agreement", async (c) => {
   const orderId = parseOrderId(c.req.param("orderId"));
   if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const before = await c.env.DB.prepare("SELECT payee FROM agreements WHERE order_id = ?").bind(orderId).first<{ payee: string }>();
   const result = await cancelAgreement(c.env.DB, orderId, c.get("address"), nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
+  if (before) await recordAgreementEvent(c.env.DB, before.payee === c.get("address") ? "rejected" : "cancelled", orderId, before.payee, c.get("address"), nowSeconds()).run();
   return c.json({ ok: true });
 });
 

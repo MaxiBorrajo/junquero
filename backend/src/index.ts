@@ -2,6 +2,7 @@ import { app } from "./app";
 import { purgeAgreements } from "./agreements";
 import { purgeReleases } from "./releases";
 import { applicationsHandler } from "./applications";
+import { chatEventsHandler } from "./chatEvents";
 import { partiesHandler } from "./parties";
 import { createChangasHandler, purgeStaleDrafts } from "./changas";
 import { deployedTokenDecimals, indexedContracts, startBlock } from "./contracts";
@@ -35,7 +36,7 @@ function chainClient(rpcUrl: string): ChainClient {
 
 const changasHandler = createChangasHandler(deployedTokenDecimals);
 
-const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler];
+const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler, chatEventsHandler];
 
 // Indexa la cadena y después arma las tablas de consulta con los eventos nuevos, en ese orden y de una sola vez.
 async function syncChain(env: Env, confirmations: number): Promise<void> {

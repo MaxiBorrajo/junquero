@@ -371,6 +371,28 @@ export const esAR = {
     },
   },
   chat: {
+    events: {
+      mine: {
+        proposed: "Mandaste la propuesta de acuerdo.",
+        accepted: "Aceptaste el acuerdo.",
+        rejected: "Rechazaste la propuesta.",
+        cancelled: "Cancelaste la propuesta.",
+        agreed: "Quedó acordado. El pago está en garantía.",
+        checkedin: "Avisaste que llegaste.",
+        delivered: "Marcaste el trabajo como terminado.",
+        settled: "Se liberó el pago.",
+      },
+      theirs: {
+        proposed: "{name} te mandó la propuesta de acuerdo.",
+        accepted: "{name} aceptó el acuerdo.",
+        rejected: "{name} rechazó la propuesta.",
+        cancelled: "{name} canceló la propuesta.",
+        agreed: "Quedó acordado. El pago está en garantía.",
+        checkedin: "{name} avisó que llegó.",
+        delivered: "{name} marcó el trabajo como terminado.",
+        settled: "Se liberó el pago.",
+      },
+    },
     stepNow: "Paso actual",
     stepOf: "{n}",
     stepGoEvidence: "Ir a subir las pruebas",

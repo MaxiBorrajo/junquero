@@ -16,7 +16,7 @@ export function useAgreementActions() {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
-  const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["agreements"] }), queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["changas"] })]);
+  const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: ["agreements"] }), queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["changas"] }), queryClient.invalidateQueries({ queryKey: ["chat-events"] })]);
 
   const accept = async (agreement: AgreementRecord): Promise<boolean> => {
     setBusy(true);

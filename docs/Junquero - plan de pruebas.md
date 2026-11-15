@@ -620,6 +620,8 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.19 Acuerdo y pasos desde el chat** · [ ] Elegir a alguien desde el chat. Esperado: en el chat de las dos personas aparece la tarjeta de propuesta (quien fue elegido acepta o rechaza; quien publicó espera o cancela). Al aceptar, aparece la tarjeta "Paso actual" con el mismo paso que el detalle del trabajo: "Llegué" (presencial), después "Ir a subir las pruebas", "Ir a terminar" y, para quien publicó, "Revisar y aprobar". Avanzar un paso en el chat se refleja en el detalle y al revés.
 
+**15.20 Historial en el chat** · [ ] Mandar una propuesta, rechazarla, mandarla otra vez, aceptarla, llegar, entregar y cobrar. Esperado: en el chat de las dos personas aparece cada hecho como una línea centrada con su hora ("Mandaste la propuesta de acuerdo", "{nombre} aceptó el acuerdo", "Quedó acordado", "avisó que llegó", "Se liberó el pago"), redactado según quién lo hizo, y mezclado con los mensajes por fecha. Requiere el backend nuevo y la migración 0021.
+
 ---
 
 ## 16. Resumen de estado

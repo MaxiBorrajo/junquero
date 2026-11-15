@@ -39,9 +39,10 @@ export function useMyAgreements() {
   });
 }
 
-export function useReceivedApplications(changaId: number) {
+export function useReceivedApplications(changaId: number, enabled = true) {
   const { api } = useSession();
   return useQuery({
+    enabled,
     queryKey: ["applications", "received", changaId],
     refetchInterval: REFRESH_MS,
     queryFn: async () => (await api.get<{ applications: ReceivedApplication[] }>(`/me/changas/${changaId}/applications`)).applications,

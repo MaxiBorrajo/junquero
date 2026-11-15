@@ -3,18 +3,14 @@ import { Card } from "../../components/Card";
 import { Banner } from "../../components/Banner";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Changa, ReceivedApplication } from "../../api/types";
 import { encodeProposeProvider } from "../../chain/group";
-import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
-import { encodeTopUp, sendViaRelay } from "../../chain/orderActions";
-import { readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { sendViaRelay } from "../../chain/orderActions";
 import { relayDepsFor } from "../../lib/relayHelpers";
-import { AGREEMENT_VALIDITY_SECONDS, ZERO_HASH, agreementTypedData, proposalPrice } from "../../chain/agreement";
-import { milestoneTerms, milestoneTermsHash } from "../../chain/terms";
-import { deployment } from "../../chain/deployment";
 import { DetailActions } from "../../components/DetailActions";
+import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { PersonMenu } from "../../components/PersonMenu";
 import { Icon } from "../../components/Icon";
 import { BackButton, ErrorText, Secondary, Title } from "../../components/ui";
@@ -23,7 +19,7 @@ import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
-import { isRejection, signTyped } from "../../wallet/sign";
+import { isRejection } from "../../wallet/sign";
 import { colors, fonts, radius, spacing, text } from "../../theme";
 
 export default function ReceivedApplications() {
@@ -39,71 +35,10 @@ export default function ReceivedApplications() {
   const toast = useToast();
   const [failed, setFailed] = useState(false);
 
-  const confirmTopUp = (price: bigint, published: bigint) =>
-    new Promise<boolean>((resolve) => {
-      const body = t.received.topUpBody
-        .replace(/{price}/g, formatUsdc(price.toString()))
-        .replace("{published}", formatUsdc(published.toString()))
-        .replace("{extra}", formatUsdc((price - published).toString()));
-      Alert.alert(t.received.topUpTitle, body, [
-        { text: t.common.cancel, style: "cancel", onPress: () => resolve(false) },
-        { text: t.received.topUpConfirm, onPress: () => resolve(true) },
-      ], { onDismiss: () => resolve(false) });
-    });
-
-  // Suma la diferencia al depósito y espera a que el backend ya muestre el monto nuevo.
-  const topUp = async (target: Changa, price: bigint, published: bigint): Promise<"done" | "balance" | "waiting"> => {
-    const account = address as `0x${string}`;
-    const extra = price - published;
-    if ((await readTokenBalance(account)) < extra) return "balance";
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + PERMIT_VALIDITY_SECONDS);
-    const signature = await signTyped(permitTypedData(deployment, account, extra, await readTokenNonce(account), deadline));
-    await sendViaRelay(relayDepsFor(api, account), encodeTopUp(BigInt(target.orderId as number), extra, { method: 0, nonce: 0n, deadline, signature }));
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const fresh = ((await mine.refetch()).data ?? []).find((item) => item.id === target.id);
-      if (fresh && /^\d+$/.test(fresh.amount ?? "") && BigInt(fresh.amount as string) >= price) return "done";
-    }
-    return "waiting";
-  };
-
   const proposal = changa?.orderId ? (agreements.data ?? []).find((item) => item.orderId === changa.orderId && item.status === "pending") : undefined;
 
-  const choose = async (application: ReceivedApplication, target: Changa) => {
-    if (!address || target.orderId === null) return;
-    const plan = milestoneTerms(application.plan?.milestones ?? target.spec.milestones, target.specHash as `0x${string}`);
-    const price = plan ? proposalPrice(null, target.amount) : proposalPrice(application.amount, target.amount);
-    if (price === null) return;
-    const published = target.amount !== null && /^\d+$/.test(target.amount) ? BigInt(target.amount) : null;
-    const higher = !plan && published !== null && price > published;
-    if (higher && !(await confirmTopUp(price, published))) return;
-    setBusy(application.id);
-    setFailed(false);
-    try {
-      if (higher) {
-        const outcome = await topUp(target, price, published);
-        if (outcome === "balance") {
-          toast({ text: t.received.topUpBalance.replace("{extra}", formatUsdc((price - published).toString())), tone: "error" });
-          return;
-        }
-        if (outcome === "waiting") {
-          toast({ text: t.received.topUpWaiting, tone: "info" });
-          return;
-        }
-      }
-      const expiry = Math.floor(Date.now() / 1000) + AGREEMENT_VALIDITY_SECONDS;
-      const terms = { orderId: BigInt(target.orderId), payer: address as `0x${string}`, payee: application.applicant as `0x${string}`, price, specHash: target.specHash as `0x${string}`, termsHash: plan ? milestoneTermsHash(plan) : ZERO_HASH, expiry };
-      const signature = await signTyped(agreementTypedData(deployment, terms));
-      await api.send("POST", `/me/orders/${target.orderId}/agreement`, { payee: application.applicant, price: price.toString(), expiry, signature });
-      await queryClient.invalidateQueries({ queryKey: ["agreements"] });
-      toast({ text: t.received.proposalSent, icon: "send" });
-    } catch (error) {
-      if (isRejection(error)) toast({ text: t.received.cancelled, tone: "info" });
-      else setFailed(true);
-    } finally {
-      setBusy(null);
-    }
-  };
+  const { choose, busy: choosing, failed: chooseFailed } = useChooseApplicant();
+  const working = busy ?? choosing;
 
   const proposeProvider = async (application: ReceivedApplication, target: Changa) => {
     if (target.orderId === null) return;
@@ -143,7 +78,7 @@ export default function ReceivedApplications() {
             {proposal ? (
               <Banner icon="clock" action={{ label: t.received.cancelProposal, onPress: () => void cancelProposal() }}>{t.received.pendingTitle}</Banner>
             ) : null}
-            {failed ? <ErrorText>{t.received.chooseFailed}</ErrorText> : null}
+            {failed || chooseFailed ? <ErrorText>{t.received.chooseFailed}</ErrorText> : null}
           </View>
         }
         ListEmptyComponent={<Secondary>{t.received.empty}</Secondary>}
@@ -190,7 +125,7 @@ export default function ReceivedApplications() {
                   <Text style={[styles.smallLabel, { color: colors.brick }]}>{t.received.talk}</Text>
                 </Pressable>
                 {open ? (
-                  <Pressable accessibilityRole="button" disabled={busy !== null} onPress={choosePress} style={[styles.small, styles.smallSolid, busy !== null && { opacity: 0.5 }]}>
+                  <Pressable accessibilityRole="button" disabled={working !== null} onPress={choosePress} style={[styles.small, styles.smallSolid, working !== null && { opacity: 0.5 }]}>
                     <Icon name="check" size={16} color={colors.white} />
                     <Text style={[styles.smallLabel, { color: colors.white }]}>{t.received.choose}</Text>
                   </Pressable>

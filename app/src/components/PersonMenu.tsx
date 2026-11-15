@@ -18,10 +18,12 @@ interface Props {
   active: boolean;
   // Se llama después de descartar, retirar o bloquear.
   onDone?: () => void;
+  // Si se pasa, el dueño puede elegir a esta persona desde el menú.
+  onChoose?: () => void;
 }
 
 // Acciones sobre la otra persona de una postulación: descartar o bajarse, bloquear y reportar.
-export function PersonMenu({ role, applicationId, changaId, counterpart, active, onDone }: Props) {
+export function PersonMenu({ role, applicationId, changaId, counterpart, active, onDone, onChoose }: Props) {
   const { api } = useSession();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -50,6 +52,7 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
 
   const choices: Choice[] = [];
   if (role === "owner" && active) {
+    if (onChoose) choices.push({ key: "choose", label: t.received.choose, icon: "check", onPress: onChoose });
     choices.push({
       key: "dismiss",
       label: t.person.dismiss,

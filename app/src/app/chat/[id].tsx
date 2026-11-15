@@ -1,5 +1,7 @@
 import { File } from "expo-file-system";
 import { formatClock, formatDayLabel, sameDay } from "../../lib/format";
+import { useMyChangas, useReceivedApplications } from "../../data/useMine";
+import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
 import { Card } from "../../components/Card";
@@ -46,6 +48,10 @@ export default function ChatScreen() {
   const { id, counterpart, title } = useLocalSearchParams<{ id: string; counterpart: string; title?: string }>();
   const room = useChatRoom(Number(id), String(counterpart));
   const toast = useToast();
+  const { choose } = useChooseApplicant();
+  const ownChanga = (useMyChangas().data ?? []).find((item) => item.id === room.access.changaId) ?? null;
+  const application = (useReceivedApplications(room.access.changaId, room.access.role === "owner").data ?? []).find((item) => item.id === Number(id)) ?? null;
+  const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null;
   const attachmentViewer = useAttachmentViewer();
   const [draft, setDraft] = useState("");
   const [picks, setPicks] = useState<PickedFile[]>([]);
@@ -150,7 +156,7 @@ export default function ChatScreen() {
               <Icon name="briefcase" size={22} color={colors.ink} />
             </Pressable>
           ) : null}
-          <PersonMenu role={room.access.role} applicationId={Number(id)} changaId={room.access.changaId} counterpart={String(counterpart)} active={room.writable} onDone={() => router.back()} />
+          <PersonMenu role={room.access.role} applicationId={Number(id)} changaId={room.access.changaId} counterpart={String(counterpart)} active={room.writable} onDone={() => router.back()} onChoose={canChoose ? () => void choose(application!, ownChanga!) : undefined} />
         </View>
         <FlatList
           ref={list}

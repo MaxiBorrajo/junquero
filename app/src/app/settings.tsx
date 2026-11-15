@@ -95,7 +95,7 @@ export default function Settings() {
         </View>
         <Secondary>{t.settings.notificationsHint}</Secondary>
         {failed ? <ErrorText>{t.settings.notificationsFailed}</ErrorText> : null}
-        {push === "blocked" ? <Button label={t.settings.openPhoneSettings} variant="secondary" onPress={() => void Linking.openSettings()} /> : null}
+        {push === "blocked" ? <Button label={t.settings.openPhoneSettings} icon="settings" variant="secondary" onPress={() => void Linking.openSettings()} /> : null}
         <Button label={t.notifications.open} variant="ghost" icon="bell" onPress={() => router.push("/notifications")} />
       </View>
 

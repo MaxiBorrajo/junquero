@@ -115,13 +115,13 @@ export default function CaseScreen() {
       {canRespond(snapshot, address, now) ? (
         <>
           <Field label={t.caseScreen.responseLabel} value={response} onChangeText={setResponse} multiline maxLength={1500} />
-          <Button label={t.caseScreen.respond} onPress={respond} loading={busy} disabled={response.trim().length < 10} />
+          <Button label={t.caseScreen.respond} icon="send" onPress={respond} loading={busy} disabled={response.trim().length < 10} />
         </>
       ) : null}
       {view === "waiting-response" && role === "claimant" ? <Secondary>{t.caseScreen.responseNoReply}</Secondary> : null}
 
       {isParty && (view.startsWith("vote") || view === "verdict-appealable" || view === "verdict-final") && jurors.length > 0 ? (
-        <Button label={t.caseScreen.shareEvidence} variant="secondary" onPress={share} loading={busy} />
+        <Button label={t.caseScreen.shareEvidence} icon="file" variant="secondary" onPress={share} loading={busy} />
       ) : null}
 
       {view.startsWith("verdict") || view === "resolved" ? (
@@ -131,7 +131,7 @@ export default function CaseScreen() {
       {canAppeal(snapshot, address, now) && view === "verdict-appealable" ? (
         <>
           <Secondary>{t.caseScreen.appealCost.replace("{amount}", formatAmount(appealCost(fee.data ?? 0n, snapshot.jurors).toString()))}</Secondary>
-          <Button label={t.caseScreen.appeal} onPress={appeal} loading={busy} />
+          <Button label={t.caseScreen.appeal} icon="scale" onPress={appeal} loading={busy} />
         </>
       ) : null}
 

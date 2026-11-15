@@ -32,7 +32,7 @@ export default function ReportScreen() {
 
   if (done) {
     return (
-      <Screen footer={<Button label={t.common.continue} onPress={() => router.back()} />}>
+      <Screen footer={<Button label={t.common.continue} icon="chevron" onPress={() => router.back()} />}>
         <Title>{kind === "user" ? t.report.user : t.report.changa}</Title>
         <Body>{t.report.sent}</Body>
       </Screen>
@@ -40,7 +40,7 @@ export default function ReportScreen() {
   }
 
   return (
-    <Screen footer={<Button label={t.report.send} onPress={send} loading={busy} />}>
+    <Screen footer={<Button label={t.report.send} icon="send" onPress={send} loading={busy} />}>
       <Title>{kind === "user" ? t.report.user : t.report.changa}</Title>
       <Field label={t.report.reasonLabel} value={reason} onChangeText={setReason} multiline maxLength={300} error={touched && !valid ? t.report.reasonError : null} />
       {error ? <ErrorText>{error}</ErrorText> : null}

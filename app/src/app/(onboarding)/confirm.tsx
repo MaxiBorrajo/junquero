@@ -42,8 +42,8 @@ export default function Confirm() {
       onBack={() => void switchAccount("/welcome")}
       footer={
         <>
-          <Button label={t.confirm.action} onPress={confirm} loading={busy} />
-          <Button label={t.confirm.switchAccount} variant="ghost" onPress={() => void switchAccount("/connect")} disabled={busy} />
+          <Button label={t.confirm.action} icon="check" onPress={confirm} loading={busy} />
+          <Button label={t.confirm.switchAccount} icon="users" variant="ghost" onPress={() => void switchAccount("/connect")} disabled={busy} />
         </>
       }
     >

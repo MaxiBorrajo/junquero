@@ -23,7 +23,7 @@ export default function PublicProfileScreen() {
   }
   const data = profile.data;
   return (
-    <Screen footer={me && me.toLowerCase() !== String(address).toLowerCase() ? <Button label={t.report.user} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "user", target: String(address) } })} /> : null}>
+    <Screen footer={me && me.toLowerCase() !== String(address).toLowerCase() ? <Button label={t.report.user} icon="flag" variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "user", target: String(address) } })} /> : null}>
       <View style={styles.header}>
         {data.photo ? <Image source={{ uri: `${API_URL}${data.photo.url}` }} style={styles.photo} /> : <View style={[styles.photo, styles.empty]} />}
         <View style={{ flex: 1 }}>

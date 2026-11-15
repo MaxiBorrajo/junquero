@@ -29,7 +29,7 @@ export function ZonePicker({ center, radiusM, onChange, height = 300 }: { center
         <View style={styles.full}>
           {full ? <ZoneMap center={center} radiusM={radiusM} onChange={onChange} style={styles.map} searchStyle={styles.searchFull} /> : null}
           <SafeAreaView style={styles.done} pointerEvents="box-none">
-            <Button label={t.common.done} onPress={() => setFull(false)} />
+            <Button label={t.common.done} icon="check" onPress={() => setFull(false)} />
           </SafeAreaView>
         </View>
       </Modal>

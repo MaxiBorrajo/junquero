@@ -140,7 +140,7 @@ export default function ReceivedApplications() {
             {proposal ? (
               <View style={styles.banner}>
                 <Text style={text.body}>{t.received.pendingTitle}</Text>
-                <Button label={t.received.cancelProposal} variant="ghost" onPress={cancelProposal} />
+                <Button label={t.received.cancelProposal} icon="close" variant="ghost" onPress={cancelProposal} />
               </View>
             ) : null}
             {message ? <Secondary>{message}</Secondary> : null}
@@ -165,9 +165,9 @@ export default function ReceivedApplications() {
                 ))}
               </View>
             ) : null}
-            <Button label={t.received.talk} variant="ghost" onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } })} />
-            {changa && changa.status === "open" && changa.spec.group ? <Button label={t.group.propose} variant="secondary" onPress={() => proposeProvider(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
-            {changa && changa.status === "open" ? <Button label={t.received.choose} onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
+            <Button label={t.received.talk} icon="message" variant="ghost" onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } })} />
+            {changa && changa.status === "open" && changa.spec.group ? <Button label={t.group.propose} icon="users" variant="secondary" onPress={() => proposeProvider(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
+            {changa && changa.status === "open" ? <Button label={t.received.choose} icon="check" onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
           </View>
         )}
       />

@@ -95,7 +95,7 @@ export default function Messages() {
         <View style={styles.pad}>
           <Title>{t.tabs.messages}</Title>
           <Secondary>{t.chat.needAccount}</Secondary>
-          <Button label={t.mine.enter} onPress={() => router.push("/welcome")} />
+          <Button label={t.mine.enter} icon="wallet" onPress={() => router.push("/welcome")} />
         </View>
       </SafeAreaView>
     );

@@ -75,8 +75,8 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
 
   return (
     <View style={styles.box}>
-      <Button label={t.order.addPhoto} variant="secondary" onPress={() => setSheet(true)} loading={busy} />
-      <Button label={t.order.addFile} variant="ghost" onPress={async () => send(await pickDocuments())} disabled={busy} />
+      <Button label={t.order.addPhoto} icon="camera" variant="secondary" onPress={() => setSheet(true)} loading={busy} />
+      <Button label={t.order.addFile} icon="file" variant="ghost" onPress={async () => send(await pickDocuments())} disabled={busy} />
       <ChoiceSheet
         visible={sheet}
         onClose={() => setSheet(false)}

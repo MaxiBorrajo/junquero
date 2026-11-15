@@ -50,7 +50,7 @@ export default function PublishWhen() {
             <ZonePicker center={draft.point ?? fallback} radiusM={0} onChange={setPoint} />
           </Labeled>
           <Secondary>{t.publish.wherePrivacy}</Secondary>
-          <Button label={t.profile.useMyLocation} variant="ghost" onPress={useMyLocation} />
+          <Button label={t.profile.useMyLocation} icon="locate" variant="ghost" onPress={useMyLocation} />
           {errors.point ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.pointError}</Text> : null}
           <DateTimeField value={draft.startsAt} onChange={(startsAt) => update({ startsAt })} />
           {errors.startsAt ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.dateError}</Text> : null}

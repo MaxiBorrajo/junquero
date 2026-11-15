@@ -1,12 +1,8 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { deployment } from "../../chain/deployment";
-import { encodeCancel, sendViaRelay } from "../../chain/orderActions";
-import { readForwarderNonce } from "../../chain/reader";
-import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
+import { DetailActions } from "../../components/DetailActions";
+import { OwnerTag } from "../../components/OwnerTag";
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { Icon } from "../../components/Icon";
 import { useAttachmentViewer } from "../../components/useAttachmentViewer";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -16,9 +12,8 @@ import { t } from "../../i18n";
 import { applyBlock, type ApplyBlock } from "../../lib/apply";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
-import { effectiveStatus, markCancelling, useCancelling } from "../../data/cancelling";
+import { effectiveStatus, useCancelling } from "../../data/cancelling";
 import { useSession } from "../../session/SessionProvider";
-import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { colors, radius, spacing, text } from "../../theme";
 
 const fileUrl = (owner: string, hash: string): string => `${API_URL}/files/${owner}/${hash.replace(/^0x/, "")}`;
@@ -34,14 +29,7 @@ const BLOCK_TEXT: Record<ApplyBlock, string | null> = {
 export default function ChangaDetail() {
   const { specHash } = useLocalSearchParams<{ specHash: string }>();
   const { address, profile, api } = useSession();
-  const queryClient = useQueryClient();
-  const [confirmCancel, setConfirmCancel] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [stale, setStale] = useState(false);
   const cancelling = useCancelling();
-  const switchAccount = useSwitchAccount();
   const query = useChangaBySpec(String(specHash));
   const attachmentViewer = useAttachmentViewer();
 
@@ -66,42 +54,22 @@ export default function ChangaDetail() {
   const isOwner = block === "own";
   const isCancelling = effectiveStatus(changa, cancelling) === "cancelling";
   const isGroup = Boolean(spec.group);
-  const cancelChanga = async () => {
-    if (changa.orderId === null || !address) return;
-    const account = address as `0x${string}`;
-    setBusy(true);
-    setNote(null);
-    setFailed(false);
-    setStale(false);
-    try {
-      await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(changa.orderId)));
-      setNote(t.detail.cancelDone);
-      markCancelling(changa.id);
-      setConfirmCancel(false);
-      await queryClient.invalidateQueries();
-    } catch (error) {
-      if (isRejection(error)) setNote(t.detail.cancelSigned);
-      else if (isStaleWalletSession(error)) setStale(true);
-      else setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  };
   const groupButton =
     !isCancelling && isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") ? (
-      <Button label={changa.status === "funding" ? t.publish.goToGroup : t.group.title} variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
+      <Button label={changa.status === "funding" ? t.publish.goToGroup : t.group.title} icon="users" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
     ) : null;
   const action = isCancelling ? null : changa.status === "funding" ? groupButton :
     isOwner && changa.status === "open" ? (
-      <Button label={t.mine.viewApplications} onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
+      <Button label={t.mine.viewApplications} icon="users" onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
     ) : block === null ? (
-      <Button label={t.detail.apply} onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "", plan: spec.milestones ? "1" : "0", spec: changa.specHash } })} />
+      <Button label={t.detail.apply} icon="send" onPress={() => router.push({ pathname: "/apply/[changaId]", params: { changaId: String(changa.id), max: changa.amount ?? "", plan: spec.milestones ? "1" : "0", spec: changa.specHash } })} />
     ) : block === "anonymous" || block === "no-profile" ? (
-      <Button label={t.mine.enter} onPress={() => router.push("/welcome")} />
+      <Button label={t.mine.enter} icon="wallet" onPress={() => router.push("/welcome")} />
     ) : null;
 
   return (
     <Screen footer={action}>
+      {isOwner ? <OwnerTag label={t.detail.ownChangaTag} /> : null}
       <Title>{spec.title}</Title>
       <View style={styles.amountBox}>
         <Text style={text.label}>{t.detail.inEscrow}</Text>
@@ -171,27 +139,21 @@ export default function ChangaDetail() {
       ) : null}
       {attachmentViewer.viewer}
       {groupButton && changa.status === "open" ? groupButton : null}
-      {block !== "anonymous" && block !== "own" ? <Button label={t.report.changa} variant="ghost" onPress={() => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } })} /> : null}
-      {isOwner && !isCancelling && changa.status === "open" && changa.orderId !== null ? (
-        confirmCancel ? (
-          <View style={{ gap: spacing.sm }}>
-            <Secondary>{t.detail.cancelConfirm}</Secondary>
-            <Button label={t.detail.cancelYes} onPress={() => void cancelChanga()} disabled={busy} />
-            <Button label={t.detail.cancelNo} variant="ghost" onPress={() => setConfirmCancel(false)} disabled={busy} />
-          </View>
-        ) : (
-          <Button label={t.detail.cancelChanga} variant="ghost" onPress={() => setConfirmCancel(true)} />
-        )
-      ) : null}
-      {note ? <Secondary>{note}</Secondary> : isCancelling ? <Secondary>{t.detail.cancelling}</Secondary> : null}
-      {failed ? <ErrorText>{t.detail.cancelFailed}</ErrorText> : null}
-      {stale ? (
-        <>
-          <ErrorText>{t.common.walletStale}</ErrorText>
-          <Button label={t.common.walletReconnect} variant="outline" onPress={() => void switchAccount("/connect")} />
-        </>
-      ) : null}
-      {block && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
+      <DetailActions
+        actions={[
+          ...(isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") && !isCancelling
+            ? [{ key: "share", label: t.group.share, icon: "share" as const, onPress: () => void Share.share({ message: `${spec.title} · junquero://group/${changa.orderId}` }) }]
+            : []),
+          ...(block !== "anonymous" && block !== "own"
+            ? [{ key: "report", label: t.report.changa, icon: "flag" as const, onPress: () => router.push({ pathname: "/report/[kind]", params: { kind: "changa", target: String(changa.id) } }) }]
+            : []),
+          ...(isOwner && !isCancelling && (changa.status === "open" || (isGroup && changa.status === "funding")) && changa.orderId !== null
+            ? [{ key: "cancel", label: t.detail.cancelChanga, icon: "close" as const, danger: true, onPress: () => router.push({ pathname: "/cancel/[specHash]", params: { specHash: changa.specHash } }) }]
+            : []),
+        ]}
+      />
+      {isCancelling ? <Secondary>{t.detail.cancelling}</Secondary> : null}
+      {block && block !== "own" && BLOCK_TEXT[block] ? <Secondary>{BLOCK_TEXT[block]}</Secondary> : null}
     </Screen>
   );
 }

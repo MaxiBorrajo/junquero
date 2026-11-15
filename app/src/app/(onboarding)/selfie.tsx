@@ -30,9 +30,9 @@ export default function Selfie() {
       <Screen {...gateBack}
         footer={
           permission.canAskAgain ? (
-            <Button label={t.selfie.take} onPress={() => void requestPermission()} />
+            <Button label={t.selfie.take} icon="camera" onPress={() => void requestPermission()} />
           ) : (
-            <Button label={t.selfie.openSettings} onPress={() => void Linking.openSettings()} />
+            <Button label={t.selfie.openSettings} icon="settings" onPress={() => void Linking.openSettings()} />
           )
         }
       >
@@ -77,8 +77,8 @@ export default function Selfie() {
       <Screen {...gateBack}
         footer={
           <>
-            <Button label={t.selfie.send} onPress={send} loading={busy} />
-            <Button label={t.selfie.repeat} variant="ghost" onPress={() => setShot(null)} disabled={busy} />
+            <Button label={t.selfie.send} icon="send" onPress={send} loading={busy} />
+            <Button label={t.selfie.repeat} icon="refresh" variant="ghost" onPress={() => setShot(null)} disabled={busy} />
           </>
         }
       >
@@ -90,7 +90,7 @@ export default function Selfie() {
   }
 
   return (
-    <Screen {...gateBack} footer={<Button label={t.selfie.take} onPress={capture} loading={capturing} />}>
+    <Screen {...gateBack} footer={<Button label={t.selfie.take} icon="camera" onPress={capture} loading={capturing} />}>
       <Title>{t.selfie.title}</Title>
       <Body>{t.selfie.explanation}</Body>
       <View style={styles.frame}>

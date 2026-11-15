@@ -118,7 +118,7 @@ export default function ChatScreen() {
           {room.status === "key-denied" ? <ErrorText>{t.chat.keyDenied}</ErrorText> : null}
           {room.status === "no-counterpart-key" ? <ErrorText>{t.chat.noCounterpartKey}</ErrorText> : null}
           {room.status === "error" ? <ErrorText>{t.chat.error}</ErrorText> : null}
-          {room.status !== "loading" ? <Button label={room.status === "key-denied" ? t.chat.activate : t.common.retry} onPress={room.reload} /> : null}
+          {room.status !== "loading" ? <Button label={room.status === "key-denied" ? t.chat.activate : t.common.retry} icon={room.status === "key-denied" ? "lock" : "refresh"} onPress={room.reload} /> : null}
         </View>
       </SafeAreaView>
     );

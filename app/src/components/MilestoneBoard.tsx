@@ -109,7 +109,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
           <Secondary>{t.milestonesBoard.evidenceNeed}</Secondary>
           <EvidenceUploader orderId={orderId} counterpart={counterpart} />
           <Button
-            label={t.milestonesBoard.deliver}
+            label={t.milestonesBoard.deliver} icon="send"
             onPress={() => run(send(encodeDeliverMilestone(BigInt(orderId), state.next, evidenceBundleHash(mine.map((item) => item.hash)))), t.milestonesBoard.done)}
             loading={busy}
             disabled={mine.length === 0}
@@ -125,7 +125,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
               <Chip key={step} label={`${step / 100}%`} selected={progress === step} onPress={() => setProgress(step)} />
             ))}
           </Row>
-          <Button label={t.progress.report} variant="secondary" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done)} loading={busy} disabled={mine.length === 0} />
+          <Button label={t.progress.report} icon="edit" variant="secondary" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done)} loading={busy} disabled={mine.length === 0} />
         </>
       ) : null}
       {action === "wait-review" ? (
@@ -134,10 +134,10 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
           {remote.data && remote.data.index === state.next ? (
             <>
               <Body>{t.order.readyToClaim}</Body>
-              <Button label={t.order.claim} onPress={claim} loading={busy} />
+              <Button label={t.order.claim} icon="wallet" onPress={claim} loading={busy} />
             </>
           ) : null}
-          <Button label={t.order.scanQr} onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(orderId) } })} />
+          <Button label={t.order.scanQr} icon="scan" onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(orderId) } })} />
         </>
       ) : null}
       {action === "review" ? (
@@ -148,15 +148,15 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
             <View style={styles.qr}>
               <Text style={text.subtitle}>{t.order.qrTitle}</Text>
               <QRCode value={qr} size={240} backgroundColor={colors.white} />
-              <Button label={t.common.retry} variant="ghost" onPress={() => setQr(null)} />
+              <Button label={t.common.retry} icon="refresh" variant="ghost" onPress={() => setQr(null)} />
             </View>
           ) : (
             <>
               <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
-              <Button label={t.milestonesBoard.showQr} onPress={showQr} loading={busy} />
-              <Button label={t.order.approveRemote} variant="secondary" onPress={approve} loading={busy} />
-              <Button label={t.order.problem} variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(orderId) } })} />
+              <Button label={t.milestonesBoard.showQr} icon="scan" onPress={showQr} loading={busy} />
+              <Button label={t.order.approveRemote} icon="check" variant="secondary" onPress={approve} loading={busy} />
+              <Button label={t.order.problem} icon="flag" variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(orderId) } })} />
             </>
           )}
         </>
@@ -166,19 +166,19 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
         confirmEnd ? (
           <>
             <Secondary>{t.milestonesBoard.terminateNote}</Secondary>
-            <Button label={t.milestonesBoard.terminateConfirm} variant="secondary" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.done)} loading={busy} />
+            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="secondary" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.done)} loading={busy} />
           </>
         ) : (
-          <Button label={t.milestonesBoard.terminate} variant="ghost" onPress={() => setConfirmEnd(true)} />
+          <Button label={t.milestonesBoard.terminate} icon="close" variant="ghost" onPress={() => setConfirmEnd(true)} />
         )
       ) : null}
       {role === "payer" && deadline > 0 && Math.floor(Date.now() / 1000) > deadline && current?.status === MilestoneStatus.Pending ? (
-        <Button label={`${t.milestonesBoard.declareAbandoned} (${formatDate(deadline)})`} variant="ghost" onPress={() => run(send(encodeDeclareAbandoned(BigInt(orderId))), t.milestonesBoard.done)} disabled={busy} />
+        <Button label={`${t.milestonesBoard.declareAbandoned} (${formatDate(deadline)})`} icon="info" variant="ghost" onPress={() => run(send(encodeDeclareAbandoned(BigInt(orderId))), t.milestonesBoard.done)} disabled={busy} />
       ) : null}
       {role === "payee" && state.next < state.count ? (
         <>
           <Secondary>{t.milestonesBoard.abandonNote}</Secondary>
-          <Button label={t.milestonesBoard.abandon} variant="ghost" onPress={() => run(send(encodeAbandon(BigInt(orderId))), t.milestonesBoard.done)} disabled={busy} />
+          <Button label={t.milestonesBoard.abandon} icon="logout" variant="ghost" onPress={() => run(send(encodeAbandon(BigInt(orderId))), t.milestonesBoard.done)} disabled={busy} />
         </>
       ) : null}
       {message ? <Secondary>{message}</Secondary> : null}

@@ -25,7 +25,7 @@ export default function Connect() {
 
   if (guide) {
     return (
-      <Screen footer={<Button label={t.wallet.guideBack} onPress={() => setGuide(false)} />}>
+      <Screen footer={<Button label={t.wallet.guideBack} icon="back" onPress={() => setGuide(false)} />}>
         <Title>{t.wallet.guideTitle}</Title>
         {t.wallet.guideSteps.map((step, index) => (
           <Body key={step}>{`${index + 1}. ${step}`}</Body>
@@ -38,8 +38,8 @@ export default function Connect() {
     <Screen
       footer={
         <>
-          <Button label={t.wallet.connect} onPress={connect} />
-          <Button label={t.wallet.noWallet} variant="ghost" onPress={() => setGuide(true)} />
+          <Button label={t.wallet.connect} icon="wallet" onPress={connect} />
+          <Button label={t.wallet.noWallet} icon="info" variant="ghost" onPress={() => setGuide(true)} />
         </>
       }
     >

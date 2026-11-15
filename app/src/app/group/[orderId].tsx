@@ -116,7 +116,7 @@ export default function GroupScreen() {
             <Text style={text.body}>{`${formatUsdc(item.amount.toString())} · ${percentOf(item.amount, info.target)}% ${t.group.percent}`}</Text>
           </View>
           {mine > 0n && item.address.toLowerCase() !== me && open ? (
-            <Button label={t.group.supportCoordinator} variant="ghost" onPress={() => send(encodeSupportCoordinator(BigInt(id), item.address), t.group.supportDone)} disabled={busy} />
+            <Button label={t.group.supportCoordinator} icon="users" variant="ghost" onPress={() => send(encodeSupportCoordinator(BigInt(id), item.address), t.group.supportDone)} disabled={busy} />
           ) : null}
         </View>
       ))}
@@ -124,23 +124,23 @@ export default function GroupScreen() {
       {funding ? (
         <>
           <Field label={t.group.amountLabel} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={hint} />
-          <Button label={t.group.contribute} onPress={contribute} loading={busy} disabled={!check.ok} />
+          <Button label={t.group.contribute} icon="wallet" onPress={contribute} loading={busy} disabled={!check.ok} />
         </>
       ) : null}
-      {mine > 0n && (funding || open) ? <Button label={t.group.withdraw} variant="ghost" onPress={() => send(encodeWithdrawContribution(BigInt(id)), t.group.done)} disabled={busy} /> : null}
-      {funding && now > info.fundingDeadline ? <Button label={t.group.refund} variant="secondary" onPress={() => send(encodeRefundFunding(BigInt(id)), t.group.done)} disabled={busy} /> : null}
+      {mine > 0n && (funding || open) ? <Button label={t.group.withdraw} icon="logout" variant="ghost" onPress={() => send(encodeWithdrawContribution(BigInt(id)), t.group.done)} disabled={busy} /> : null}
+      {funding && now > info.fundingDeadline ? <Button label={t.group.refund} icon="refresh" variant="secondary" onPress={() => send(encodeRefundFunding(BigInt(id)), t.group.done)} disabled={busy} /> : null}
       {open && hasProposal ? (
         <View style={styles.box}>
           <Body>{t.group.proposed}</Body>
           {vetoOpen(info.proposedAt, rule.data.vetoWindow, now) && mine > 0n ? (
             <>
               <Secondary>{t.group.vetoNote}</Secondary>
-              <Button label={t.group.veto} variant="secondary" onPress={() => send(encodeVetoProvider(BigInt(id)), t.group.vetoDone)} disabled={busy} />
+              <Button label={t.group.veto} icon="block" variant="secondary" onPress={() => send(encodeVetoProvider(BigInt(id)), t.group.vetoDone)} disabled={busy} />
             </>
           ) : null}
         </View>
       ) : null}
-      <Button label={t.group.share} variant="ghost" onPress={() => void Share.share({ message: `${title ?? ""} · junquero://group/${id}` })} />
+      <Button label={t.group.share} icon="share" variant="ghost" onPress={() => void Share.share({ message: `${title ?? ""} · junquero://group/${id}` })} />
       {message ? <Secondary>{message}</Secondary> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>

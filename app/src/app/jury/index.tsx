@@ -86,9 +86,9 @@ export default function JuryHub() {
         {required.data !== undefined && account.data && stakeNeeded(required.data, free) > 0n ? <Secondary>{t.jury.needStake.replace("{amount}", formatAmount(stakeNeeded(required.data, free).toString()))}</Secondary> : null}
       </View>
       <Field label={t.jury.amountLabel} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
-      <Button label={t.jury.deposit} onPress={deposit} loading={busy} disabled={amount.trim() === ""} />
-      <Button label={t.jury.withdraw} variant="ghost" onPress={withdraw} disabled={busy || free === 0n} />
-      {reward.data && reward.data > 0n ? <Button label={`${t.jury.claimRewards} (${formatAmount(reward.data.toString())} USDC)`} variant="secondary" onPress={claim} disabled={busy} /> : null}
+      <Button label={t.jury.deposit} icon="wallet" onPress={deposit} loading={busy} disabled={amount.trim() === ""} />
+      <Button label={t.jury.withdraw} icon="logout" variant="ghost" onPress={withdraw} disabled={busy || free === 0n} />
+      {reward.data && reward.data > 0n ? <Button label={`${t.jury.claimRewards} (${formatAmount(reward.data.toString())} USDC)`} icon="check" variant="secondary" onPress={claim} disabled={busy} /> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       <Text style={text.subtitle}>{t.jury.myCases}</Text>
@@ -96,7 +96,7 @@ export default function JuryHub() {
       {(cases.data?.asJuror ?? []).map((item) => (
         <View key={item.caseId} style={styles.box}>
           <Body>{`#${item.caseId}`}</Body>
-          <Button label={t.jury.openCase} variant="secondary" onPress={() => router.push({ pathname: "/jury/[caseId]", params: { caseId: String(item.caseId) } })} />
+          <Button label={t.jury.openCase} icon="scale" variant="secondary" onPress={() => router.push({ pathname: "/jury/[caseId]", params: { caseId: String(item.caseId) } })} />
         </View>
       ))}
 
@@ -175,9 +175,9 @@ function SeedCard({ item, juror, onDone }: { item: CaseRef; juror: `0x${string}`
     <View style={styles.box}>
       <Body>{`#${item.caseId} · ${snapshot.jurors} ${t.caseScreen.jurors}`}</Body>
       {!eligible && !committed ? <Secondary>{t.jury.notEligible}</Secondary> : null}
-      {eligible && !committed && view === "seed-commit" ? <Button label={t.jury.join} onPress={join} loading={busy} /> : null}
+      {eligible && !committed && view === "seed-commit" ? <Button label={t.jury.join} icon="check" onPress={join} loading={busy} /> : null}
       {committed && !revealed && view === "seed-commit" ? <Secondary>{t.jury.joined}</Secondary> : null}
-      {committed && !revealed && view === "seed-reveal" ? (hasSecret ? <Button label={t.jury.reveal} onPress={reveal} loading={busy} /> : <ErrorText>{t.jury.lostSecret}</ErrorText>) : null}
+      {committed && !revealed && view === "seed-reveal" ? (hasSecret ? <Button label={t.jury.reveal} icon="check" onPress={reveal} loading={busy} /> : <ErrorText>{t.jury.lostSecret}</ErrorText>) : null}
       {revealed ? <Secondary>{t.jury.joined}</Secondary> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>

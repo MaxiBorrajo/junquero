@@ -92,18 +92,18 @@ export default function ProfileSetup() {
   const shownPhoto = photo?.uri ?? (keepPhoto ? `${API_URL}${keepPhoto.url}` : null);
 
   return (
-    <Screen {...gateBack} footer={<Button label={t.common.next} onPress={save} loading={busy} />}>
+    <Screen {...gateBack} footer={<Button label={t.common.next} icon="chevron" onPress={save} loading={busy} />}>
       <Title>{t.profile.title}</Title>
       <Field label={t.profile.name} value={name} onChangeText={setName} onBlur={() => setTouched(true)} maxLength={60} hint={t.profile.nameHint} error={nameError} autoCapitalize="words" />
       <View style={styles.photoRow}>
         {shownPhoto ? <Image source={{ uri: shownPhoto }} style={styles.photo} /> : <View style={[styles.photo, styles.photoEmpty]} />}
         <View style={styles.photoActions}>
           <Text style={text.label}>{t.profile.photo}</Text>
-          <Button label={t.profile.takePhoto} variant="secondary" onPress={snapPhoto} />
-          <Button label={t.profile.pickPhoto} variant="ghost" onPress={pickPhoto} />
+          <Button label={t.profile.takePhoto} icon="camera" variant="secondary" onPress={snapPhoto} />
+          <Button label={t.profile.pickPhoto} icon="image" variant="ghost" onPress={pickPhoto} />
           {shownPhoto ? (
             <Button
-              label={t.profile.removePhoto}
+              label={t.profile.removePhoto} icon="trash"
               variant="ghost"
               onPress={() => {
                 setPhoto(null);
@@ -117,7 +117,7 @@ export default function ProfileSetup() {
       <Secondary>{t.profile.zoneHint}</Secondary>
       <ZonePicker center={center} radiusM={radiusM} onChange={setCenter} />
       <RadiusStepper value={radiusM} onChange={setRadiusM} />
-      <Button label={t.profile.useMyLocation} variant="ghost" onPress={useLocation} />
+      <Button label={t.profile.useMyLocation} icon="locate" variant="ghost" onPress={useLocation} />
       {message ? <ErrorText>{message}</ErrorText> : null}
     </Screen>
   );

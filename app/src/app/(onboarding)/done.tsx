@@ -14,8 +14,8 @@ export default function Done() {
     <Screen back={false}
       footer={
         <>
-          {status === "rejected" ? <Button label={t.done.retake} onPress={() => router.replace("/selfie")} /> : null}
-          <Button label={publishFirst ? t.done.publish : t.done.goToMap} onPress={() => router.replace(publishFirst ? "/publish" : "/map")} variant={status === "rejected" ? "ghost" : "primary"} />
+          {status === "rejected" ? <Button label={t.done.retake} icon="camera" onPress={() => router.replace("/selfie")} /> : null}
+          <Button label={publishFirst ? t.done.publish : t.done.goToMap} icon={publishFirst ? "plus" : "map"} onPress={() => router.replace(publishFirst ? "/publish" : "/map")} variant={status === "rejected" ? "ghost" : "primary"} />
         </>
       }
     >

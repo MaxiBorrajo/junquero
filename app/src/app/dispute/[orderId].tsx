@@ -95,7 +95,7 @@ export default function OpenDispute() {
   };
 
   return (
-    <Screen footer={<Button label={t.dispute.open} onPress={submit} loading={step !== null} />}>
+    <Screen footer={<Button label={t.dispute.open} icon="scale" onPress={submit} loading={step !== null} />}>
       <Title>{t.dispute.title}</Title>
       <Body>{small ? t.dispute.explanationSmall : t.dispute.explanationJury.replace("{amount}", formatAmount(cost.data.toString()))}</Body>
       <Secondary>{t.dispute.window}</Secondary>

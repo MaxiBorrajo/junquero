@@ -53,14 +53,14 @@ export default function PublishMilestones() {
   };
 
   return (
-    <Screen footer={<Button label={last ? t.publish.milestoneDone : t.publish.milestoneNext} onPress={next} />}>
+    <Screen footer={<Button label={last ? t.publish.milestoneDone : t.publish.milestoneNext} icon="chevron" onPress={next} />}>
       <Text style={text.label}>{`${t.milestonesBoard.title} ${step + 1} ${t.publish.milestoneOf} ${total}`}</Text>
       <Title>{`${t.milestonesBoard.title} ${step + 1}`}</Title>
       <Field label={t.publish.milestoneName} value={item.name} onChangeText={(name) => set({ name })} maxLength={60} error={errors[`m${step}.name`] ? t.publish.milestonesError : null} />
       <Field label={t.publish.milestoneAmount} value={item.amount} onChangeText={(amount) => set({ amount })} keyboardType="decimal-pad" error={errors[`m${step}.amount`] ? t.publish.amountError : null} />
       <Field label={t.publish.milestoneCriteria} value={item.criteria} onChangeText={(criteria) => set({ criteria })} maxLength={200} multiline hint={t.publish.milestoneCriteriaHint} error={errors[`m${step}.criteria`] ? t.publish.milestonesError : null} />
       <Field label={t.publish.milestoneEvidence} value={item.evidence} onChangeText={(evidence) => set({ evidence })} maxLength={100} error={errors[`m${step}.evidence`] ? t.publish.milestonesError : null} />
-      {single && draft.milestones.length > MIN_MILESTONES ? <Button label={t.publish.removeMilestone} variant="ghost" onPress={remove} /> : null}
+      {single && draft.milestones.length > MIN_MILESTONES ? <Button label={t.publish.removeMilestone} icon="trash" variant="ghost" onPress={remove} /> : null}
       <View style={{ height: spacing.md }} />
     </Screen>
   );

@@ -23,9 +23,9 @@ export default function FiltersScreen() {
     <Screen
       footer={
         <>
-          <Button label={t.filters.apply} onPress={apply} />
+          <Button label={t.filters.apply} icon="filter" onPress={apply} />
           <Button
-            label={t.filters.clear}
+            label={t.filters.clear} icon="close"
             variant="ghost"
             onPress={() => {
               setFilters(noFilters());

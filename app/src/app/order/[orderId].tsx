@@ -140,11 +140,11 @@ export default function OrderScreen() {
     <Screen
       footer={
         state.hasMilestones ? null : view === "worker-working" ? (
-          <Button label={t.order.finish} onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} />
+          <Button label={t.order.finish} icon="check" onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} />
         ) : view === "worker-waiting-review" ? (
-          <Button label={t.order.scanQr} onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(id) } })} />
+          <Button label={t.order.scanQr} icon="scan" onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(id) } })} />
         ) : view === "payer-reviewing" ? (
-          qr ? null : <Button label={t.order.showQr} onPress={showCode} loading={busy} />
+          qr ? null : <Button label={t.order.showQr} icon="scan" onPress={showCode} loading={busy} />
         ) : null
       }
     >
@@ -162,7 +162,7 @@ export default function OrderScreen() {
       {!state.hasMilestones && view === "worker-working" ? (
         <>
           <Body>{t.order.statusAgreed}</Body>
-          {state.modality === 0 && state.checkedInAt === 0 ? <Button label={t.order.arrived} variant="secondary" onPress={arrive} loading={busy} /> : null}
+          {state.modality === 0 && state.checkedInAt === 0 ? <Button label={t.order.arrived} icon="pin" variant="secondary" onPress={arrive} loading={busy} /> : null}
           {state.checkedInAt > 0 ? <Secondary>{t.order.arrivedDone}</Secondary> : null}
           <Text style={text.subtitle}>{t.order.evidenceTitle}</Text>
           <Secondary>{t.order.evidenceHint}</Secondary>
@@ -179,7 +179,7 @@ export default function OrderScreen() {
           {remote.data ? (
             <>
               <Body>{t.order.readyToClaim}</Body>
-              <Button label={t.order.claim} onPress={claim} loading={busy} />
+              <Button label={t.order.claim} icon="wallet" onPress={claim} loading={busy} />
             </>
           ) : null}
         </>
@@ -197,15 +197,15 @@ export default function OrderScreen() {
               <Text style={text.subtitle}>{t.order.qrTitle}</Text>
               <QRCode value={qr.text} size={240} backgroundColor={colors.white} />
               <Secondary>{`${t.agreement.expires}: ${formatDate(qr.expiry)}`}</Secondary>
-              <Button label={t.common.retry} variant="ghost" onPress={() => setQr(null)} />
+              <Button label={t.common.retry} icon="refresh" variant="ghost" onPress={() => setQr(null)} />
             </View>
           ) : (
             <>
               <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
               <Secondary>{t.order.approveRemoteNote}</Secondary>
-              <Button label={t.order.approveRemote} variant="secondary" onPress={approve} loading={busy} />
-              <Button label={t.order.problem} variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(id) } })} />
+              <Button label={t.order.approveRemote} icon="check" variant="secondary" onPress={approve} loading={busy} />
+              <Button label={t.order.problem} icon="flag" variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(id) } })} />
             </>
           )}
         </>
@@ -223,13 +223,13 @@ export default function OrderScreen() {
           <Text style={text.subtitle}>{t.group.objection}</Text>
           <Secondary>{t.group.objectionNote}</Secondary>
           <Field label={t.group.objectionReason} value={objection} onChangeText={setObjection} multiline maxLength={1500} />
-          <Button label={t.group.objection} variant="secondary" onPress={object} loading={busy} disabled={objection.trim().length < 10} />
+          <Button label={t.group.objection} icon="flag" variant="secondary" onPress={object} loading={busy} disabled={objection.trim().length < 10} />
         </>
       ) : null}
       {view === "disputed" ? (
         <>
           <Body>{t.order.statusDisputed}</Body>
-          {myCase ? <Button label={t.order.openCase} onPress={() => router.push({ pathname: "/case/[caseId]", params: { caseId: String(myCase.caseId) } })} /> : null}
+          {myCase ? <Button label={t.order.openCase} icon="scale" onPress={() => router.push({ pathname: "/case/[caseId]", params: { caseId: String(myCase.caseId) } })} /> : null}
         </>
       ) : null}
       {view === "settled" ? <Body>{t.order.released}</Body> : null}

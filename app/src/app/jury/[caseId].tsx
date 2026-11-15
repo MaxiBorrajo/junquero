@@ -106,10 +106,10 @@ export default function JurorCase() {
               <Chip label={t.jury.partyB} selected={choice === VOTE_PAYEE} onPress={() => setChoice(VOTE_PAYEE)} />
             </Row>
           </Labeled>
-          <Button label={t.jury.commitVote} onPress={commit} loading={busy} disabled={choice === null} />
+          <Button label={t.jury.commitVote} icon="lock" onPress={commit} loading={busy} disabled={choice === null} />
         </>
       ) : null}
-      {action === "reveal-vote" ? <Button label={t.jury.revealVote} onPress={reveal} loading={busy} /> : null}
+      {action === "reveal-vote" ? <Button label={t.jury.revealVote} icon="check" onPress={reveal} loading={busy} /> : null}
       {view === "vote-commit" && action === "wait" && mine.data.voteCommit !== `0x${"0".repeat(64)}` ? <Secondary>{t.jury.waitReveal}</Secondary> : null}
       {action === "done" ? <Secondary>{t.jury.voteRevealed}</Secondary> : null}
       {message ? <Secondary>{message}</Secondary> : null}

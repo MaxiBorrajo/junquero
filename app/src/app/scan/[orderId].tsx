@@ -88,7 +88,7 @@ export default function Scan() {
 
   if (done) {
     return (
-      <Screen footer={<Button label={t.common.continue} onPress={() => router.replace("/my-changas")} />}>
+      <Screen footer={<Button label={t.common.continue} icon="chevron" onPress={() => router.replace("/my-changas")} />}>
         <Title>{t.order.released}</Title>
       </Screen>
     );
@@ -100,8 +100,8 @@ export default function Scan() {
       <Screen
         footer={
           <>
-            {showManual ? <Button label={t.order.claimPayment} onPress={() => submit(manual.trim())} loading={busy} disabled={manual.trim().length === 0} /> : <Button label={t.selfie.take} onPress={() => void requestPermission()} />}
-            <Button label={showManual ? t.common.back : t.order.manualCode} variant="ghost" onPress={() => setShowManual(!showManual)} />
+            {showManual ? <Button label={t.order.claimPayment} icon="check" onPress={() => submit(manual.trim())} loading={busy} disabled={manual.trim().length === 0} /> : <Button label={t.selfie.take} icon="camera" onPress={() => void requestPermission()} />}
+            <Button label={showManual ? t.common.back : t.order.manualCode} icon={showManual ? "back" : "edit"} variant="ghost" onPress={() => setShowManual(!showManual)} />
           </>
         }
       >
@@ -114,7 +114,7 @@ export default function Scan() {
 
   return (
     <Screen
-      footer={<Button label={t.order.manualCode} variant="ghost" onPress={() => setShowManual(true)} />}
+      footer={<Button label={t.order.manualCode} icon="edit" variant="ghost" onPress={() => setShowManual(true)} />}
     >
       <Title>{t.order.scanTitle}</Title>
       <View style={styles.frame}>

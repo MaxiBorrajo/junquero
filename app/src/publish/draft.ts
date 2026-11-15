@@ -42,6 +42,8 @@ export interface Draft {
   amount: string;
   kind: Kind;
   fundingDays: number;
+  // Aporte del que crea la changa grupal (opcional). Se suma recién cuando el grupo queda confirmado.
+  ownContribution: string;
   useMilestones: boolean;
   materials: Materials;
   milestones: MilestoneDraft[];
@@ -62,12 +64,16 @@ export const emptyDraft = (): Draft => ({
   amount: "",
   kind: "individual",
   fundingDays: 7,
+  ownContribution: "",
   useMilestones: false,
   materials: "payer",
   milestones: [],
 });
 
-export type StepKey = "basics" | "when" | "files" | "price";
+export type StepKey = "basics" | "when" | "files" | "price" | "evidence";
+
+// Cantidad de pasos del asistente: con hitos, cada hito pide su propia evidencia y no hay paso de evidencia.
+export const stepsTotal = (draft: Draft): number => (draft.useMilestones ? 6 : 7);
 export type DraftErrors = Partial<Record<string, string>>;
 
 export function validateBasics(draft: Draft): DraftErrors {
@@ -109,8 +115,13 @@ export function milestoneAmounts(draft: Draft): bigint[] | null {
   return amounts.some((value) => value === null || value <= 0n) ? null : (amounts as bigint[]);
 }
 
+// Lo que vale el trabajo (o la meta del grupo): es el monto del paso "Cuánto pagás". Si se divide en hitos, los hitos tienen que sumar justo eso.
 export function totalAmount(draft: Draft): bigint | null {
-  if (!draft.useMilestones) return parseAmount(draft.amount);
+  return parseAmount(draft.amount);
+}
+
+// Suma de los hitos cargados; null si alguno no tiene un monto válido.
+export function milestonesSum(draft: Draft): bigint | null {
   const amounts = milestoneAmounts(draft);
   return amounts ? amounts.reduce((sum, value) => sum + value, 0n) : null;
 }
@@ -129,12 +140,42 @@ export function validateMilestones(draft: Draft): DraftErrors {
   return errors;
 }
 
+// Un aporte individual a una changa grupal va de 5% a 50% de la meta (valores iniciales del contrato).
+export const GROUP_CONTRIBUTION_MIN_BPS = 500n;
+export const GROUP_CONTRIBUTION_MAX_BPS = 5000n;
+
+export function groupContributionRange(target: bigint): { min: bigint; max: bigint } {
+  return { min: (target * GROUP_CONTRIBUTION_MIN_BPS) / 10_000n, max: (target * GROUP_CONTRIBUTION_MAX_BPS) / 10_000n };
+}
+
 export function validatePrice(draft: Draft): DraftErrors {
   const errors: DraftErrors = {};
-  const amount = draft.useMilestones ? totalAmount(draft) : parseAmount(draft.amount);
+  const amount = parseAmount(draft.amount);
   if (amount === null) errors.amount = "amount";
   else if (amount < MIN_AMOUNT_MICRO) errors.amount = "amountMin";
-  Object.assign(errors, validateMilestones(draft));
+  if (draft.kind === "group" && draft.ownContribution.trim() !== "" && amount !== null) {
+    const own = parseAmount(draft.ownContribution);
+    const range = groupContributionRange(amount);
+    if (own === null || own <= 0n) errors.ownContribution = "amount";
+    else if (own < range.min || own > range.max) errors.ownContribution = "range";
+  }
+  return errors;
+}
+
+// Cómo se paga: todo al finalizar o por hitos. Con hitos, tienen que sumar el monto del paso anterior.
+export function validatePayment(draft: Draft): DraftErrors {
+  const errors = validateMilestones(draft);
+  if (draft.useMilestones) {
+    const sum = milestonesSum(draft);
+    const amount = parseAmount(draft.amount);
+    if (sum !== null && amount !== null && sum !== amount) errors.milestonesTotal = "mismatch";
+  }
+  return errors;
+}
+
+// Qué pruebas se piden para dar el trabajo por terminado (con hitos, cada hito tiene la suya).
+export function validateEvidence(draft: Draft): DraftErrors {
+  const errors: DraftErrors = {};
   const evidence = draft.evidence.map((item) => item.trim()).filter(Boolean);
   if (evidence.length > EVIDENCE_MAX || evidence.some((item) => item.length > EVIDENCE_LENGTH)) errors.evidence = "evidence";
   else if (!draft.useMilestones && evidence.length === 0) errors.evidence = "required";
@@ -142,7 +183,7 @@ export function validatePrice(draft: Draft): DraftErrors {
 }
 
 export function validateAll(draft: Draft, nowSeconds: number): DraftErrors {
-  return { ...validateBasics(draft), ...validateWhen(draft, nowSeconds), ...validateFiles(draft), ...validatePrice(draft) };
+  return { ...validateBasics(draft), ...validateWhen(draft, nowSeconds), ...validateFiles(draft), ...validatePrice(draft), ...validatePayment(draft), ...validateEvidence(draft) };
 }
 
 export function withApproximateZone(draft: Draft, point: LatLng, random: () => number): Draft {

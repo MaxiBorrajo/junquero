@@ -45,7 +45,7 @@ export default function Profile() {
 
   if (!address) {
     return (
-      <Screen footer={<Button label={t.me.signIn} onPress={() => router.push("/welcome")} />}>
+      <Screen footer={<Button label={t.me.signIn} icon="wallet" onPress={() => router.push("/welcome")} />}>
         <Title>{t.me.title}</Title>
         <Secondary>{t.me.notSignedIn}</Secondary>
       </Screen>

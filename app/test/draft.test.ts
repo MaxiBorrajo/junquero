@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSpec, emptyDraft, parseAmount, setModality, validateAll, validateBasics, validatePrice, validateWhen, withApproximateZone, type Draft } from "../src/publish/draft";
+import { stepsTotal, buildSpec, emptyDraft, parseAmount, setModality, validateAll, validateBasics, validateEvidence, validatePrice, validateWhen, withApproximateZone, type Draft } from "../src/publish/draft";
 import { distanceM } from "../src/lib/geo";
 
 const NOW = 1_800_000_000;
@@ -44,9 +44,9 @@ describe("borrador", () => {
     expect(validatePrice(base({ amount: "4,99" })).amount).toBe("amountMin");
     expect(validatePrice(base({ amount: "5" })).amount).toBeUndefined();
     expect(validatePrice(base({ amount: "" })).amount).toBe("amount");
-    expect(validatePrice(base({ evidence: ["a", "b", "c", "d", "e", "f"] })).evidence).toBeDefined();
-    expect(validatePrice(base({ evidence: ["x".repeat(121)] })).evidence).toBeDefined();
-    expect(validatePrice(base({ evidence: ["", "foto del frente"] }))).toEqual({});
+    expect(validateEvidence(base({ evidence: ["a", "b", "c", "d", "e", "f"] })).evidence).toBeDefined();
+    expect(validateEvidence(base({ evidence: ["x".repeat(121)] })).evidence).toBeDefined();
+    expect(validateEvidence(base({ evidence: ["", "foto del frente"] }))).toEqual({});
   });
 
   it("validateAll junta los errores de todos los pasos", () => {
@@ -55,10 +55,10 @@ describe("borrador", () => {
   });
 
   it("pide al menos una prueba de cierre salvo que se use el plan por hitos", () => {
-    expect(validatePrice(base({ evidence: [] })).evidence).toBe("required");
-    expect(validatePrice(base({ evidence: ["", "  "] })).evidence).toBe("required");
-    expect(validatePrice(base({ evidence: ["foto del frente"] })).evidence).toBeUndefined();
-    expect(validatePrice(base({ evidence: [], useMilestones: true, milestones: [] })).evidence).toBeUndefined();
+    expect(validateEvidence(base({ evidence: [] })).evidence).toBe("required");
+    expect(validateEvidence(base({ evidence: ["", "  "] })).evidence).toBe("required");
+    expect(validateEvidence(base({ evidence: ["foto del frente"] })).evidence).toBeUndefined();
+    expect(validateEvidence(base({ evidence: [], useMilestones: true, milestones: [] })).evidence).toBeUndefined();
   });
 
   it("la ficha presencial lleva la zona aproximada y nunca el punto exacto", () => {
@@ -93,16 +93,21 @@ describe("borrador", () => {
   });
 });
 
-import { emptyMilestone, totalAmount, validateMilestones, groupDeadline } from "../src/publish/draft";
+import { emptyMilestone, milestonesSum, totalAmount, validateMilestones, validatePayment, groupDeadline } from "../src/publish/draft";
 
 describe("hitos y grupo en el borrador", () => {
   const m = (patch: Partial<ReturnType<typeof emptyMilestone>> = {}) => ({ name: "Pintar", amount: "50", criteria: "Dos manos", evidence: "Foto", ...patch });
-  const withPlan = (items = [m(), m({ name: "Terminar", amount: "30" })], patch: Partial<Draft> = {}) => base({ useMilestones: true, milestones: items, amount: "", ...patch });
+  const withPlan = (items = [m(), m({ name: "Terminar", amount: "30" })], patch: Partial<Draft> = {}) => base({ useMilestones: true, milestones: items, amount: "80", ...patch });
 
-  it("el total sale de la suma de los hitos", () => {
+  it("el total es el monto del paso de precio y los hitos tienen que sumarlo", () => {
     expect(totalAmount(withPlan())).toBe(80_000_000n);
     expect(totalAmount(base({ amount: "25" }))).toBe(25_000_000n);
-    expect(totalAmount(withPlan([m(), m({ amount: "abc" })]))).toBeNull();
+    expect(milestonesSum(withPlan())).toBe(80_000_000n);
+    expect(milestonesSum(withPlan([m(), m({ amount: "abc" })]))).toBeNull();
+    expect(validatePayment(withPlan())).toEqual({});
+    expect(validatePayment(withPlan([m(), m({ name: "Terminar", amount: "20" })])).milestonesTotal).toBe("mismatch");
+    expect(validatePayment(withPlan([m(), m({ name: "Terminar", amount: "40" })])).milestonesTotal).toBe("mismatch");
+    expect(validatePayment(base({ amount: "25" }))).toEqual({});
   });
 
   it("valida cantidad y datos de cada hito", () => {
@@ -115,9 +120,9 @@ describe("hitos y grupo en el borrador", () => {
     expect(validateMilestones(base({ amount: "25" }))).toEqual({});
   });
 
-  it("validatePrice acepta un plan correcto sin monto suelto y exige el mínimo sobre la suma", () => {
+  it("el precio exige el mínimo sobre el monto, con o sin hitos", () => {
     expect(validatePrice(withPlan())).toEqual({});
-    expect(validatePrice(withPlan([m({ amount: "0,3" }), m({ amount: "0,3" })])).amount).toBe("amountMin");
+    expect(validatePrice(withPlan([m({ amount: "0,3" }), m({ amount: "0,3" })], { amount: "0,6" })).amount).toBe("amountMin");
   });
 
   it("la ficha lleva los hitos en unidades mínimas ", () => {
@@ -143,8 +148,15 @@ describe("materiales", () => {
     { name: "B", amount: "30", criteria: "Criterio", evidence: "Foto" },
   ];
   it("sin elegir, los compra quien publica", () => {
-    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "" }), "nonce-12345", NOW).materials).toBe("payer");
-    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "", materials: "worker" }), "nonce-12345", NOW).materials).toBe("worker");
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "80" }), "nonce-12345", NOW).materials).toBe("payer");
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "80", materials: "worker" }), "nonce-12345", NOW).materials).toBe("worker");
     expect(buildSpec(base(), "nonce-12345", NOW).materials).toBeUndefined();
+  });
+});
+
+describe("cantidad de pasos del asistente", () => {
+  it("son 7 con evidencia propia y 6 cuando se divide en hitos, que piden la suya", () => {
+    expect(stepsTotal(emptyDraft())).toBe(7);
+    expect(stepsTotal({ ...emptyDraft(), useMilestones: true })).toBe(6);
   });
 });

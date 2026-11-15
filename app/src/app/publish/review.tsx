@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { ApiError } from "../../api/client";
 import { InsufficientBalance, publishChanga, type PublishStep } from "../../chain/publish";
@@ -10,7 +10,7 @@ import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../compone
 import { t } from "../../i18n";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatAmount, formatUsdc } from "../../lib/money";
-import { totalAmount, validateAll } from "../../publish/draft";
+import { parseAmount, totalAmount, validateAll } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { useSession } from "../../session/SessionProvider";
 import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
@@ -33,12 +33,16 @@ export default function PublishReview() {
   const [step, setStep] = useState<PublishStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
+  const running = useRef(false);
   const switchAccount = useSwitchAccount();
   const amount = totalAmount(draft);
   const invalid = amount === null || Object.keys(validateAll(draft, Math.floor(Date.now() / 1000))).length > 0;
 
   const publish = async () => {
-    if (invalid || !address || amount === null) return;
+    // Un solo intento a la vez: si ya está publicando, los toques de más no hacen nada.
+    if (invalid || !address || amount === null || running.current) return;
+    running.current = true;
+    setStep("spec");
     setError(null);
     setStale(false);
     const account = address as `0x${string}`;
@@ -62,8 +66,10 @@ export default function PublishReview() {
       void queryClient.invalidateQueries({ queryKey: ["changas"] });
       const group = draft.kind === "group";
       reset();
-      router.replace({ pathname: "/publish/done", params: { confirmed: "0", group: group ? "1" : "0", spec: result.specHash } });
+      const own = group && draft.ownContribution.trim() !== "" ? parseAmount(draft.ownContribution) : null;
+      router.replace({ pathname: "/publish/done", params: { confirmed: "0", group: group ? "1" : "0", spec: result.specHash, ...(own !== null ? { own: own.toString() } : {}) } });
     } catch (failure) {
+      running.current = false;
       setStep(null);
       if (failure instanceof InsufficientBalance) setError(t.publish.insufficient.replace("{amount}", formatAmount(failure.missing.toString())));
       else if (isRejection(failure)) setError(t.publish.rejected);
@@ -74,7 +80,7 @@ export default function PublishReview() {
   };
 
   return (
-    <Screen footer={<Button label={step ? STEP_TEXT[step] : t.publish.publishAction} onPress={publish} loading={step !== null} disabled={invalid} />}>
+    <Screen footer={<Button label={step ? STEP_TEXT[step] : t.publish.publishAction} icon="send" onPress={publish} loading={step !== null} disabled={invalid} />}>
       <Title>{t.publish.reviewTitle}</Title>
       <Text style={text.subtitle}>{draft.title}</Text>
       <Text style={text.amount}>{amount !== null ? formatUsdc(amount.toString()) : "-"}</Text>
@@ -86,13 +92,14 @@ export default function PublishReview() {
         {draft.durationMin ? <Secondary>{formatDuration(draft.durationMin)}</Secondary> : null}
         {draft.attachments.length > 0 ? <Secondary>{`${draft.attachments.length} ${t.detail.attachments.toLowerCase()}`}</Secondary> : null}
       </View>
+      {draft.kind === "group" && parseAmount(draft.ownContribution) !== null ? <Secondary>{`${t.publish.ownContributionReview}: ${formatUsdc((parseAmount(draft.ownContribution) as bigint).toString())}`}</Secondary> : null}
       <Secondary>{t.publish.reviewNote}</Secondary>
       <Secondary>{t.publish.reviewReservationNote}</Secondary>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {stale ? (
         <>
           <ErrorText>{t.common.walletStale}</ErrorText>
-          <Button label={t.common.walletReconnect} variant="outline" onPress={() => void switchAccount("/connect")} />
+          <Button label={t.common.walletReconnect} icon="wallet" variant="outline" onPress={() => void switchAccount("/connect")} />
         </>
       ) : null}
     </Screen>

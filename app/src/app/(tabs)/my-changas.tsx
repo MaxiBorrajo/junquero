@@ -38,7 +38,7 @@ export default function MyChangas() {
         <View style={styles.pad}>
           <Title>{t.tabs.myChangas}</Title>
           <Secondary>{t.mine.needAccount}</Secondary>
-          <Button label={t.mine.enter} onPress={() => router.push("/welcome")} />
+          <Button label={t.mine.enter} icon="wallet" onPress={() => router.push("/welcome")} />
         </View>
       </SafeAreaView>
     );
@@ -83,8 +83,8 @@ export default function MyChangas() {
             <View style={styles.item}>
               <Text style={text.subtitle}>{item.title ?? `#${item.orderId}`}</Text>
               <Text style={styles.status}>{statusLabel(item.status ?? "")}</Text>
-              <Button label={t.contributions.open} variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} />
-              {item.status === "delivered" || item.status === "agreed" ? <Button label={t.mine.openOrder} variant="ghost" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} /> : null}
+              <Button label={t.contributions.open} icon="users" variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} />
+              {item.status === "delivered" || item.status === "agreed" ? <Button label={t.mine.openOrder} icon="briefcase" variant="ghost" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} /> : null}
             </View>
           )}
         />
@@ -107,7 +107,7 @@ function AgreementBanner({ agreement }: { agreement: AgreementRecord }) {
   return (
     <View style={styles.banner}>
       <Text style={text.body}>{t.mine.pendingAgreement}</Text>
-      <Button label={t.mine.confirmAgreement} onPress={() => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(agreement.orderId) } })} />
+      <Button label={t.mine.confirmAgreement} icon="check" onPress={() => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(agreement.orderId) } })} />
     </View>
   );
 }
@@ -136,9 +136,9 @@ function AppliedItem({ application }: { application: MyApplication }) {
       <Text style={text.subtitle}>{statusLabel(application.status)}</Text>
       <Secondary>{application.message || " "}</Secondary>
       {application.status === "chosen" && application.changa.orderId !== null ? (
-        <Button label={t.mine.openOrder} variant="secondary" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} />
+        <Button label={t.mine.openOrder} icon="briefcase" variant="secondary" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} />
       ) : null}
-      <Button label={t.mine.viewChanga} variant="ghost" onPress={() => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } })} />
+      <Button label={t.mine.viewChanga} icon="briefcase" variant="ghost" onPress={() => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } })} />
     </View>
   );
 }

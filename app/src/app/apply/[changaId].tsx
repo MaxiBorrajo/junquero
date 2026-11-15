@@ -61,7 +61,7 @@ export default function Apply() {
   };
 
   return (
-    <Screen footer={<Button label={t.apply.send} onPress={submit} loading={busy} disabled={!offer.ok || !planValid} />}>
+    <Screen footer={<Button label={t.apply.send} icon="send" onPress={submit} loading={busy} disabled={!offer.ok || !planValid} />}>
       <Title>{t.apply.title}</Title>
       <Body>{t.apply.explanation}</Body>
       {plan !== "1" && changa.data && suggestMilestones(max && /^\d+$/.test(max) ? BigInt(max) : null, (changa.data.spec.deadline ? changa.data.spec.deadline - Math.floor(Date.now() / 1000) : 0)) ? <Secondary>{t.apply.singlePaymentLong}</Secondary> : null}

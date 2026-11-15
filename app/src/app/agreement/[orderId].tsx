@@ -27,7 +27,7 @@ export default function AgreementScreen() {
 
   if (done) {
     return (
-      <Screen footer={<Button label={t.common.continue} onPress={() => router.replace("/my-changas")} />}>
+      <Screen footer={<Button label={t.common.continue} icon="chevron" onPress={() => router.replace("/my-changas")} />}>
         <Title>{t.agreement.title}</Title>
         <Body>{t.agreement.done}</Body>
       </Screen>
@@ -83,8 +83,8 @@ export default function AgreementScreen() {
     <Screen
       footer={
         <>
-          <Button label={t.agreement.confirm} onPress={confirm} loading={busy} />
-          <Button label={t.agreement.reject} variant="ghost" onPress={reject} disabled={busy} />
+          <Button label={t.agreement.confirm} icon="check" onPress={confirm} loading={busy} />
+          <Button label={t.agreement.reject} icon="close" variant="ghost" onPress={reject} disabled={busy} />
         </>
       }
     >

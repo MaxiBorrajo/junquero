@@ -41,6 +41,7 @@ import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
+import { summaryFor } from "./summary";
 import { notifyChat } from "./chatNotify";
 import { listChatEvents, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "./chatEvents";
 import { createAgreementChain } from "./agreementChain";
@@ -92,7 +93,9 @@ const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   const address = token ? await verifyToken(c.env.AUTH_SECRET, token, nowSeconds()) : null;
   if (!address) return c.json({ error: "unauthorized" }, 401);
-  if (c.req.method !== "GET" && !(await allowed(c.env.WRITE_LIMITER, address))) {
+  // Escrituras y lecturas tienen su tope por persona (las lecturas antes no tenían ninguno).
+  const limiter = c.req.method === "GET" ? c.env.READ_LIMITER : c.env.WRITE_LIMITER;
+  if (!(await allowed(limiter, `${c.req.method === "GET" ? "read" : "write"}:${address}`))) {
     return c.json({ error: "too many requests" }, 429);
   }
   c.set("address", address);
@@ -769,6 +772,12 @@ app.post("/admin/reports/:id", async (c) => {
   }
   await logAction(c.env.DB, c.get("address"), body.action === "hide" ? "report_hide" : "report_dismissed", `${report.kind}:${report.target}`, parsed.reason, nowSeconds()).run();
   return c.json({ ok: true });
+});
+
+app.get("/me/summary", async (c) => {
+  const seen = Number(c.req.query("seenNotification") ?? 0);
+  const seenId = Number.isSafeInteger(seen) && seen >= 0 ? seen : 0;
+  return c.json(await cachedRead(`summary:${c.get("address")}:${seenId}`, () => summaryFor(c.env.DB, c.get("address"), seenId, nowSeconds())));
 });
 
 app.get("/me/activity", async (c) => c.json(await cachedRead(`activity:${c.get("address")}`, () => activitySummary(c.env.DB, c.get("address")))));

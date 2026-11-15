@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { readTokenBalance } from "../../chain/reader";
 import { DetailActions } from "../../components/DetailActions";
@@ -17,7 +16,7 @@ import { t } from "../../i18n";
 import { useToast } from "../../components/Toast";
 import { formatUsdc } from "../../lib/money";
 import { useActivity } from "../../data/useActivity";
-import { useLastSeen, useNotifications, countUnread } from "../../data/useNotifications";
+import { useSummary } from "../../data/useSummary";
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { unregisterPush } from "../../push/register";
 import { useSession } from "../../session/SessionProvider";
@@ -35,9 +34,8 @@ export default function Profile() {
   const { disconnect } = useAppKit();
   const toast = useToast();
   const activity = useActivity();
-  const notifications = useNotifications();
-  const lastSeen = useLastSeen();
-  const unread = countUnread(notifications.data ?? [], lastSeen.data ?? 0);
+  const summary = useSummary();
+  const unread = summary.data?.unreadNotifications ?? 0;
   const balance = useQuery({
     queryKey: ["balance", address],
     enabled: Boolean(address),
@@ -45,7 +43,7 @@ export default function Profile() {
     queryFn: () => readTokenBalance(address as `0x${string}`),
   });
 
-  const refresh = useManualRefresh([() => refreshSession(), () => balance.refetch(), () => activity.refetch(), () => notifications.refetch()]);
+  const refresh = useManualRefresh([() => refreshSession(), () => balance.refetch(), () => activity.refetch(), () => summary.refetch()]);
 
   if (!address) {
     return (

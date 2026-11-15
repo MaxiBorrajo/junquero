@@ -143,3 +143,19 @@ describe("aviso en vivo a los chats abiertos", () => {
     expect(repeat.results).toHaveLength(0);
   });
 });
+
+describe("resumen de globitos", () => {
+  it("cuenta chats sin leer, notificaciones nuevas y acuerdos por confirmar con una sola llamada", async () => {
+    const { ctx, publisher, worker, applicationId } = await chat();
+    ctx.raw.prepare("INSERT INTO chat_meta (application_id, last_seq, last_sender, last_at, owner_replied) VALUES (?, 3, ?, 10, 1)").run(applicationId, owner.address.toLowerCase());
+    ctx.raw.prepare("INSERT INTO notifications (address, kind, ref, due_at, created_at, sent_at) VALUES (?, 'chat', '1', 0, 5, 5), (?, 'agreed', '2', 0, 6, 6)").run(stranger.address.toLowerCase(), stranger.address.toLowerCase());
+    ctx.raw.prepare("INSERT INTO agreements (order_id, payer, payee, price, spec_hash, terms_hash, expiry, payer_signature, status, created_at, updated_at) VALUES (1, ?, ?, '1', '0x', '0x', 9999999999, '0x', 'pending', 1, 1)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    const asWorker = (await (await ctx.call("/me/summary", authed(worker, "GET"))).json()) as { unreadChats: number; unreadNotifications: number; pendingAgreements: number };
+    expect(asWorker).toEqual({ unreadChats: 1, unreadNotifications: 2, pendingAgreements: 1 });
+    const asOwner = (await (await ctx.call("/me/summary", authed(publisher, "GET"))).json()) as { unreadChats: number; pendingAgreements: number };
+    expect(asOwner.unreadChats).toBe(0);
+    expect(asOwner.pendingAgreements).toBe(0);
+    const seen = (await (await ctx.call("/me/summary?seenNotification=100", authed(worker, "GET"))).json()) as { unreadNotifications: number };
+    expect(seen.unreadNotifications).toBe(0);
+  });
+});

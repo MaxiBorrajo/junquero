@@ -2,8 +2,7 @@ import type { ColorValue } from "react-native";
 import { Tabs } from "expo-router";
 import { Icon, type IconName } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
-import { useChats } from "../../data/useChats";
-import { countUnreadChats } from "../../lib/unread";
+import { useSummary } from "../../data/useSummary";
 import { t } from "../../i18n";
 import { colors, fonts } from "../../theme";
 
@@ -13,8 +12,7 @@ const tab = (title: string, icon: IconName) => ({
 });
 
 export default function TabsLayout() {
-  const chats = useChats();
-  const unreadChats = countUnreadChats(chats.data);
+  const unreadChats = useSummary().data?.unreadChats ?? 0;
   return (
     <Tabs
       screenOptions={{

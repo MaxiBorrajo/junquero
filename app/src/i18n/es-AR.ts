@@ -133,6 +133,8 @@ export const esAR = {
     ownChangaTag: "Publicaste este trabajo",
     ownChanga: "Este trabajo es tuyo.",
     whoWorks: "Quién hace el trabajo",
+    publishedBy: "Quién lo publicó",
+    chosenYou: "Te eligieron para este trabajo. Tocá para ver su perfil.",
     alreadyApplied: "Ya te postulaste a este trabajo. Seguí la conversación desde Mensajes.",
     notOpen: "Este trabajo ya no recibe postulaciones.",
     minutes: "min",
@@ -440,6 +442,9 @@ export const esAR = {
     failed: "No pudimos hacerlo. Probá de nuevo.",
   },
   order: {
+    whoWorks: "Quién hace el trabajo",
+    whoChose: "Quién te eligió",
+    youWereChosen: "Te eligieron para este trabajo. Tocá para ver su perfil y saber con quién trabajás.",
     deliveredDone: "Marcaste el trabajo como terminado. Ahora esperá la revisión.",
     claimedDone: "Cobraste el pago.",
     codeReady: "Código listo para mostrar.",

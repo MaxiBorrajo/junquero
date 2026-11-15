@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { PersonCard } from "../../components/PersonCard";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { DetailActions } from "../../components/DetailActions";
@@ -37,6 +38,7 @@ export default function ChangaDetail() {
   const query = useChangaBySpec(String(specHash));
   const ownerView = Boolean(query.data) && query.data!.owner.toLowerCase() === (address ?? "").toLowerCase() && !["open", "draft", "funding"].includes(query.data!.status);
   const received = useReceivedApplications(query.data?.id ?? 0, ownerView);
+  const iAmChosen = (mine.data ?? []).some((item) => item.changa.specHash === (query.data?.specHash ?? "") && item.status === "chosen");
   const chosen = (received.data ?? []).find((item) => item.status === "chosen") ?? null;
   const attachmentViewer = useAttachmentViewer();
 
@@ -87,21 +89,8 @@ export default function ChangaDetail() {
         <Text style={text.amount}>{formatUsdc(changa.amount)}</Text>
         <Secondary>{spec.milestones && spec.milestones.length > 0 ? t.detail.paymentMilestones : t.detail.paymentSingle}</Secondary>
       </Card>
-      {isOwner && chosen ? (
-        <Card gap="xs" onPress={() => router.push({ pathname: "/profile-public", params: { address: chosen.applicant } })}>
-          <Text style={text.label}>{t.detail.whoWorks}</Text>
-          <View style={styles.chosenRow}>
-            <View style={styles.avatar}>
-              <Text style={[text.subtitle, { color: colors.brick }]}>{(chosen.profile?.name ?? "?").trim().charAt(0).toUpperCase()}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={text.subtitle}>{chosen.profile?.name ?? chosen.applicant.slice(0, 8)}</Text>
-              <Text style={[text.secondary, { color: colors.brick }]}>{`${chosen.profile?.verified ? t.received.verified : t.received.unverified} · ${t.received.viewProfile}`}</Text>
-            </View>
-            <Icon name="chevron" size={20} color={colors.muted} />
-          </View>
-        </Card>
-      ) : null}
+      {isOwner && chosen ? <PersonCard address={chosen.applicant} label={t.detail.whoWorks} /> : null}
+      {!isOwner ? <PersonCard address={changa.owner} label={t.detail.publishedBy} note={iAmChosen ? t.detail.chosenYou : undefined} /> : null}
       {spec.description ? <Body>{spec.description}</Body> : null}
       <Section label={t.detail.where}>
         <Body>{spec.modality === "remote" ? t.detail.remoteWhere : t.detail.approxZone}</Body>

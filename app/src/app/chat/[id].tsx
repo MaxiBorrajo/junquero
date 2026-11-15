@@ -4,6 +4,8 @@ import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../da
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
+import { Avatar } from "../../components/Avatar";
+import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
@@ -49,6 +51,8 @@ export default function ChatScreen() {
   const room = useChatRoom(Number(id), String(counterpart));
   const toast = useToast();
   const { choose } = useChooseApplicant();
+  const counterpartProfile = usePublicProfile(String(counterpart));
+  const counterpartName = counterpartProfile.data?.name;
   const agreements = useMyAgreements().data ?? [];
   const ownChanga = (useMyChangas().data ?? []).find((item) => item.id === room.access.changaId) ?? null;
   const application = (useReceivedApplications(room.access.changaId, room.access.role === "owner").data ?? []).find((item) => item.id === Number(id)) ?? null;
@@ -168,8 +172,13 @@ export default function ChatScreen() {
             <View style={{ gap: spacing.sm }}>
               <ProtectedCard />
               <View style={styles.applicationCard}>
-                <Text style={text.label}>{room.access.role === "applicant" ? t.chat.applicationCardMine : t.chat.applicationCardTheirs}</Text>
-                <Text style={text.body}>{room.access.applicationMessage || t.chat.applicationCardEmpty}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={t.received.viewProfile} onPress={() => router.push({ pathname: "/profile-public", params: { address: String(counterpart) } })}>
+                  <Avatar profile={counterpartProfile.data} name={counterpartName} size={48} />
+                </Pressable>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={text.label}>{room.access.role === "applicant" ? t.chat.applicationCardMine : t.chat.applicationCardTheirs}</Text>
+                  <Text style={text.body}>{room.access.applicationMessage || t.chat.applicationCardEmpty}</Text>
+                </View>
               </View>
             </View>
           }
@@ -282,15 +291,15 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, padding: spacing.md, gap: spacing.md, justifyContent: "center" },
-  header: { flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line },
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
   headerText: { flex: 1, gap: spacing.xs },
   iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  messages: { padding: spacing.md, gap: spacing.sm },
+  messages: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.sm },
   protectedHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   protectedTitle: { flex: 1, ...text.secondary, fontFamily: fonts.semibold, color: colors.success },
   protectedToggle: { ...text.label },
   protectedBody: { ...text.secondary, color: colors.ink },
-  applicationCard: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, gap: 2, marginBottom: spacing.sm },
+  applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.sm },
   entry: { gap: spacing.sm },
   day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   time: { alignSelf: "flex-end" },

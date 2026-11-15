@@ -13,6 +13,7 @@ import { disputeCost, reasonHash } from "../../chain/jury";
 import { formatAmount } from "../../lib/money";
 import { Banner } from "../../components/Banner";
 import { StatusChip } from "../../components/StatusChip";
+import { PersonCard } from "../../components/PersonCard";
 import { Journey, type JourneyStep } from "../../components/Journey";
 import { Card } from "../../components/Card";
 import { DetailActions } from "../../components/DetailActions";
@@ -171,7 +172,6 @@ export default function OrderScreen() {
         ) : null
       }
     >
-      <Title>{title ?? t.order.title}</Title>
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
           <Title>{title ?? t.order.title}</Title>
@@ -183,6 +183,16 @@ export default function OrderScreen() {
         <Text style={text.label}>{t.order.amount}</Text>
         <Text style={text.amount}>{formatUsdc(state.price.toString())}</Text>
       </Card>
+
+      {role === "payer" || role === "payee" ? (
+        <PersonCard
+          address={counterpart}
+          label={role === "payer" ? t.order.whoWorks : t.order.whoChose}
+          note={role === "payee" ? t.order.youWereChosen : undefined}
+        />
+      ) : contributor && state.payee ? (
+        <PersonCard address={state.payee} label={t.order.whoWorks} />
+      ) : null}
 
       {journey ? <Journey title={role === "payer" ? t.journey.payerTitle : t.journey.payeeTitle} steps={journey.steps} current={journey.current} /> : null}
 

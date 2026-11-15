@@ -10,7 +10,7 @@ import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../compone
 import { API_URL } from "../../config";
 import { useChangaBySpec } from "../../data/useChangas";
 import { t } from "../../i18n";
-import { useMyApplications } from "../../data/useMine";
+import { useMyApplications, useReceivedApplications } from "../../data/useMine";
 import { applyBlock, type ApplyBlock } from "../../lib/apply";
 import { formatDate, formatDuration } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
@@ -35,6 +35,9 @@ export default function ChangaDetail() {
   const cancelling = useCancelling();
   const mine = useMyApplications();
   const query = useChangaBySpec(String(specHash));
+  const ownerView = Boolean(query.data) && query.data!.owner.toLowerCase() === (address ?? "").toLowerCase() && !["open", "draft", "funding"].includes(query.data!.status);
+  const received = useReceivedApplications(query.data?.id ?? 0, ownerView);
+  const chosen = (received.data ?? []).find((item) => item.status === "chosen") ?? null;
   const attachmentViewer = useAttachmentViewer();
 
   if (query.isLoading) {
@@ -63,7 +66,10 @@ export default function ChangaDetail() {
     !isCancelling && isGroup && changa.orderId !== null && (changa.status === "funding" || changa.status === "open") ? (
       <Button label={changa.status === "funding" ? t.publish.goToGroup : t.group.title} icon="users" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
     ) : null;
-  const action = isCancelling ? null : changa.status === "funding" ? groupButton :
+  const hasOrder = changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status);
+  const action = isCancelling ? null : isOwner && hasOrder ? (
+    <Button label={t.mine.openOrder} icon="briefcase" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } })} />
+  ) : changa.status === "funding" ? groupButton :
     isOwner && changa.status === "open" ? (
       <Button label={t.mine.viewApplications} icon="users" onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changa.id) } })} />
     ) : block === null ? (
@@ -81,6 +87,21 @@ export default function ChangaDetail() {
         <Text style={text.amount}>{formatUsdc(changa.amount)}</Text>
         <Secondary>{spec.milestones && spec.milestones.length > 0 ? t.detail.paymentMilestones : t.detail.paymentSingle}</Secondary>
       </Card>
+      {isOwner && chosen ? (
+        <Card gap="xs" onPress={() => router.push({ pathname: "/profile-public", params: { address: chosen.applicant } })}>
+          <Text style={text.label}>{t.detail.whoWorks}</Text>
+          <View style={styles.chosenRow}>
+            <View style={styles.avatar}>
+              <Text style={[text.subtitle, { color: colors.brick }]}>{(chosen.profile?.name ?? "?").trim().charAt(0).toUpperCase()}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={text.subtitle}>{chosen.profile?.name ?? chosen.applicant.slice(0, 8)}</Text>
+              <Text style={[text.secondary, { color: colors.brick }]}>{`${chosen.profile?.verified ? t.received.verified : t.received.unverified} · ${t.received.viewProfile}`}</Text>
+            </View>
+            <Icon name="chevron" size={20} color={colors.muted} />
+          </View>
+        </Card>
+      ) : null}
       {spec.description ? <Body>{spec.description}</Body> : null}
       <Section label={t.detail.where}>
         <Body>{spec.modality === "remote" ? t.detail.remoteWhere : t.detail.approxZone}</Body>
@@ -174,6 +195,8 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   section: { gap: spacing.xs },
+  chosenRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center" },
   gallery: { gap: spacing.sm },
   fileTile: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", gap: spacing.xs, padding: spacing.sm },
   fileName: { textAlign: "center", color: colors.brick, fontSize: 12 },

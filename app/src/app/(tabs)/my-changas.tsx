@@ -164,8 +164,8 @@ function AppliedItem({ application, proposal }: { application: MyApplication; pr
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  pad: { padding: spacing.md, gap: spacing.md },
-  list: { padding: spacing.md, gap: spacing.md },
+  pad: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: 0, gap: spacing.md },
+  list: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.md },
   item: { gap: spacing.xs },
   titleRow: { flexDirection: "row", gap: spacing.sm },
   banner: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },

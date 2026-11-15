@@ -124,8 +124,8 @@ export default function Messages() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  pad: { padding: spacing.md, gap: spacing.md },
-  list: { padding: spacing.md, gap: spacing.sm },
+  pad: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: 0, gap: spacing.md },
+  list: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.sm },
   row: { flexDirection: "row", alignItems: "center" },
   avatar: { marginRight: spacing.md },
   line: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

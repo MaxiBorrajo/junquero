@@ -64,7 +64,7 @@ function Row({ item, isNew }: { item: NotificationItem; isNew: boolean }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: spacing.md },
-  list: { padding: spacing.md, gap: spacing.sm },
+  list: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.sm },
   row: { flexDirection: "row" },
   body: { flex: 1, gap: 2 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.brick, marginTop: 6 },

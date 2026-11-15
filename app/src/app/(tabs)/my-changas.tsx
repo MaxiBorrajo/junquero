@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { Card } from "../../components/Card";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
+import { StatusStrip, type StripData } from "../../components/StatusStrip";
 import { Banner } from "../../components/Banner";
 import { ChangaCard } from "../../components/ChangaCard";
 import { PullSpinner } from "../../components/PullSpinner";
@@ -138,18 +139,14 @@ function AppliedItem({ application, proposal }: { application: MyApplication; pr
   const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
   const where = [changa.category !== null ? t.publish.categories[changa.category] : null, changa.modality === "remote" ? t.map.remoteTag : changa.modality === "onsite" ? t.map.onsiteTag : null, changa.when ? formatDate(changa.when) : null].filter(Boolean).join(" · ");
   const states = t.mine.applicationState;
-  let state: ReactNode;
-  if (proposal?.status === "sending") {
-    state = <Banner icon="clock">{states.confirming}</Banner>;
-  } else if (proposal) {
-    state = <Banner icon="check" action={{ label: t.mine.confirmAgreement, onPress: () => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(proposal.orderId) } }) }}>{states.proposal}</Banner>;
-  } else if (application.status === "chosen") {
-    state = <Banner tone="success" icon="check" action={changa.orderId !== null ? { label: t.mine.openOrder, onPress: () => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId) } }) } : undefined}>{states.chosen}</Banner>;
-  } else if (application.status === "active") {
-    state = <Banner icon="clock">{states.waiting}</Banner>;
-  } else {
-    state = <Banner icon="close">{states[application.status as "closed" | "dismissed" | "withdrawn"] ?? states.closed}</Banner>;
-  }
+  const toOrder = changa.orderId !== null ? () => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId) } }) : undefined;
+  let data: StripData;
+  if (proposal?.status === "sending") data = { tone: "info", icon: "clock", title: states.confirmingTitle, body: states.confirming };
+  else if (proposal) data = { tone: "info", icon: "check", title: states.chosenTitle, body: states.proposal, action: { label: t.mine.confirmAgreement, onPress: () => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(proposal.orderId) } }) } };
+  else if (application.status === "chosen") data = { tone: "success", icon: "check", title: states.chosenTitle, body: states.chosen, action: toOrder ? { label: t.mine.openOrder, onPress: toOrder } : undefined };
+  else if (application.status === "active") data = { tone: "neutral", icon: "clock", title: states.waitingTitle, body: states.waiting };
+  else data = { tone: "neutral", icon: "close", title: states.closedTitle, body: states[application.status as "closed" | "dismissed" | "withdrawn"] ?? states.closed };
+  const state = <StatusStrip data={data} />;
   return (
     <Card gap="sm" onPress={open}>
       <View style={styles.titleRow}>

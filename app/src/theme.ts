@@ -6,6 +6,7 @@ export const colors = {
   ink: "#231815",
   error: "#A3174E",
   success: "#1F7A45",
+  successTint: "#E9F4EC",
   warning: "#8A5A00",
   white: "#FFFFFF",
   muted: "#6B5C57",

@@ -371,6 +371,12 @@ export const esAR = {
     },
   },
   chat: {
+    stepNow: "Paso actual",
+    stepOf: "{n}",
+    stepGoEvidence: "Ir a subir las pruebas",
+    stepGoFinish: "Ir a terminar",
+    stepReview: "Revisar y aprobar",
+    stepOpenJob: "Seguí este trabajo desde su pantalla.",
     title: "Mensajes",
     empty: "Cuando te postules o te postulen, hablan acá.",
     needAccount: "Ingresá con tu billetera para ver tus mensajes.",

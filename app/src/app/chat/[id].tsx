@@ -1,9 +1,10 @@
 import { File } from "expo-file-system";
 import { formatClock, formatDayLabel, sameDay } from "../../lib/format";
-import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
+import { useMyAgreements, useMyApplications, useMyChangas, useReceivedApplications } from "../../data/useMine";
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
+import { StepCard } from "../../components/StepCard";
 import { AgreementCard } from "../../components/AgreementCard";
 import { useSession } from "../../session/SessionProvider";
 import { Avatar } from "../../components/Avatar";
@@ -62,6 +63,8 @@ export default function ChatScreen() {
   const proposal = agreements.find((item) => item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;
   const ownChanga = (useMyChangas().data ?? []).find((item) => item.id === room.access.changaId) ?? null;
   const application = (useReceivedApplications(room.access.changaId, room.access.role === "owner").data ?? []).find((item) => item.id === Number(id)) ?? null;
+  const myApplications = useMyApplications().data ?? [];
+  const orderId = room.access.role === "owner" ? ownChanga?.orderId ?? null : myApplications.find((item) => item.id === Number(id))?.changa.orderId ?? null;
   const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null && !agreements.some((item) => item.orderId === ownChanga.orderId && (item.status === "pending" || item.status === "sending"));
   const attachmentViewer = useAttachmentViewer();
   const [draft, setDraft] = useState("");
@@ -188,7 +191,17 @@ export default function ChatScreen() {
               </View>
             </View>
           }
-          ListFooterComponent={proposal ? <View style={styles.proposal}><AgreementCard agreement={proposal} role={room.access.role} title={String(title ?? "")} counterpartName={counterpartName ?? t.chat.unknownUser} /></View> : undefined}
+          ListFooterComponent={
+            proposal ? (
+              <View style={styles.proposal}>
+                <AgreementCard agreement={proposal} role={room.access.role} title={String(title ?? "")} counterpartName={counterpartName ?? t.chat.unknownUser} />
+              </View>
+            ) : orderId !== null && applicantAddress ? (
+              <View style={styles.proposal}>
+                <StepCard orderId={orderId} applicant={applicantAddress} />
+              </View>
+            ) : undefined
+          }
           onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
           renderItem={({ item, index }) => (
             <View style={styles.entry}>

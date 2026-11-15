@@ -618,6 +618,8 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.18 Pruebas por pedido** · [ ] Publicar una changa que pida dos pruebas (por ejemplo "Foto" y "Comprobante"), elegir a alguien y abrir "Tu trabajo" como esa persona. Esperado: primero solo aparece "Llegué" (si es presencial); después una tarjeta por cada prueba pedida con "Subir esta prueba"; al subir cada una se tilda como "Subida"; recién con todas tildadas aparece "Terminé". Quien publicó ve los archivos subidos.
 
+**15.19 Acuerdo y pasos desde el chat** · [ ] Elegir a alguien desde el chat. Esperado: en el chat de las dos personas aparece la tarjeta de propuesta (quien fue elegido acepta o rechaza; quien publicó espera o cancela). Al aceptar, aparece la tarjeta "Paso actual" con el mismo paso que el detalle del trabajo: "Llegué" (presencial), después "Ir a subir las pruebas", "Ir a terminar" y, para quien publicó, "Revisar y aprobar". Avanzar un paso en el chat se refleja en el detalle y al revés.
+
 ---
 
 ## 16. Resumen de estado

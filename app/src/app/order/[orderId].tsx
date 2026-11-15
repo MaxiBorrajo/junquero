@@ -10,7 +10,7 @@ import { readContributionOf, readForwarderNonce, readGroup, readJurorFee, readPa
 import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
 import { encodeObject } from "../../chain/group";
 import { disputeCost, reasonHash } from "../../chain/jury";
-import { formatAmount } from "../../lib/money";
+import { payeeCurrent, payeeSteps, payerCurrent, payerSteps } from "../../lib/journey";
 import { Banner } from "../../components/Banner";
 import { StatusChip } from "../../components/StatusChip";
 import { OwnerTag } from "../../components/OwnerTag";
@@ -132,18 +132,9 @@ export default function OrderScreen() {
     }, t.order.releaseFailed, t.order.codeReady, "scan");
 
   const j = t.journey;
-  const payeeSteps = [
-    ...(state.modality === 0 ? [{ key: "arrive", ...j.payee.arrive }] : []),
-    { key: "work", ...j.payee.work },
-    { key: "finish", ...j.payee.finish },
-    { key: "review", ...j.payee.review },
-  ];
-  const payerSteps = [
-    { key: "wait", ...j.payer.wait },
-    { key: "review", ...j.payer.review },
-    { key: "approve", ...j.payer.approve },
-    { key: "done", ...j.payer.done },
-  ];
+  const labelOf = { arrive: j.payee.arrive, work: j.payee.work, finish: j.payee.finish, review: j.payee.review } as const;
+  const payeeList: JourneyStep[] = payeeSteps(state.modality === 0).map((key) => ({ key, ...labelOf[key] }));
+  const payerList: JourneyStep[] = payerSteps().map((key) => ({ key, ...j.payer[key] }));
   const settled = view === "settled";
   const ready = requirements.length > 0 ? covered.size >= requirements.length : items.length > 0;
   const arrivedOrRemote = state.modality !== 0 || state.checkedInAt > 0;
@@ -157,11 +148,9 @@ export default function OrderScreen() {
   let journey: { steps: JourneyStep[]; current: number } | null = null;
   if (!state.hasMilestones && !contributor) {
     if (role === "payee" && (view === "worker-working" || view === "worker-waiting-review" || settled)) {
-      const at = (key: string) => payeeSteps.findIndex((step) => step.key === key);
-      const current = settled ? payeeSteps.length : view === "worker-waiting-review" ? at("review") : !arrivedOrRemote ? at("arrive") : !ready ? at("work") : at("finish");
-      journey = { steps: payeeSteps, current };
+      journey = { steps: payeeList, current: payeeCurrent({ view, presencial: state.modality === 0, arrived: arrivedOrRemote, ready }) };
     } else if (role === "payer" && (view === "payer-waiting-work" || view === "payer-reviewing" || settled)) {
-      journey = { steps: payerSteps, current: settled ? payerSteps.length : view === "payer-waiting-work" ? 0 : 1 };
+      journey = { steps: payerList, current: payerCurrent(view) };
     }
   }
 

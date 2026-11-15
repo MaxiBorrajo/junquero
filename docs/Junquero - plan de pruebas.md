@@ -616,6 +616,8 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.17 Camino del trabajo** · [ ] Como quien trabaja y como quien publicó, abrir "Tu trabajo" (también un trabajo con hitos y uno grupal). Esperado: una tarjeta con los pasos (llegar, subir pruebas, terminar, esperar la aprobación / esperar, revisar, aprobar), el paso actual resaltado con su explicación y los hechos con tilde.
 
+**15.18 Pruebas por pedido** · [ ] Publicar una changa que pida dos pruebas (por ejemplo "Foto" y "Comprobante"), elegir a alguien y abrir "Tu trabajo" como esa persona. Esperado: primero solo aparece "Llegué" (si es presencial); después una tarjeta por cada prueba pedida con "Subir esta prueba"; al subir cada una se tilda como "Subida"; recién con todas tildadas aparece "Terminé". Quien publicó ve los archivos subidos.
+
 ---
 
 ## 16. Resumen de estado

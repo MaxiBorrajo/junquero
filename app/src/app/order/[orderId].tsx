@@ -24,7 +24,7 @@ import { MilestoneBoard } from "../../components/MilestoneBoard";
 import { useChangaBySpec } from "../../data/useChangas";
 import { useMyCases } from "../../data/useCases";
 import { useOrder } from "../../data/useOrder";
-import { EvidenceGallery, EvidenceUploader, useEvidence } from "../../evidence/EvidenceSection";
+import { EvidenceGallery, EvidenceUploader, RequirementList, useCoveredRequirements, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
 import { t } from "../../i18n";
 import { canFinish, extendedRole, roleOf, viewFor } from "../../lib/actions";
@@ -43,6 +43,8 @@ export default function OrderScreen() {
   const evidence = useEvidence(id);
   const myCases = useMyCases();
   const changaForOrder = useChangaBySpec(order.data?.specHash ?? "0x");
+  const requirements = changaForOrder.data?.spec.evidence ?? [];
+  const covered = useCoveredRequirements(evidence.data ?? [], requirements.length);
   const myCase = (myCases.data?.asParty ?? []).find((item) => item.orderId === id);
   const { run: runAction, busy, error: failed } = useRunAction();
   const [rating, setRating] = useState(5);
@@ -143,6 +145,8 @@ export default function OrderScreen() {
     { key: "done", ...j.payer.done },
   ];
   const settled = view === "settled";
+  const ready = requirements.length > 0 ? covered.size >= requirements.length : items.length > 0;
+  const arrivedOrRemote = state.modality !== 0 || state.checkedInAt > 0;
   const chip: { label: string; warn?: boolean } | null =
     view === "worker-working" || view === "payer-waiting-work" ? { label: t.order.statusAgreed }
     : view === "worker-waiting-review" || view === "payer-reviewing" ? { label: t.order.statusDelivered }
@@ -154,7 +158,7 @@ export default function OrderScreen() {
   if (!state.hasMilestones && !contributor) {
     if (role === "payee" && (view === "worker-working" || view === "worker-waiting-review" || settled)) {
       const at = (key: string) => payeeSteps.findIndex((step) => step.key === key);
-      const current = settled ? payeeSteps.length : view === "worker-waiting-review" ? at("review") : state.modality === 0 && state.checkedInAt === 0 ? at("arrive") : items.length === 0 ? at("work") : at("finish");
+      const current = settled ? payeeSteps.length : view === "worker-waiting-review" ? at("review") : !arrivedOrRemote ? at("arrive") : !ready ? at("work") : at("finish");
       journey = { steps: payeeSteps, current };
     } else if (role === "payer" && (view === "payer-waiting-work" || view === "payer-reviewing" || settled)) {
       journey = { steps: payerSteps, current: settled ? payerSteps.length : view === "payer-waiting-work" ? 0 : 1 };
@@ -165,7 +169,7 @@ export default function OrderScreen() {
     <Screen
       footer={
         state.hasMilestones ? null : view === "worker-working" ? (
-          <Button label={t.order.finish} icon="check" onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} />
+          arrivedOrRemote && ready ? <Button label={t.order.finish} icon="check" onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} /> : null
         ) : view === "worker-waiting-review" ? (
           <Button label={t.order.scanQr} icon="scan" onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(id) } })} />
         ) : view === "payer-reviewing" ? (
@@ -203,13 +207,21 @@ export default function OrderScreen() {
 
       {!state.hasMilestones && view === "worker-working" ? (
         <>
-          {state.modality === 0 && state.checkedInAt === 0 ? <DetailActions actions={[{ key: "arrived", label: t.order.arrived, icon: "pin", onPress: () => void arrive() }]} /> : null}
-          {state.checkedInAt > 0 ? <Secondary>{t.order.arrivedDone}</Secondary> : null}
-          <Text style={text.subtitle}>{t.order.evidenceTitle}</Text>
-          <Secondary>{t.order.evidenceHint}</Secondary>
-          <Secondary>{`${items.length} ${t.order.evidenceCount}`}</Secondary>
-          <EvidenceUploader orderId={id} counterpart={counterpart} />
-          {items.length === 0 ? <Secondary>{t.order.evidenceNeedMore}</Secondary> : null}
+          {!arrivedOrRemote ? <DetailActions actions={[{ key: "arrived", label: t.order.arrived, icon: "pin", onPress: () => void arrive() }]} /> : null}
+          {arrivedOrRemote && requirements.length > 0 ? (
+            <>
+              <Text style={text.subtitle}>{t.order.requirementsTitle}</Text>
+              <Secondary>{t.order.requirementsHint}</Secondary>
+              <RequirementList orderId={id} counterpart={counterpart} requirements={requirements} covered={covered} />
+            </>
+          ) : null}
+          {arrivedOrRemote && requirements.length === 0 ? (
+            <>
+              <Text style={text.subtitle}>{t.order.evidenceTitle}</Text>
+              <Secondary>{t.order.evidenceHint}</Secondary>
+              <EvidenceUploader orderId={id} counterpart={counterpart} />
+            </>
+          ) : null}
         </>
       ) : null}
 

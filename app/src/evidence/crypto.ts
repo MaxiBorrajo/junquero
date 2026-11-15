@@ -12,6 +12,8 @@ export interface EvidenceMeta {
   lng?: number;
   name: string;
   mime: string;
+  // Posición de la prueba pedida (la ficha de la changa) a la que corresponde este archivo.
+  requirement?: number;
 }
 
 export interface EncryptedEvidence {

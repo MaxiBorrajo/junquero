@@ -465,6 +465,12 @@ export const esAR = {
     addPhoto: "Agregar foto o video",
     addFile: "Agregar documento",
     evidenceCount: "pruebas subidas",
+    requirementsTitle: "Pruebas que pidió quien publicó",
+    requirementPending: "Falta subirla",
+    requirementDone: "Subida",
+    requirementUpload: "Subir esta prueba",
+    requirementReplace: "Agregar otra",
+    requirementsHint: "Subí una prueba por cada cosa que pidió quien publicó. Cuando estén todas, aparece el botón para terminar.",
     evidenceUploading: "Subiendo y cifrando",
     evidenceFailed: "No pudimos subir la prueba. Probá de nuevo.",
     evidenceCancelled: "No firmaste, así que no se subió nada. Probá de nuevo cuando quieras.",
@@ -511,8 +517,8 @@ export const esAR = {
     payerTitle: "El camino de este trabajo",
     payee: {
       arrive: { label: "Llegá al lugar y avisá", hint: "Tocá \"Llegué\" cuando estés en el lugar. Así quien publicó sabe que empezaste." },
-      work: { label: "Hacé el trabajo y subí las pruebas", hint: "Sacá fotos o subí archivos de lo que hiciste. Hace falta al menos una prueba." },
-      finish: { label: "Marcalo como terminado", hint: "Ya subiste pruebas. Tocá \"Terminé\" abajo para avisar que está listo." },
+      work: { label: "Hacé el trabajo y subí las pruebas", hint: "Subí una prueba por cada cosa que pidió quien publicó. Cuando estén todas, aparece el botón para terminar." },
+      finish: { label: "Marcalo como terminado", hint: "Ya están todas las pruebas. Tocá \"Terminé\" abajo para avisar que está listo." },
       review: { label: "Quien publicó lo revisa y se libera el pago", hint: "Esperá la aprobación. Si no responde a tiempo, se aprueba solo. Cuando aprueben, cobrás desde acá." },
     },
     payer: {

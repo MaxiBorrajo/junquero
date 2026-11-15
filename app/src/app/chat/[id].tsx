@@ -1,11 +1,12 @@
 import { File } from "expo-file-system";
+import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, formatSize, type ChatFile } from "../../chat/envelope";
+import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, type ChatFile } from "../../chat/envelope";
 import { useChatRoom } from "../../chat/useChatRoom";
 import { ChoiceSheet } from "../../components/ChoiceSheet";
 import { Icon } from "../../components/Icon";
@@ -169,23 +170,7 @@ export default function ChatScreen() {
             <View style={[styles.bubble, item.mine ? styles.mine : styles.theirs]}>
               {item.text === null ? <Text style={[text.body, item.mine && styles.mineText]}>{t.chat.unreadable}</Text> : null}
               {item.text ? <Text style={[text.body, item.mine && styles.mineText]}>{item.text}</Text> : null}
-              {item.files.map((file: ChatFile, index: number) => (
-                <Pressable
-                  key={`${file.hash}-${index}`}
-                  accessibilityRole="button"
-                  disabled={!file.hash}
-                  onPress={() => void openAttachment(file)}
-                  style={[styles.fileRow, item.mine ? styles.fileMine : styles.fileTheirs]}
-                >
-                  <Icon name={file.mime.startsWith("image/") ? "image" : "file"} size={20} color={item.mine ? colors.white : colors.brick} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[text.secondary, { color: colors.ink }, item.mine && styles.mineText]} numberOfLines={1}>
-                      {file.name}
-                    </Text>
-                    {file.size > 0 ? <Text style={[text.label, item.mine && styles.mineText]}>{formatSize(file.size)}</Text> : null}
-                  </View>
-                </Pressable>
-              ))}
+              <MessageFiles files={item.files} mine={item.mine} fetchBytes={room.fetchAttachment} onOpen={(file) => void openAttachment(file)} />
               {item.status === "sending" ? <Text style={[text.label, item.mine && styles.mineText]}>{item.files.length > 0 ? t.chat.attachSending : t.chat.sending}</Text> : null}
               {item.status === "failed" ? (
                 <View style={styles.failedRow}>

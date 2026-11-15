@@ -180,9 +180,15 @@ export function useChatRoom(applicationId: number, counterpart: string) {
   );
 
   const send = useCallback(
-    (text: string, picks: PickedFile[] = []) => {
+    function send(text: string, picks: PickedFile[] = []): void {
       const clean = text.trim();
       if (!clean && picks.length === 0) return;
+      // Como en las apps de mensajes: un mensaje por archivo, y el texto va aparte.
+      if (picks.length > 1 || (picks.length === 1 && clean)) {
+        if (clean) send(clean, []);
+        for (const pick of picks) send("", [pick]);
+        return;
+      }
       const clientId = newClientId((n) => crypto.getRandomValues(new Uint8Array(n)));
       const placeholders: ChatFile[] = picks.map((pick) => ({ hash: "", name: pick.name, mime: pick.mime, size: 0, key: "", nonce: "" }));
       outbox.current.set(clientId, { text: clean, picks });

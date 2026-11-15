@@ -628,6 +628,10 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 - **Hitos:** hito entregado, avance reportado, hito pagado, terminó antes de tiempo, abandonó.
 Requiere el backend nuevo y las migraciones 0021 y 0022.
 
+**15.21 Avisos en vivo y consumo** · [ ] Con el chat de las dos cuentas abierto, hacer en una: proponer, aceptar, rechazar, bajarse, subir pruebas, llegar. Esperado: la otra cuenta lo ve en el chat al instante, sin refrescar. Cortar la red unos segundos y volver: el chat se pone al día solo. Mandar la app a segundo plano un rato y volver: se actualiza. En el log de Metro no debe haber un goteo constante de pedidos con la app quieta.
+
+**15.22 Archivos vencidos y perfil** · [ ] Después del despliegue: el perfil de alguien con trabajos cerrados muestra calificación promedio (ahora se guarda de forma duradera). Los adjuntos del chat con más de 90 días y las pruebas de trabajos cerrados hace más de 180 días se borran de R2 (revisar el almacenamiento tras la limpieza diaria de las 03:00 UTC).
+
 ---
 
 ## 16. Resumen de estado

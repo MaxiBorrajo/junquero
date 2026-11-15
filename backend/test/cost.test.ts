@@ -66,3 +66,41 @@ describe("lecturas de la cadena servidas por el backend", () => {
     }
   });
 });
+
+import { CHAT_FILE_TTL_SECONDS, EVIDENCE_AFTER_CLOSE_SECONDS, EVIDENCE_MAX_AGE_SECONDS, purgeExpiredFiles } from "../src/files";
+import type { FakeBucket } from "./helpers";
+
+describe("archivos privados vencidos", () => {
+  const now = 2_000_000_000;
+  const put = (ctx: ReturnType<typeof setup>, owner_: string, hash: string, kind: string, createdAt: number) => {
+    ctx.raw.prepare("INSERT INTO files (owner, hash, kind, mime, size, linked, created_at) VALUES (?, ?, ?, 'application/octet-stream', 1, 1, ?)").run(owner_, hash, kind, createdAt);
+    (ctx.bucket as unknown as FakeBucket).objects.set(`files/${owner_}/${hash}`, { bytes: new Uint8Array([1]) });
+  };
+
+  it("borra los adjuntos del chat viejos y las pruebas de trabajos cerrados hace mucho, y deja lo demás", async () => {
+    const ctx = setup();
+    const a = "a".repeat(64);
+    const b = "b".repeat(64);
+    const c = "c".repeat(64);
+    const d = "d".repeat(64);
+    const e = "e".repeat(64);
+    put(ctx, owner.address.toLowerCase(), a, "chat", now - CHAT_FILE_TTL_SECONDS - 10); // viejo
+    put(ctx, owner.address.toLowerCase(), b, "chat", now - 1_000); // reciente
+    put(ctx, owner.address.toLowerCase(), c, "evidence", now - 10_000); // de un trabajo cerrado hace tiempo
+    put(ctx, owner.address.toLowerCase(), d, "evidence", now - 10_000); // de un trabajo abierto
+    put(ctx, owner.address.toLowerCase(), e, "evidence", now - EVIDENCE_MAX_AGE_SECONDS - 10); // muy viejo
+    put(ctx, owner.address.toLowerCase(), "f".repeat(64), "public", now - EVIDENCE_MAX_AGE_SECONDS - 10); // los públicos no se tocan acá
+    const insertEvidence = ctx.raw.prepare("INSERT INTO evidence (order_id, hash, uploader, kind, meta, signature, size, created_at) VALUES (?, ?, ?, 'photo', 'm', 's', 1, 1)");
+    insertEvidence.run(1, c, owner.address.toLowerCase());
+    insertEvidence.run(2, d, owner.address.toLowerCase());
+    ctx.raw.prepare("INSERT INTO evidence_keys (order_id, hash, recipient, wrapped, created_at) VALUES (1, ?, 'x', 'w', 1)").run(c);
+    ctx.raw.prepare("INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, args) VALUES (1, 0, ?, '0x', 'escrow', '0x', 'OrderSettled', 1, '{}')").run(now - EVIDENCE_AFTER_CLOSE_SECONDS - 10);
+    const removed = await purgeExpiredFiles(ctx.db, ctx.bucket as unknown as R2Bucket, now);
+    expect(removed).toBe(3);
+    const left = (ctx.raw.prepare("SELECT hash FROM files ORDER BY hash").all() as { hash: string }[]).map((row) => row.hash[0]);
+    expect(left).toEqual(["b", "d", "f"]);
+    expect((ctx.raw.prepare("SELECT COUNT(*) AS n FROM evidence").get() as { n: number }).n).toBe(1);
+    expect((ctx.raw.prepare("SELECT COUNT(*) AS n FROM evidence_keys").get() as { n: number }).n).toBe(0);
+    expect((ctx.bucket as unknown as FakeBucket).objects.size).toBe(3);
+  });
+});

@@ -172,3 +172,45 @@ export async function purgeOrphanFiles(db: D1Database, bucket: R2Bucket, nowSeco
   }
   return total;
 }
+
+// Cuánto se guardan los archivos privados. Hoy no se borraban nunca: R2 crecía sin límite y el tope por persona (200 archivos,
+// 300 MB) quedaba ocupado para siempre. Los adjuntos del chat se borran a los 90 días de subidos; las pruebas, 180 días
+// después de que el trabajo se cierra (alcanza para una apelación del jurado) o 365 días después de subidas si nunca cerró.
+export const CHAT_FILE_TTL_SECONDS = 90 * 24 * 3600;
+export const EVIDENCE_AFTER_CLOSE_SECONDS = 180 * 24 * 3600;
+export const EVIDENCE_MAX_AGE_SECONDS = 365 * 24 * 3600;
+
+export async function purgeExpiredFiles(db: D1Database, bucket: R2Bucket, nowSeconds: number): Promise<number> {
+  let total = 0;
+  for (let round = 0; round < PURGE_ROUNDS; round += 1) {
+    const { results } = await db
+      .prepare(
+        `SELECT owner, hash, kind FROM (
+           SELECT f.owner AS owner, f.hash AS hash, f.kind AS kind FROM files f WHERE f.kind = 'chat' AND f.created_at < ?1
+           UNION ALL
+           SELECT f.owner, f.hash, f.kind FROM files f
+           WHERE f.kind = 'evidence' AND (
+             f.created_at < ?2
+             OR EXISTS (
+               SELECT 1 FROM evidence e JOIN events x ON x.order_id = e.order_id
+               WHERE e.uploader = f.owner AND e.hash = f.hash AND x.name IN ('OrderSettled', 'OrderCancelled') AND x.block_timestamp < ?3))
+         ) LIMIT ?4`,
+      )
+      .bind(nowSeconds - CHAT_FILE_TTL_SECONDS, nowSeconds - EVIDENCE_MAX_AGE_SECONDS, nowSeconds - EVIDENCE_AFTER_CLOSE_SECONDS, DELETE_BATCH)
+      .all<{ owner: string; hash: string; kind: string }>();
+    if (!results.length) break;
+    await bucket.delete(results.map((row) => objectKey(row.owner, row.hash)));
+    const statements: D1PreparedStatement[] = [];
+    for (const row of results) {
+      statements.push(db.prepare("DELETE FROM files WHERE owner = ? AND hash = ?").bind(row.owner, row.hash));
+      if (row.kind === "evidence") {
+        statements.push(db.prepare("DELETE FROM evidence_keys WHERE hash = ? AND order_id IN (SELECT order_id FROM evidence WHERE uploader = ? AND hash = ?)").bind(row.hash, row.owner, row.hash));
+        statements.push(db.prepare("DELETE FROM evidence WHERE uploader = ? AND hash = ?").bind(row.owner, row.hash));
+      }
+    }
+    await db.batch(statements);
+    total += results.length;
+    if (results.length < DELETE_BATCH) break;
+  }
+  return total;
+}

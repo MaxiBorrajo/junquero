@@ -79,6 +79,13 @@ La pregunta es: ¿qué le pasó a la persona?
 - **Antes de mover compromisos** (elegir a una persona, aceptar un acuerdo, aprobar un pago) se pide confirmación con el nombre y el monto, y después se muestra el estado ("Propuesta enviada, esperando que acepte") en la tarjeta, nunca como texto suelto.
 - **Perfil de otra persona**: antes de elegirla se puede ver su perfil con historial (calificación, trabajos cerrados, reclamos), desde la tarjeta de postulación y desde el menú del chat.
 
+## 7b. Costo de cada pantalla
+- **Nada se consulta por intervalo sin motivo.** Lo que cambia se empuja (socket del chat, avisos push) y la pantalla se refresca sola; el intervalo es solo respaldo y largo (60 segundos o más).
+- Las consultas de una pantalla usan `useFocusedInterval`: si la pantalla está tapada o la app en segundo plano, no consultan.
+- Los números de los globitos salen de un solo pedido liviano (`/me/summary`), no de listas enteras.
+- El estado de la cadena lo lee el servidor y lo comparten todos (`/me/chain/...`); el celular no consulta el nodo para mostrar un trabajo. Después de una acción confirmada se pide `fresh`.
+- Lo que no cambia (claves de otras personas, perfiles, archivos descifrados) se guarda en caché y no se vuelve a bajar.
+
 ## 8. Tono
 - Voseo siempre, frases cortas, verbos concretos.
 - Sin términos de cadena de bloques: "billetera", "pago en garantía", "costo de red", "comprobante".

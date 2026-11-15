@@ -1,8 +1,9 @@
 import { File } from "expo-file-system";
+import { AttachmentTile } from "../../components/AttachmentTile";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, formatSize, type ChatFile } from "../../chat/envelope";
 import { useChatRoom } from "../../chat/useChatRoom";
@@ -226,19 +227,19 @@ export default function ChatScreen() {
             {room.access.role === "owner" && room.view.length === 0 ? <Secondary style={styles.hint}>{t.chat.ownerFirstHint}</Secondary> : null}
             {attachError ? <ErrorText>{attachError}</ErrorText> : null}
             {picks.length > 0 ? (
-              <View style={styles.tray}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tray} contentContainerStyle={styles.trayContent}>
                 {picks.map((pick, index) => (
-                  <View key={`${pick.uri}-${index}`} style={styles.chip}>
-                    <Icon name={pick.mime.startsWith("image/") ? "image" : "file"} size={16} color={colors.brick} />
-                    <Text style={styles.chipText} numberOfLines={1}>
-                      {pick.name}
-                    </Text>
-                    <Pressable accessibilityRole="button" accessibilityLabel={t.common.close} hitSlop={8} onPress={() => setPicks((current) => current.filter((_, i) => i !== index))}>
-                      <Icon name="close" size={16} color={colors.muted} />
-                    </Pressable>
-                  </View>
+                  <AttachmentTile
+                    key={`${pick.uri}-${index}`}
+                    compact
+                    name={pick.name}
+                    mime={pick.mime}
+                    uri={pick.uri}
+                    onOpen={() => attachmentViewer.open({ uri: pick.uri, mime: pick.mime, name: pick.name })}
+                    onRemove={() => setPicks((current) => current.filter((_, i) => i !== index))}
+                  />
                 ))}
-              </View>
+              </ScrollView>
             ) : null}
             <View style={styles.composer}>
               <Pressable accessibilityRole="button" accessibilityLabel={t.chat.attach} onPress={() => setSheet(true)} style={styles.roundButton}>
@@ -302,9 +303,8 @@ const styles = StyleSheet.create({
   hint: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm },
   blocked: { marginHorizontal: spacing.md, marginTop: spacing.sm, padding: spacing.sm + 4, borderRadius: radius.md, borderWidth: 1, borderColor: colors.error, backgroundColor: colors.white, gap: 2 },
   blockedTitle: { ...text.body, color: colors.error, fontFamily: fonts.semibold },
-  tray: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-  chip: { flexDirection: "row", alignItems: "center", gap: spacing.xs, maxWidth: 200, backgroundColor: colors.white, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, paddingVertical: 4, paddingHorizontal: spacing.sm },
-  chipText: { flexShrink: 1, fontFamily: fonts.regular, fontSize: 13, color: colors.ink },
+  tray: { flexGrow: 0, marginTop: spacing.sm },
+  trayContent: { gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
   composer: { flexDirection: "row", gap: spacing.sm, padding: spacing.md, alignItems: "flex-end", borderTopWidth: 1, borderTopColor: colors.line },
   roundButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: colors.brick },

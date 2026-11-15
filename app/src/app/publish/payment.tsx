@@ -3,10 +3,9 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Button, Chip, Labeled, Row, Secondary } from "../../components/ui";
 import { WizardStep } from "../../components/Wizard";
-import { suggestMilestones } from "../../chain/terms";
 import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
-import { FUNDING_DAYS, MAX_MILESTONES, MIN_MILESTONES, emptyMilestone, milestonesSum, parseAmount, totalAmount, validateMilestones, validatePayment } from "../../publish/draft";
+import { FUNDING_DAYS, MAX_MILESTONES, MIN_MILESTONES, emptyMilestone, milestonesSum, parseAmount, validateMilestones, validatePayment } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { colors, fonts, text } from "../../theme";
 
@@ -14,25 +13,21 @@ import { colors, fonts, text } from "../../theme";
 export default function PublishPayment() {
   const { draft, update } = useDraft();
   const [touched, setTouched] = useState(false);
-  const amount = totalAmount(draft);
   const useMilestones = draft.useMilestones;
-  const span = draft.deadline && (draft.startsAt ?? Math.floor(Date.now() / 1000)) ? draft.deadline - Math.floor(Date.now() / 1000) : 0;
-  const suggest = !useMilestones && suggestMilestones(amount, span);
   const errors = touched ? validatePayment(draft) : {};
   const sum = milestonesSum(draft);
   const incomplete = Object.keys(validateMilestones({ ...draft, useMilestones: true })).length > 0;
 
   const next = () => {
     setTouched(true);
-    if (Object.keys(validatePayment(draft)).length === 0) router.push(useMilestones ? "/publish/review" : "/publish/evidence");
+    if (Object.keys(validatePayment(draft)).length === 0) router.push("/publish/price");
   };
 
   const toggleMilestones = (on: boolean) => update((d) => ({ ...d, useMilestones: on, milestones: on && d.milestones.length < 2 ? [emptyMilestone(), emptyMilestone()] : d.milestones }));
   const openMilestone = (index: number) => router.push({ pathname: "/publish/milestones", params: { index: String(index) } });
-  const missingAmount = amount !== null && sum !== null ? amount - sum : null;
 
   return (
-    <WizardStep step={5} title={t.publish.paymentTitle} onNext={next}>
+    <WizardStep step={4} title={t.publish.paymentTitle} onNext={next}>
       <Labeled label={t.publish.milestonesLabel}>
         <Row>
           <Chip
@@ -48,13 +43,6 @@ export default function PublishPayment() {
         </Row>
       </Labeled>
       <Secondary>{useMilestones ? t.publish.milestonesOptional : t.publish.paymentSingleHint}</Secondary>
-      {suggest ? (
-        <Text style={[text.secondary, { color: colors.error }]}>
-          <Text style={{ fontFamily: fonts.semibold }}>{t.publish.milestonesSuggestTitle} </Text>
-          {t.publish.milestonesSuggest}
-        </Text>
-      ) : null}
-
       {useMilestones ? (
         <>
           {draft.milestones.map((item, index) => {
@@ -90,15 +78,7 @@ export default function PublishPayment() {
               }}
             />
           ) : null}
-          {amount !== null && sum !== null ? (
-            <Text style={[text.secondary, missingAmount !== 0n && touched ? { color: colors.error } : undefined]}>
-              {missingAmount === 0n
-                ? t.publish.milestonesMatch.replace("{total}", formatUsdc(amount.toString()))
-                : missingAmount !== null && missingAmount > 0n
-                  ? t.publish.milestonesShort.replace("{sum}", formatUsdc(sum.toString())).replace("{total}", formatUsdc(amount.toString())).replace("{missing}", formatUsdc(missingAmount.toString()))
-                  : t.publish.milestonesOver.replace("{sum}", formatUsdc(sum.toString())).replace("{total}", formatUsdc(amount.toString())).replace("{over}", formatUsdc((-(missingAmount ?? 0n)).toString()))}
-            </Text>
-          ) : null}
+          {sum !== null ? <Text style={text.body}>{`${t.publish.milestonesTotal}: ${formatUsdc(sum.toString())}`}</Text> : null}
           <Labeled label={t.publish.materialsLabel}>
             <Row>
               <Chip label={t.publish.materialsPayer} selected={draft.materials === "payer"} onPress={() => update({ materials: "payer" })} />

@@ -115,9 +115,9 @@ export function milestoneAmounts(draft: Draft): bigint[] | null {
   return amounts.some((value) => value === null || value <= 0n) ? null : (amounts as bigint[]);
 }
 
-// Lo que vale el trabajo (o la meta del grupo): es el monto del paso "Cuánto pagás". Si se divide en hitos, los hitos tienen que sumar justo eso.
+// Lo que vale el trabajo (o la meta del grupo): el monto que se escribe, o la suma de los hitos si se divide en hitos.
 export function totalAmount(draft: Draft): bigint | null {
-  return parseAmount(draft.amount);
+  return draft.useMilestones ? milestonesSum(draft) : parseAmount(draft.amount);
 }
 
 // Suma de los hitos cargados; null si alguno no tiene un monto válido.
@@ -150,7 +150,7 @@ export function groupContributionRange(target: bigint): { min: bigint; max: bigi
 
 export function validatePrice(draft: Draft): DraftErrors {
   const errors: DraftErrors = {};
-  const amount = parseAmount(draft.amount);
+  const amount = totalAmount(draft);
   if (amount === null) errors.amount = "amount";
   else if (amount < MIN_AMOUNT_MICRO) errors.amount = "amountMin";
   if (draft.kind === "group" && draft.ownContribution.trim() !== "" && amount !== null) {
@@ -162,15 +162,9 @@ export function validatePrice(draft: Draft): DraftErrors {
   return errors;
 }
 
-// Cómo se paga: todo al finalizar o por hitos. Con hitos, tienen que sumar el monto del paso anterior.
+// Cómo se paga: todo al finalizar o por hitos (con hitos, cada uno con su monto y sus datos).
 export function validatePayment(draft: Draft): DraftErrors {
-  const errors = validateMilestones(draft);
-  if (draft.useMilestones) {
-    const sum = milestonesSum(draft);
-    const amount = parseAmount(draft.amount);
-    if (sum !== null && amount !== null && sum !== amount) errors.milestonesTotal = "mismatch";
-  }
-  return errors;
+  return validateMilestones(draft);
 }
 
 // Qué pruebas se piden para dar el trabajo por terminado (con hitos, cada hito tiene la suya).

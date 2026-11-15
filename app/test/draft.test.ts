@@ -97,16 +97,19 @@ import { emptyMilestone, milestonesSum, totalAmount, validateMilestones, validat
 
 describe("hitos y grupo en el borrador", () => {
   const m = (patch: Partial<ReturnType<typeof emptyMilestone>> = {}) => ({ name: "Pintar", amount: "50", criteria: "Dos manos", evidence: "Foto", ...patch });
-  const withPlan = (items = [m(), m({ name: "Terminar", amount: "30" })], patch: Partial<Draft> = {}) => base({ useMilestones: true, milestones: items, amount: "80", ...patch });
+  const withPlan = (items = [m(), m({ name: "Terminar", amount: "30" })], patch: Partial<Draft> = {}) => base({ useMilestones: true, milestones: items, amount: "", ...patch });
 
-  it("el total es el monto del paso de precio y los hitos tienen que sumarlo", () => {
+  it("con hitos el total es la suma de los hitos y sin hitos el monto escrito", () => {
     expect(totalAmount(withPlan())).toBe(80_000_000n);
     expect(totalAmount(base({ amount: "25" }))).toBe(25_000_000n);
+    expect(totalAmount(withPlan([m(), m({ amount: "abc" })]))).toBeNull();
     expect(milestonesSum(withPlan())).toBe(80_000_000n);
     expect(milestonesSum(withPlan([m(), m({ amount: "abc" })]))).toBeNull();
+  });
+
+  it("el paso de cómo se paga solo valida los hitos", () => {
     expect(validatePayment(withPlan())).toEqual({});
-    expect(validatePayment(withPlan([m(), m({ name: "Terminar", amount: "20" })])).milestonesTotal).toBe("mismatch");
-    expect(validatePayment(withPlan([m(), m({ name: "Terminar", amount: "40" })])).milestonesTotal).toBe("mismatch");
+    expect(validatePayment(withPlan([m()])).milestones).toBeDefined();
     expect(validatePayment(base({ amount: "25" }))).toEqual({});
   });
 
@@ -120,9 +123,16 @@ describe("hitos y grupo en el borrador", () => {
     expect(validateMilestones(base({ amount: "25" }))).toEqual({});
   });
 
-  it("el precio exige el mínimo sobre el monto, con o sin hitos", () => {
+  it("el precio exige el mínimo sobre el total, con o sin hitos", () => {
     expect(validatePrice(withPlan())).toEqual({});
-    expect(validatePrice(withPlan([m({ amount: "0,3" }), m({ amount: "0,3" })], { amount: "0,6" })).amount).toBe("amountMin");
+    expect(validatePrice(withPlan([m({ amount: "0,3" }), m({ amount: "0,3" })])).amount).toBe("amountMin");
+    expect(validatePrice(withPlan([m({ amount: "2,99" }), m({ amount: "2" })])).amount).toBe("amountMin");
+  });
+
+  it("el aporte inicial de un grupo con hitos se mide contra la suma de los hitos", () => {
+    const group = withPlan(undefined, { kind: "group", ownContribution: "4" });
+    expect(validatePrice(group).ownContribution).toBeUndefined();
+    expect(validatePrice({ ...group, ownContribution: "41" }).ownContribution).toBe("range");
   });
 
   it("la ficha lleva los hitos en unidades mínimas ", () => {
@@ -148,8 +158,8 @@ describe("materiales", () => {
     { name: "B", amount: "30", criteria: "Criterio", evidence: "Foto" },
   ];
   it("sin elegir, los compra quien publica", () => {
-    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "80" }), "nonce-12345", NOW).materials).toBe("payer");
-    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "80", materials: "worker" }), "nonce-12345", NOW).materials).toBe("worker");
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "" }), "nonce-12345", NOW).materials).toBe("payer");
+    expect(buildSpec(base({ useMilestones: true, milestones: plan2, amount: "", materials: "worker" }), "nonce-12345", NOW).materials).toBe("worker");
     expect(buildSpec(base(), "nonce-12345", NOW).materials).toBeUndefined();
   });
 });

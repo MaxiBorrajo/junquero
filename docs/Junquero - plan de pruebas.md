@@ -120,8 +120,8 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: no tiene pin; aparece en la lista de remotas y con el filtro "A distancia".
 
 **2.5 Publicar con hitos** · Rol: Ana
-- [ x ] Pasos: monto alto (más de 500 USDC) o plazo largo → en "Cómo se paga", ver el aviso que sugiere hitos, elegir Sí y armar 2 o más hitos con monto, criterio y evidencia que sumen el monto → publicar.
-- Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". Los montos de los hitos tienen que sumar el monto elegido en "Cuánto pagás"; de lo contrario avisa cuánto falta o sobra y no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
+- [ x ] Pasos: monto alto (más de 500 USDC) o plazo largo → en "Cómo se paga", elegir Sí y armar 2 o más hitos con monto, criterio y evidencia → en "Cuánto pagás" ver el total calculado (y, si no se eligieron hitos, el aviso que sugiere dividirlos) → publicar.
+- Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". El total es la suma de los montos de los hitos y no se escribe a mano. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
 
 **2.6 Cancelar una changa abierta** · Rol: Ana
 - [ x ] Pasos: cancelar una changa a la que nadie se postuló (desde el detalle, "Cancelar trabajo").
@@ -138,7 +138,7 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 
 **2.11 Pasos del asistente de publicar** · Rol: Ana
 - [ ] Pasos: publicar una changa individual sin hitos, otra con hitos y una grupal, mirando el contador de pasos y la barra de avance.
-- Esperado: cada paso tiene una sola idea. Sin hitos son 7 pasos: qué necesitás, dónde y cuándo, fotos, cuánto pagás (solo el monto o la meta y, en las grupales, el aporte inicial), cómo se paga (todo al finalizar o por hitos, y en las grupales el plazo para juntar los aportes), qué evidencia pedís (con una explicación) y revisar. Con hitos no hay paso de evidencia (cada hito pide la suya) y el total pasa a 6 en cuanto se elige "Sí". En el paso de pago, los hitos tienen que sumar justo el monto: mientras no suman, un mensaje dice cuánto falta o cuánto sobra, y recién avisa en rojo al tocar Siguiente. En el paso de evidencia no deja avanzar sin al menos una prueba, y se pueden agregar hasta 5 y quitarlas con el tacho.
+- Esperado: cada paso tiene una sola idea. Sin hitos son 7 pasos: qué necesitás, dónde y cuándo, fotos, cómo se paga, cuánto pagás, qué evidencia pedís (con una explicación) y revisar. "Cómo se paga" pregunta primero si se divide en hitos; con "Sí" se cargan los hitos y los materiales, con "No" no hay nada más que elegir (y en las grupales va también el plazo para juntar los aportes). "Cuánto pagás" viene después: sin hitos se escribe el monto o la meta; con hitos el total aparece fijo, calculado como la suma de los hitos (con un botón para volver a editarlos), y no se puede escribir. En las grupales se pide el aporte inicial en los dos casos, con el rango calculado sobre el total. Si el monto es grande o el plazo largo y no se eligieron hitos, "Cuánto pagás" sugiere volver a dividirlos. Con hitos no hay paso de evidencia (cada hito pide la suya) y el total de pasos pasa a 6 en cuanto se elige "Sí". En el paso de evidencia no deja avanzar sin al menos una prueba, y se pueden agregar hasta 5 y quitarlas con el tacho.
 
 **2.10 Monto mínimo** · Rol: Ana
 - [ x ] Pasos: intentar publicar una changa de 4,99 USDC y otra de 5 USDC; repetir con una grupal y con una por hitos cuyo total sea menor.

@@ -1,12 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "../session/SessionProvider";
 
-export interface ChatEvent {
-  id: number;
-  kind: "proposed" | "accepted" | "rejected" | "cancelled" | "agreed" | "checkedin" | "delivered" | "settled";
-  actor: string;
-  createdAt: number;
-}
+import type { ChatEvent } from "../chat/events";
+export type { ChatEvent, ChatEventKind } from "../chat/events";
 
 // Lo que pasó con el acuerdo y el trabajo, para mostrarlo en el chat como historial.
 export function useChatEvents(applicationId: number) {

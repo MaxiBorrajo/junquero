@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { readCache } from "../src/app";
 import { applicationsHandler } from "../src/applications";
-import { chatEventsHandler, recordAgreementEvent } from "../src/chatEvents";
+import { purgeAgreements } from "../src/agreements";
+import { chatEventsHandler, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "../src/chatEvents";
 import { createChangasHandler } from "../src/changas";
 import { processEvents } from "../src/eventStream";
 import { partiesHandler } from "../src/parties";
@@ -34,10 +35,10 @@ describe("historial del chat", () => {
     await processEvents(ctx.db, handlers, 100);
     const response = await ctx.call(`/me/chats/${applicationId}/events`, authed(publisher, "GET"));
     const body = (await response.json()) as { events: { kind: string; actor: string }[] };
-    expect(body.events.map((item) => item.kind)).toEqual(["proposed", "agreed", "checkedin"]);
+    expect(body.events.map((item) => item.kind)).toEqual(["proposed", "applied", "agreed", "checkedin"]);
     expect(body.events[0].actor).toBe(owner.address.toLowerCase());
     await processEvents(ctx.db, handlers, 100);
-    expect(((await (await ctx.call(`/me/chats/${applicationId}/events`, authed(publisher, "GET"))).json()) as { events: unknown[] }).events).toHaveLength(3);
+    expect(((await (await ctx.call(`/me/chats/${applicationId}/events`, authed(publisher, "GET"))).json()) as { events: unknown[] }).events).toHaveLength(4);
   });
 
   it("solo lo ven las dos personas del chat", async () => {
@@ -46,5 +47,57 @@ describe("historial del chat", () => {
     const outsider = await tokenFor(ctx.call, admin);
     expect((await ctx.call(`/me/chats/${applicationId}/events`, authed(outsider.body.token, "GET"))).status).toBe(403);
     expect((await ctx.call(`/me/chats/${applicationId}/events`, authed(worker, "GET"))).status).toBe(200);
+  });
+});
+
+type Row = { kind: string; actor: string; data: string | null };
+const rowsOf = (ctx: Awaited<ReturnType<typeof chat>>["ctx"]) => ctx.raw.prepare("SELECT kind, actor, data FROM chat_events ORDER BY id").all() as Row[];
+
+describe("más hechos del flujo", () => {
+  it("postularse, bajarse y volver a postularse quedan anotados; descartar no revela el bloqueo", async () => {
+    const { ctx, publisher, worker, applicationId } = await chat();
+    const changaId = (ctx.raw.prepare("SELECT changa_id AS id FROM applications").get() as { id: number }).id;
+    expect((await ctx.call(`/me/applications/${changaId}`, authed(worker, "DELETE"))).status).toBe(200);
+    await ctx.call(`/me/applications/${changaId}`, authed(worker, "PUT", { message: "de nuevo" }));
+    expect(rowsOf(ctx).map((row) => row.kind)).toEqual(["applied", "withdrawn", "applied"]);
+    expect((await ctx.call(`/me/applications/${applicationId}/dismiss`, authed(publisher, "POST", { block: true }))).status).toBe(200);
+    const kinds = rowsOf(ctx).map((row) => row.kind);
+    expect(kinds.at(-1)).toBe("dismissed");
+    expect(kinds).not.toContain("blocked");
+  });
+
+  it("anota los hechos de plata, reclamos e hitos de la cadena una sola vez, con sus datos", async () => {
+    const { ctx } = await chat();
+    plainEvent(ctx.raw, "OrderAgreed", 1, 300, { orderId: "1", payee: stranger.address });
+    await processEvents(ctx.db, handlers, 100);
+    plainEvent(ctx.raw, "OrderToppedUp", 1, 301, { added: "5000000" });
+    plainEvent(ctx.raw, "OrderToppedUp", 1, 302, { added: "2000000" });
+    plainEvent(ctx.raw, "MilestoneDelivered", 1, 303, { index: "0" });
+    plainEvent(ctx.raw, "MilestonePaid", 1, 304, { index: "0", paid: "3000000", rating: "5" });
+    plainEvent(ctx.raw, "DisputeOpened", 1, 305, { claimant: owner.address });
+    plainEvent(ctx.raw, "DisputeResolved", 1, 306, { payeeShareBps: "5000" });
+    plainEvent(ctx.raw, "OrderCancelled", 1, 307, { by: owner.address, refunded: "1000000" });
+    await processEvents(ctx.db, handlers, 100);
+    await processEvents(ctx.db, handlers, 100);
+    const rows = rowsOf(ctx);
+    expect(rows.map((row) => row.kind)).toEqual(["applied", "agreed", "topped_up", "topped_up", "milestone_delivered", "milestone_paid", "dispute_opened", "dispute_resolved", "order_cancelled"]);
+    expect(JSON.parse(rows[2].data as string)).toEqual({ added: "5000000" });
+    expect(JSON.parse(rows[5].data as string)).toMatchObject({ index: 0, rating: "5" });
+    expect(rows[6].actor).toBe(owner.address.toLowerCase());
+    expect(rows[7].actor).toBe("");
+  });
+
+  it("anota las pruebas y la aprobación, y la propuesta vencida", async () => {
+    const { ctx, applicationId } = await chat();
+    plainEvent(ctx.raw, "OrderAgreed", 1, 300, { orderId: "1", payee: stranger.address });
+    await processEvents(ctx.db, handlers, 100);
+    await recordOrderEvent(ctx.db, "evidence", 1, stranger.address, "0xabc", 400, { count: 2 }).run();
+    await recordOrderEvent(ctx.db, "approved", 1, owner.address, "401", 401).run();
+    ctx.raw.prepare("INSERT INTO agreements (order_id, payer, payee, price, spec_hash, terms_hash, expiry, payer_signature, status, created_at, updated_at) VALUES (1, ?, ?, '1', '0x', '0x', 500, '0x', 'pending', 1, 1)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    await purgeAgreements(ctx.db, 600);
+    await recordApplicationEvent(ctx.db, "withdrawn", applicationId, stranger.address, 700).run();
+    const rows = rowsOf(ctx);
+    expect(rows.map((row) => row.kind)).toEqual(["applied", "agreed", "evidence", "approved", "expired", "withdrawn"]);
+    expect(JSON.parse(rows[2].data as string)).toEqual({ count: 2 });
   });
 });

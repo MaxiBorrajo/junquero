@@ -41,7 +41,7 @@ import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
-import { listChatEvents, recordAgreementEvent } from "./chatEvents";
+import { listChatEvents, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "./chatEvents";
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
 import { createRelayChain, relayTargets } from "./relayChain";
@@ -382,6 +382,7 @@ app.post("/me/orders/:orderId/evidence", async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const outcome = await registerEvidence(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  if (outcome.created) await recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), parsed.value.hash, nowSeconds(), { count: 1 }).run();
   return c.json({ hash: parsed.value.hash }, outcome.created ? 201 : 200);
 });
 
@@ -392,6 +393,7 @@ app.post("/me/orders/:orderId/evidence/batch", async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const outcome = await registerEvidenceBatch(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
   if (!outcome.ok) return c.json({ error: outcome.error, index: outcome.index }, outcome.status);
+  if (outcome.hashes.length > 0) await recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), outcome.hashes[0]!, nowSeconds(), { count: outcome.hashes.length }).run();
   return c.json({ hashes: outcome.hashes }, 201);
 });
 
@@ -583,6 +585,7 @@ app.put("/me/applications/:changaId", async (c) => {
   );
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
   await linkFiles(c.env.DB, c.get("address"), attached.map((item) => item.hash));
+  if (outcome.reactivated) await recordApplicationEvent(c.env.DB, "applied", outcome.row.id, c.get("address"), nowSeconds()).run();
   if (outcome.created) {
     const changa = await c.env.DB.prepare("SELECT owner FROM changas WHERE id = ?").bind(changaId).first<{ owner: string }>();
     if (changa) await queueNotification(c.env.DB, changa.owner, "application_new", String(changaId)).run();
@@ -610,7 +613,9 @@ app.delete("/me/drafts/:specHash", async (c) => {
 app.delete("/me/applications/:changaId", async (c) => {
   const changaId = parseChangaId(c.req.param("changaId"));
   if (changaId === null) return c.json({ error: "invalid changa id" }, 400);
+  const active = await c.env.DB.prepare("SELECT id FROM applications WHERE changa_id = ? AND applicant = ? AND status = 'active'").bind(changaId, c.get("address")).first<{ id: number }>();
   const withdrawn = await withdrawApplication(c.env.DB, changaId, c.get("address"), nowSeconds());
+  if (withdrawn && active) await recordApplicationEvent(c.env.DB, "withdrawn", active.id, c.get("address"), nowSeconds()).run();
   return withdrawn ? c.json({ ok: true }) : c.json({ error: "no active application" }, 404);
 });
 
@@ -621,6 +626,8 @@ app.post("/me/applications/:id/dismiss", async (c) => {
   if (body === undefined) return c.json({ error: "invalid json" }, 400);
   const result = await dismissApplication(c.env.DB, c.get("address"), id, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
+  // Si además se bloquea, el chat solo dice que la descartaron: no se revela el bloqueo.
+  await recordApplicationEvent(c.env.DB, "dismissed", id, c.get("address"), nowSeconds()).run();
   if (body.block === true) {
     const blocked = await blockUser(c.env.DB, c.get("address"), result.applicant, nowSeconds());
     if (!blocked.ok) return c.json({ error: blocked.error }, blocked.status);
@@ -674,6 +681,7 @@ app.post("/me/orders/:orderId/release", async (c) => {
   const parsed = parseRelease(await readJson(c));
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const result = await submitRelease(c.env.DB, orderId, c.get("address"), parsed.value, nowSeconds());
+  if (result.ok) await recordOrderEvent(c.env.DB, "approved", orderId, c.get("address"), String(nowSeconds()), nowSeconds()).run();
   return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
 });
 

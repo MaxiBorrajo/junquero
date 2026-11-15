@@ -239,5 +239,16 @@ export async function listMine(db: D1Database, address: string, nowSeconds: numb
 }
 
 export async function purgeAgreements(db: D1Database, nowSeconds: number): Promise<void> {
-  await db.prepare("DELETE FROM agreements WHERE (status = 'pending' AND expiry < ?) OR (status = 'submitted' AND updated_at < ?)").bind(nowSeconds, nowSeconds - 7 * 24 * 3600).run();
+  // Antes de borrar una propuesta vencida se anota en el chat que venció.
+  await db.batch([
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO chat_events (application_id, kind, actor, ref, created_at)
+         SELECT a.id, 'expired', g.payer, CAST(g.expiry AS TEXT), ? FROM agreements g
+         JOIN changas c ON c.order_id = g.order_id JOIN applications a ON a.changa_id = c.id AND a.applicant = g.payee
+         WHERE g.status = 'pending' AND g.expiry < ?`,
+      )
+      .bind(nowSeconds, nowSeconds),
+    db.prepare("DELETE FROM agreements WHERE (status = 'pending' AND expiry < ?) OR (status = 'submitted' AND updated_at < ?)").bind(nowSeconds, nowSeconds - 7 * 24 * 3600),
+  ]);
 }

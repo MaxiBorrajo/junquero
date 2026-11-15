@@ -620,7 +620,13 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.19 Acuerdo y pasos desde el chat** · [ ] Elegir a alguien desde el chat. Esperado: en el chat de las dos personas aparece la tarjeta de propuesta (quien fue elegido acepta o rechaza; quien publicó espera o cancela). Al aceptar, aparece la tarjeta "Paso actual" con el mismo paso que el detalle del trabajo: "Llegué" (presencial), después "Ir a subir las pruebas", "Ir a terminar" y, para quien publicó, "Revisar y aprobar". Avanzar un paso en el chat se refleja en el detalle y al revés.
 
-**15.20 Historial en el chat** · [ ] Mandar una propuesta, rechazarla, mandarla otra vez, aceptarla, llegar, entregar y cobrar. Esperado: en el chat de las dos personas aparece cada hecho como una línea centrada con su hora ("Mandaste la propuesta de acuerdo", "{nombre} aceptó el acuerdo", "Quedó acordado", "avisó que llegó", "Se liberó el pago"), redactado según quién lo hizo, y mezclado con los mensajes por fecha. Requiere el backend nuevo y la migración 0021.
+**15.20 Historial en el chat** · [ ] Recorrer el flujo completo con dos cuentas y mirar el chat de cada una. Esperado: cada hecho aparece como una burbuja con ícono y hora (a la derecha si lo hiciste vos, a la izquierda si lo hizo la otra persona), mezclada con los mensajes por fecha:
+- **Postulación:** postularse, bajarse, volver a postularse, que quien publicó descarte (si además bloquea, el chat solo dice "descartó la postulación").
+- **Acuerdo:** mandar, rechazar, cancelar y aceptar la propuesta; una propuesta que venció; quedó acordado.
+- **Trabajo:** llegó, subió pruebas (con la cantidad), terminó, aprobó ("ya podés cobrar"), extendió la revisión, pidió cambios, se liberó el pago.
+- **Plata y reclamos:** se sumó plata al depósito, se canceló el trabajo, se abrió un reclamo, el jurado resolvió.
+- **Hitos:** hito entregado, avance reportado, hito pagado, terminó antes de tiempo, abandonó.
+Requiere el backend nuevo y las migraciones 0021 y 0022.
 
 ---
 

@@ -92,7 +92,7 @@ export const presentApplication = (row: ApplicationRow) => ({
 });
 
 export type SubmitOutcome =
-  | { ok: true; created: boolean; row: ApplicationRow }
+  | { ok: true; created: boolean; reactivated: boolean; row: ApplicationRow }
   | { ok: false; status: 400 | 403 | 404 | 409 | 429; error: string };
 
 export async function submitApplication(
@@ -159,7 +159,7 @@ export async function submitApplication(
     .prepare("SELECT * FROM applications WHERE changa_id = ? AND applicant = ?")
     .bind(changaId, applicant)
     .first<ApplicationRow>();
-  return { ok: true, created: !existing, row: row! };
+  return { ok: true, created: !existing, reactivated: reactivating, row: row! };
 }
 
 export async function withdrawApplication(db: D1Database, changaId: number, applicant: string, nowSeconds: number): Promise<boolean> {

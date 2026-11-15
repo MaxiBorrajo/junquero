@@ -5,8 +5,8 @@ import { useMyAgreements, useMyApplications, useMyChangas, useReceivedApplicatio
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
-import { useChatEvents, type ChatEvent } from "../../data/useChatEvents";
-import { buildTimeline, eventText } from "../../lib/chatTimeline";
+import { useChatEvents, type ChatEvent, type ChatEventKind } from "../../data/useChatEvents";
+import { buildTimeline, eventText, isMineEvent } from "../../lib/chatTimeline";
 import { StepCard } from "../../components/StepCard";
 import { AgreementCard } from "../../components/AgreementCard";
 import { useSession } from "../../session/SessionProvider";
@@ -20,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, type ChatFile } from "../../chat/envelope";
 import { useChatRoom } from "../../chat/useChatRoom";
 import { ChoiceSheet } from "../../components/ChoiceSheet";
-import { Icon } from "../../components/Icon";
+import { Icon, type IconName } from "../../components/Icon";
 import { PersonMenu } from "../../components/PersonMenu";
 import { useToast } from "../../components/Toast";
 import { useAttachmentViewer } from "../../components/useAttachmentViewer";
@@ -52,8 +52,22 @@ function ProtectedCard() {
   );
 }
 
-const EVENT_ICON = { proposed: "send", accepted: "check", rejected: "close", cancelled: "close", agreed: "check", checkedin: "pin", delivered: "check", settled: "wallet" } as const;
-const EVENT_COLOR = { proposed: colors.brick, accepted: colors.success, rejected: colors.error, cancelled: colors.muted, agreed: colors.success, checkedin: colors.brick, delivered: colors.brick, settled: colors.success } as const;
+const EVENT_ICON: Record<ChatEventKind, IconName> = {
+  proposed: "send", accepted: "check", rejected: "close", cancelled: "close", expired: "clock",
+  applied: "send", withdrawn: "logout", dismissed: "close",
+  agreed: "check", checkedin: "pin", delivered: "check", settled: "wallet",
+  evidence: "camera", approved: "check", review_extended: "clock", changes_requested: "edit",
+  topped_up: "wallet", order_cancelled: "close", dispute_opened: "flag", dispute_resolved: "scale",
+  milestone_delivered: "check", milestone_paid: "wallet", progress: "clock", terminated: "close", abandoned: "logout",
+};
+const EVENT_COLOR: Record<ChatEventKind, string> = {
+  proposed: colors.brick, accepted: colors.success, rejected: colors.error, cancelled: colors.muted, expired: colors.muted,
+  applied: colors.brick, withdrawn: colors.muted, dismissed: colors.error,
+  agreed: colors.success, checkedin: colors.brick, delivered: colors.brick, settled: colors.success,
+  evidence: colors.brick, approved: colors.success, review_extended: colors.muted, changes_requested: colors.brick,
+  topped_up: colors.brick, order_cancelled: colors.error, dispute_opened: colors.error, dispute_resolved: colors.brick,
+  milestone_delivered: colors.brick, milestone_paid: colors.success, progress: colors.brick, terminated: colors.error, abandoned: colors.error,
+};
 
 export default function ChatScreen() {
   const { id, counterpart, title } = useLocalSearchParams<{ id: string; counterpart: string; title?: string }>();
@@ -230,7 +244,7 @@ export default function ChatScreen() {
             {row.type === "event" ? (
               (() => {
                 const event = row.event as ChatEvent;
-                const mineEvent = me !== null && event.actor.toLowerCase() === me.toLowerCase();
+                const mineEvent = isMineEvent(event, me);
                 return (
                   <View style={[styles.bubble, mineEvent ? styles.mine : styles.theirs]}>
                     <View style={styles.eventRow}>

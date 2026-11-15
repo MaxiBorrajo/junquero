@@ -169,7 +169,7 @@ export default function OrderScreen() {
     <Screen
       footer={
         state.hasMilestones ? null : view === "worker-working" ? (
-          arrivedOrRemote && ready ? <Button label={t.order.finish} icon="check" onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} /> : null
+          !arrivedOrRemote ? <Button label={t.order.arrived} icon="pin" onPress={arrive} loading={busy} /> : arrivedOrRemote && ready ? <Button label={t.order.finish} icon="check" onPress={finish} loading={busy} disabled={!canFinish(items.length, state.hasMilestones, state.isGroup)} /> : null
         ) : view === "worker-waiting-review" ? (
           <Button label={t.order.scanQr} icon="scan" onPress={() => router.push({ pathname: "/scan/[orderId]", params: { orderId: String(id) } })} />
         ) : view === "payer-reviewing" ? (
@@ -207,7 +207,6 @@ export default function OrderScreen() {
 
       {!state.hasMilestones && view === "worker-working" ? (
         <>
-          {!arrivedOrRemote ? <DetailActions actions={[{ key: "arrived", label: t.order.arrived, icon: "pin", onPress: () => void arrive() }]} /> : null}
           {arrivedOrRemote && requirements.length > 0 ? (
             <>
               <Text style={text.subtitle}>{t.order.requirementsTitle}</Text>

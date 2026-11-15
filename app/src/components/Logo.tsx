@@ -1,9 +1,10 @@
 import Svg, { Path } from "react-native-svg";
+import { colors } from "../theme";
 
 const RATIO = 52.62 / 38.38;
 
 // Solo la marca (el pájaro), en un único color.
-export function Logo({ size = 96, opacity = 1, color = "#8f2f22", outline = false }: { size?: number; opacity?: number; color?: string; outline?: boolean }) {
+export function Logo({ size = 96, opacity = 1, color = colors.brick, outline = false }: { size?: number; opacity?: number; color?: string; outline?: boolean }) {
   // `size` es el ancho; el alto sale de la proporción de la marca.
   return (
     <Svg width={size} height={size / RATIO} viewBox="0 0 52.62 38.38" opacity={opacity}>

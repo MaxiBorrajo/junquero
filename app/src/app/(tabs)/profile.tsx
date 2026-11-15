@@ -1,4 +1,5 @@
 import { useAppKit } from "@reown/appkit-react-native";
+import { Card } from "../../components/Card";
 import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
@@ -6,6 +7,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { readTokenBalance } from "../../chain/reader";
+import { DetailActions } from "../../components/DetailActions";
 import { Icon } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
 import { Body, Button, Screen, Secondary, Title } from "../../components/ui";
@@ -87,12 +89,12 @@ export default function Profile() {
           </View>
         </View>
       </View>
-      <View style={styles.box}>
+      <Card gap="xs">
         <Text style={text.label}>{t.me.balance}</Text>
         <Text style={text.amount}>{balance.data !== undefined ? formatUsdc(balance.data.toString()) : "-"}</Text>
         <Secondary>{t.me.faucetNote}</Secondary>
-      </View>
-      <View style={styles.box}>
+      </Card>
+      <Card gap="xs">
         <Text style={text.label}>{t.activity.title}</Text>
         <View style={styles.grid}>
           <Figure label={t.activity.earned} value={activity.data?.earned} tone="good" />
@@ -102,18 +104,22 @@ export default function Profile() {
         </View>
         {activity.data ? <Secondary>{`${activity.data.settledAsPayee} ${t.activity.closedAsPayee} · ${activity.data.settledAsPayer} ${t.activity.closedAsPayer}`}</Secondary> : null}
         <Secondary>{t.activity.note}</Secondary>
-      </View>
-      <View style={styles.box}>
+      </Card>
+      <Card gap="xs">
         <Text style={text.label}>{t.me.wallet}</Text>
         <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>
         <Button label={t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
-      </View>
-      {selfie === "rejected" || selfie === "none" ? <Button label={t.me.retakeSelfie} variant="secondary" icon="camera" onPress={() => router.push("/selfie")} /> : null}
-      <Button label={unread > 0 ? `${t.notifications.title} (${unread})` : t.notifications.title} variant="secondary" icon="bell" onPress={() => router.push("/notifications")} />
-      <Button label={t.jury.title} variant="secondary" icon="scale" onPress={() => router.push("/jury")} />
-      <Button label={t.me.edit} variant="secondary" icon="edit" onPress={() => router.push("/profile-setup")} />
-      <Button label={t.settings.open} variant="secondary" icon="settings" onPress={() => router.push("/settings")} />
-      <Button label={t.me.logout} variant="danger" icon="logout" onPress={leave} />
+      </Card>
+      <DetailActions
+        actions={[
+          ...(selfie === "rejected" || selfie === "none" ? [{ key: "selfie", label: t.me.retakeSelfie, icon: "camera" as const, onPress: () => router.push("/selfie") }] : []),
+          { key: "notifications", label: t.notifications.title, icon: "bell", badge: unread > 0 ? unread : undefined, onPress: () => router.push("/notifications") },
+          { key: "jury", label: t.jury.title, icon: "scale", onPress: () => router.push("/jury") },
+          { key: "edit", label: t.me.edit, icon: "edit", onPress: () => router.push("/profile-setup") },
+          { key: "settings", label: t.settings.open, icon: "settings", onPress: () => router.push("/settings") },
+          { key: "logout", label: t.me.logout, icon: "logout", danger: true, onPress: () => void leave() },
+        ]}
+      />
     </Screen>
   );
 }
@@ -137,5 +143,4 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
   photo: { width: 72, height: 72, borderRadius: radius.pill },
   empty: { backgroundColor: colors.map },
-  box: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
 });

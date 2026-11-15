@@ -530,7 +530,7 @@ export const esAR = {
     amount: "Monto en USDC",
     min: "Desde",
     max: "Hasta",
-    apply: "Aplicar",
+    apply: "Ver resultados",
     clear: "Limpiar",
     open: "Filtros",
     invalid: "Ingresá montos válidos y que el mínimo no supere al máximo.",

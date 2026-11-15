@@ -6,7 +6,7 @@ import { t } from "../../i18n";
 import { setModality, validateBasics } from "../../publish/draft";
 import { useDraft } from "../../publish/DraftProvider";
 import { Text } from "react-native";
-import { text } from "../../theme";
+import { colors, text } from "../../theme";
 
 export default function PublishBasics() {
   const { draft, update } = useDraft();
@@ -41,7 +41,7 @@ export default function PublishBasics() {
           ))}
         </Row>
       </Labeled>
-      {errors.category ? <Text style={[text.secondary, { color: "#A3174E" }]}>{t.publish.categoryError}</Text> : null}
+      {errors.category ? <Text style={[text.secondary, { color: colors.error }]}>{t.publish.categoryError}</Text> : null}
       <Field label={t.publish.descriptionLabel} value={draft.description} onChangeText={(description) => update({ description })} multiline maxLength={2000} />
     </WizardStep>
   );

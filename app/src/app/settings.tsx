@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { Card } from "../components/Card";
 import * as Clipboard from "expo-clipboard";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -7,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppState, Linking, StyleSheet, Switch, Text, View } from "react-native";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../components/ui";
 import { API_URL } from "../config";
+import { DetailActions } from "../components/DetailActions";
 import { t } from "../i18n";
 import { useToast } from "../components/Toast";
 import { pushEnabledByUser, setPushEnabledByUser } from "../push/preference";
@@ -75,16 +77,22 @@ export default function Settings() {
       <Title>{t.settings.title}</Title>
 
       {address ? (
-        <View style={styles.box}>
+        <Card>
           <Text style={text.label}>{t.settings.account}</Text>
           <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>
           <Button label={t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
-          <Button label={t.me.edit} variant="secondary" icon="edit" onPress={() => router.push("/profile-setup")} />
-          <Button label={t.me.retakeSelfie} variant="secondary" icon="camera" onPress={() => router.push("/selfie")} />
-        </View>
+        </Card>
+      ) : null}
+      {address ? (
+        <DetailActions
+          actions={[
+            { key: "edit", label: t.me.edit, icon: "edit", onPress: () => router.push("/profile-setup") },
+            { key: "selfie", label: t.me.retakeSelfie, icon: "camera", onPress: () => router.push("/selfie") },
+          ]}
+        />
       ) : null}
 
-      <View style={styles.box}>
+      <Card>
         <Text style={text.label}>{t.settings.notifications}</Text>
         <View style={styles.line}>
           <View style={styles.grow}>
@@ -96,22 +104,26 @@ export default function Settings() {
         </View>
         <Secondary>{t.settings.notificationsHint}</Secondary>
         {failed ? <ErrorText>{t.settings.notificationsFailed}</ErrorText> : null}
-        {push === "blocked" ? <Button label={t.settings.openPhoneSettings} icon="settings" variant="secondary" onPress={() => void Linking.openSettings()} /> : null}
-        <Button label={t.notifications.open} variant="ghost" icon="bell" onPress={() => router.push("/notifications")} />
-      </View>
+      </Card>
+      <DetailActions
+        actions={[
+          ...(push === "blocked" ? [{ key: "phone", label: t.settings.openPhoneSettings, icon: "settings" as const, onPress: () => void Linking.openSettings() }] : []),
+          { key: "notifications", label: t.notifications.open, icon: "bell", onPress: () => router.push("/notifications") },
+        ]}
+      />
 
-      <View style={styles.box}>
+      <Card>
         <Text style={text.label}>{t.settings.about}</Text>
         <Row label={t.settings.version} value={Constants.expoConfig?.version ?? "-"} />
         <Row label={t.settings.network} value={t.settings.networkValue} />
         <Row label={t.settings.server} value={API_URL.replace(/^https?:\/\//, "")} />
         <Secondary>{t.settings.networkNote}</Secondary>
-      </View>
+      </Card>
 
-      <View style={styles.box}>
+      <Card>
         <Text style={text.subtitle}>{t.settings.howItWorks}</Text>
         <Secondary>{t.settings.howItWorksBody}</Secondary>
-      </View>
+      </Card>
     </Screen>
   );
 }
@@ -126,7 +138,6 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  box: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.line },
   line: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   grow: { flex: 1 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: spacing.md },

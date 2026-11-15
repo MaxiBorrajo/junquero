@@ -20,6 +20,7 @@ import { relayDepsFor } from "../lib/relayHelpers";
 import { useSession } from "../session/SessionProvider";
 import { isRejection, signTyped } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
+import { DetailActions } from "./DetailActions";
 import { Body, Button, Chip, ErrorText, Row, Secondary } from "./ui";
 import { Stars } from "./Stars";
 
@@ -113,7 +114,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
               <Chip key={step} label={`${step / 100}%`} selected={progress === step} onPress={() => setProgress(step)} />
             ))}
           </Row>
-          <Button label={t.progress.report} icon="edit" variant="secondary" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done, "check")} loading={busy} disabled={mine.length === 0} />
+          <Button label={t.progress.report} icon="edit" variant="outline" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done, "check")} loading={busy} disabled={mine.length === 0} />
         </>
       ) : null}
       {action === "wait-review" ? (
@@ -143,8 +144,12 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
               <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
               <Button label={t.milestonesBoard.showQr} icon="scan" onPress={showQr} loading={busy} />
-              <Button label={t.order.approveRemote} icon="check" variant="secondary" onPress={approve} loading={busy} />
-              <Button label={t.order.problem} icon="flag" variant="ghost" onPress={() => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(orderId) } })} />
+              <DetailActions
+                actions={[
+                  { key: "approve", label: t.order.approveRemote, icon: "check", onPress: () => void approve() },
+                  { key: "problem", label: t.order.problem, icon: "flag", danger: true, onPress: () => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(orderId) } }) },
+                ]}
+              />
             </>
           )}
         </>
@@ -154,7 +159,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
         confirmEnd ? (
           <>
             <Secondary>{t.milestonesBoard.terminateNote}</Secondary>
-            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="secondary" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.terminated, "check")} loading={busy} />
+            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="outline" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.terminated, "check")} loading={busy} />
           </>
         ) : (
           <Button label={t.milestonesBoard.terminate} icon="close" variant="ghost" onPress={() => setConfirmEnd(true)} />

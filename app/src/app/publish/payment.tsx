@@ -66,12 +66,12 @@ export default function PublishPayment() {
               </Pressable>
             );
           })}
-          {draft.milestones.length < MIN_MILESTONES || incomplete ? <Button label={t.publish.milestonesLoad} icon="list" variant="secondary" onPress={() => router.push("/publish/milestones")} /> : null}
+          {draft.milestones.length < MIN_MILESTONES || incomplete ? <Button label={t.publish.milestonesLoad} icon="list" variant="outline" onPress={() => router.push("/publish/milestones")} /> : null}
           {draft.milestones.length >= MIN_MILESTONES && draft.milestones.length < MAX_MILESTONES ? (
             <Button
               label={t.publish.addMilestone}
               icon="plus"
-              variant="secondary"
+              variant="outline"
               onPress={() => {
                 update((d) => ({ ...d, milestones: [...d.milestones, emptyMilestone()] }));
                 openMilestone(draft.milestones.length);

@@ -12,6 +12,7 @@ import { relayDepsFor } from "../../lib/relayHelpers";
 import { AGREEMENT_VALIDITY_SECONDS, ZERO_HASH, agreementTypedData, proposalPrice } from "../../chain/agreement";
 import { milestoneTerms, milestoneTermsHash } from "../../chain/terms";
 import { deployment } from "../../chain/deployment";
+import { DetailActions } from "../../components/DetailActions";
 import { PersonMenu } from "../../components/PersonMenu";
 import { BackButton, Button, ErrorText, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
@@ -163,8 +164,12 @@ export default function ReceivedApplications() {
                 ))}
               </View>
             ) : null}
-            <Button label={t.received.talk} icon="message" variant="ghost" onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } })} />
-            {changa && changa.status === "open" && changa.spec.group ? <Button label={t.group.propose} icon="users" variant="secondary" onPress={() => proposeProvider(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
+            <DetailActions
+              actions={[
+                { key: "talk", label: t.received.talk, icon: "message", onPress: () => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } }) },
+                ...(changa && changa.status === "open" && changa.spec.group && busy === null ? [{ key: "propose", label: t.group.propose, icon: "users" as const, onPress: () => void proposeProvider(item, changa) }] : []),
+              ]}
+            />
             {changa && changa.status === "open" ? <Button label={t.received.choose} icon="check" onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
           </View>
         )}

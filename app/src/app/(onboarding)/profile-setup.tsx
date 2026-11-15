@@ -99,7 +99,7 @@ export default function ProfileSetup() {
         {shownPhoto ? <Image source={{ uri: shownPhoto }} style={styles.photo} /> : <View style={[styles.photo, styles.photoEmpty]} />}
         <View style={styles.photoActions}>
           <Text style={text.label}>{t.profile.photo}</Text>
-          <Button label={t.profile.takePhoto} icon="camera" variant="secondary" onPress={snapPhoto} />
+          <Button label={t.profile.takePhoto} icon="camera" variant="outline" onPress={snapPhoto} />
           <Button label={t.profile.pickPhoto} icon="image" variant="ghost" onPress={pickPhoto} />
           {shownPhoto ? (
             <Button

@@ -77,8 +77,8 @@ export default function PublishFiles() {
       />
       {attachmentViewer.viewer}
       {room <= 0 ? <Secondary>{t.publish.maxFiles}</Secondary> : null}
-      <Button label={t.publish.addPhotos} variant="secondary" icon="image" onPress={() => setSheet(true)} loading={busy === "media"} disabled={busy !== null || room <= 0} />
-      <Button label={t.publish.addDocument} variant="secondary" icon="file" onPress={fromDocuments} loading={busy === "document"} disabled={busy !== null || room <= 0} />
+      <Button label={t.publish.addPhotos} variant="outline" icon="image" onPress={() => setSheet(true)} loading={busy === "media"} disabled={busy !== null || room <= 0} />
+      <Button label={t.publish.addDocument} variant="outline" icon="file" onPress={fromDocuments} loading={busy === "document"} disabled={busy !== null || room <= 0} />
       {error ? <ErrorText>{error}</ErrorText> : null}
     </WizardStep>
   );

@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -87,12 +88,12 @@ export default function CancelChanga() {
       }
     >
       <Title>{t.detail.cancelChanga}</Title>
-      <View style={styles.summary}>
+      <Card gap="xs">
         <Text style={text.subtitle} numberOfLines={2}>
           {changa.spec.title}
         </Text>
         <Secondary>{`${isGroup ? t.cancelScreen.groupAmount : t.cancelScreen.amount}: ${formatUsdc(changa.amount)}`}</Secondary>
-      </View>
+      </Card>
       <Text style={text.label}>{t.cancelScreen.whatHappens}</Text>
       <Point icon="wallet">{isGroup ? t.cancelScreen.returnGroup : t.cancelScreen.returnSolo}</Point>
       <Point icon="check">{t.cancelScreen.freeIfNone}</Point>
@@ -109,6 +110,5 @@ export default function CancelChanga() {
 }
 
 const styles = StyleSheet.create({
-  summary: { backgroundColor: colors.white, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: spacing.md, gap: spacing.xs },
   point: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm + 4 },
 });

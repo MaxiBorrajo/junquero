@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { DetailActions } from "../../components/DetailActions";
 import { OwnerTag } from "../../components/OwnerTag";
@@ -71,11 +72,11 @@ export default function ChangaDetail() {
     <Screen footer={action}>
       {isOwner ? <OwnerTag label={t.detail.ownChangaTag} /> : null}
       <Title>{spec.title}</Title>
-      <View style={styles.amountBox}>
+      <Card gap="xs">
         <Text style={text.label}>{t.detail.inEscrow}</Text>
         <Text style={text.amount}>{formatUsdc(changa.amount)}</Text>
         <Secondary>{spec.milestones && spec.milestones.length > 0 ? t.detail.paymentMilestones : t.detail.paymentSingle}</Secondary>
-      </View>
+      </Card>
       {spec.description ? <Body>{spec.description}</Body> : null}
       <Section label={t.detail.where}>
         <Body>{spec.modality === "remote" ? t.detail.remoteWhere : t.detail.approxZone}</Body>
@@ -168,7 +169,6 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
-  amountBox: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
   section: { gap: spacing.xs },
   gallery: { gap: spacing.sm },
   fileTile: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", gap: spacing.xs, padding: spacing.sm },

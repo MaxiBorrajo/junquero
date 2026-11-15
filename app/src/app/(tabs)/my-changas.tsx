@@ -83,7 +83,7 @@ export default function MyChangas() {
             <View style={styles.item}>
               <Text style={text.subtitle}>{item.title ?? `#${item.orderId}`}</Text>
               <Text style={styles.status}>{statusLabel(item.status ?? "")}</Text>
-              <Button label={t.contributions.open} icon="users" variant="secondary" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} />
+              <Button label={t.contributions.open} icon="users" variant="outline" onPress={() => router.push({ pathname: "/group/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} />
               {item.status === "delivered" || item.status === "agreed" ? <Button label={t.mine.openOrder} icon="briefcase" variant="ghost" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title ?? "" } })} /> : null}
             </View>
           )}
@@ -136,7 +136,7 @@ function AppliedItem({ application }: { application: MyApplication }) {
       <Text style={text.subtitle}>{statusLabel(application.status)}</Text>
       <Secondary>{application.message || " "}</Secondary>
       {application.status === "chosen" && application.changa.orderId !== null ? (
-        <Button label={t.mine.openOrder} icon="briefcase" variant="secondary" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} />
+        <Button label={t.mine.openOrder} icon="briefcase" variant="outline" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} />
       ) : null}
       <Button label={t.mine.viewChanga} icon="briefcase" variant="ghost" onPress={() => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } })} />
     </View>

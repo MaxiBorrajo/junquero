@@ -604,6 +604,10 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.11 Indexado rápido** · [ ] Con el webhook de Alchemy configurado, hacer una acción en la cadena (publicar, aportar, cancelar) y mirar cuánto tarda en reflejarse en el mapa o en el detalle. Esperado: unos pocos segundos, sin esperar el minuto del reloj. Con el webhook apagado o con la clave de firma mal cargada, igual se refleja a más tardar al minuto.
 
+**15.12 Interfaz consistente** · [ ] Recorrer las pantallas con la guía de interfaz (`Junquero - guia de interfaz.md`) en la mano. Esperado: un solo botón principal por pantalla, ningún botón beige, todos los botones y filas con ícono; las acciones de detalle (compartir, retirar, perfil, ajustes, jurado) salen juntas en una tarjeta de filas con "Cerrar sesión" y las acciones que borran o retiran en rojo al final.
+
+**15.13 Confirmaciones con toast** · [ ] Aportar a un grupo, retirar el aporte, aprobar, cobrar, votar, depositar como jurado, proponer un proveedor, copiar la dirección y reportar. Esperado: aparece "Enviado, esperando confirmación…", y recién cuando la red confirma y los montos ya se actualizaron sale el toast de éxito con ícono (dura unos 7 segundos, se cierra tocándolo). Nunca se ve "Listo" con los montos viejos. Cancelar la firma muestra un toast informativo, no un error.
+
 ---
 
 ## 16. Resumen de estado

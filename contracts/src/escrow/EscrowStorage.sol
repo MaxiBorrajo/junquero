@@ -44,6 +44,8 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
 
     bytes32 public constant TOKEN_ADMIN_ROLE = keccak256("TOKEN_ADMIN_ROLE");
     bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
+    // Quien avisa que una orden recibió su primera postulación (el servidor de Junquero, por medio del relayer).
+    bytes32 public constant APPLICANT_MARKER_ROLE = keccak256("APPLICANT_MARKER_ROLE");
     uint256 internal constant BPS = 10_000;
     uint256 internal constant MONTH = 30 days;
 
@@ -58,8 +60,11 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     mapping(uint256 orderId => Order) internal _orders;
     mapping(address token => TokenConfig) internal _tokenConfigs;
     mapping(address token => mapping(address account => uint256)) public claimable;
-    mapping(address payer => mapping(uint256 month => uint8)) internal _freeCancelsByAccount;
-    mapping(bytes32 pair => mapping(uint256 month => uint8)) internal _freeCancelsByPair;
+    // La orden recibió al menos una postulación, aunque después se haya retirado: cancelar deja de ser gratis.
+    mapping(uint256 orderId => bool) public hadApplicants;
+    // Monto mínimo de una changa y cobro mínimo por cancelar con postulaciones, por moneda.
+    mapping(address token => uint128) public minOrderAmount;
+    mapping(address token => uint128) public minCancelFee;
     mapping(uint256 orderId => Dispute) internal _disputes;
     mapping(address account => mapping(uint256 month => uint8)) internal _smallDisputesByAccount;
     mapping(uint256 orderId => Milestone[]) internal _milestones;
@@ -229,20 +234,19 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         fee = uint128(computed);
     }
 
-    function _reservationCompensation(Order storage order) internal view returns (uint128) {
-        if (order.status != OrderStatus.Reserved || order.mode != PaymentMode.Escrowed) return 0;
-        uint256 elapsed = block.timestamp - order.reservedAt;
-        uint256 grace = registry.get(ParameterKeys.RESERVATION_GRACE);
-        if (elapsed <= grace) return 0;
-        uint256 ramp = registry.get(ParameterKeys.RESERVATION_RAMP);
-        uint256 maxBps = registry.get(ParameterKeys.RESERVATION_MAX_BPS);
-        uint256 over = elapsed - grace;
-        uint256 compensation = over >= ramp
-            ? (uint256(order.deposited) * maxBps) / BPS
-            : (uint256(order.deposited) * maxBps * over) / (ramp * BPS);
-        uint128 cap = _tokenConfigs[order.token].reservationCap;
-        if (cap != 0 && compensation > cap) compensation = cap;
-        return uint128(compensation);
+    // Cobro por cancelar una orden que recibió postulaciones: un porcentaje del monto bloqueado con un mínimo y un tope por moneda.
+    // Con el porcentaje en 0 el cobro está apagado. El tope reutiliza `reservationCap` de la configuración de la moneda.
+    function _applicantFee(Order storage order, uint128 base) internal view returns (uint128) {
+        if (order.mode == PaymentMode.Cash) return 0;
+        uint256 bps = registry.get(ParameterKeys.CANCEL_APPLICANT_BPS);
+        if (bps == 0) return 0;
+        uint256 fee = (uint256(base) * bps) / BPS;
+        uint256 floor = minCancelFee[order.token];
+        if (fee < floor) fee = floor;
+        uint256 cap = _tokenConfigs[order.token].reservationCap;
+        if (cap != 0 && fee > cap) fee = cap;
+        if (fee > base) fee = base;
+        return uint128(fee);
     }
 
     function _msgSender() internal view override(Context, ERC2771Context) returns (address) {

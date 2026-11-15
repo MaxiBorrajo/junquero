@@ -2960,35 +2960,6 @@
  },
  {
   "type": "function",
-  "name": "freeCancelsUsed",
-  "inputs": [
-   {
-    "name": "payer",
-    "type": "address",
-    "internalType": "address"
-   },
-   {
-    "name": "payee",
-    "type": "address",
-    "internalType": "address"
-   }
-  ],
-  "outputs": [
-   {
-    "name": "account",
-    "type": "uint8",
-    "internalType": "uint8"
-   },
-   {
-    "name": "pair",
-    "type": "uint8",
-    "internalType": "uint8"
-   }
-  ],
-  "stateMutability": "view"
- },
- {
-  "type": "function",
   "name": "getOrder",
   "inputs": [
    {
@@ -3144,25 +3115,6 @@
       "internalType": "bytes32"
      }
     ]
-   }
-  ],
-  "stateMutability": "view"
- },
- {
-  "type": "function",
-  "name": "reservationCompensation",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "internalType": "uint256"
-   }
-  ],
-  "outputs": [
-   {
-    "name": "",
-    "type": "uint128",
-    "internalType": "uint128"
    }
   ],
   "stateMutability": "view"
@@ -4383,6 +4335,193 @@
     "type": "uint128",
     "indexed": false,
     "internalType": "uint128"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "function",
+  "name": "APPLICANT_MARKER_ROLE",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "hadApplicants",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool",
+    "internalType": "bool"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "markApplicant",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "minCancelFee",
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint128",
+    "internalType": "uint128"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "minOrderAmount",
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint128",
+    "internalType": "uint128"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "setOrderLimits",
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "minAmount",
+    "type": "uint128",
+    "internalType": "uint128"
+   },
+   {
+    "name": "minFee",
+    "type": "uint128",
+    "internalType": "uint128"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "event",
+  "name": "ApplicantsMarked",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "OrderLimitsSet",
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "minAmount",
+    "type": "uint128",
+    "indexed": false,
+    "internalType": "uint128"
+   },
+   {
+    "name": "minCancelFee",
+    "type": "uint128",
+    "indexed": false,
+    "internalType": "uint128"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "error",
+  "name": "AmountBelowMinimum",
+  "inputs": [
+   {
+    "name": "minimum",
+    "type": "uint128",
+    "internalType": "uint128"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "replaceModule",
+  "inputs": [
+   {
+    "name": "module",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "event",
+  "name": "ModuleReplaced",
+  "inputs": [
+   {
+    "name": "module",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "selectorCount",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
    }
   ],
   "anonymous": false

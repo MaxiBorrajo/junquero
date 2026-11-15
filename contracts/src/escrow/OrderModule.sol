@@ -40,7 +40,7 @@ contract OrderModule is EscrowStorage {
     {}
 
     function selectors() external pure returns (bytes4[] memory selectors_) {
-        selectors_ = new bytes4[](10);
+        selectors_ = new bytes4[](11);
         selectors_[0] = OrderModule.createOrder.selector;
         selectors_[1] = OrderModule.reserve.selector;
         selectors_[2] = OrderModule.withdrawReservation.selector;
@@ -51,6 +51,7 @@ contract OrderModule is EscrowStorage {
         selectors_[7] = OrderModule.extendReview.selector;
         selectors_[8] = OrderModule.requestChanges.selector;
         selectors_[9] = OrderModule.topUp.selector;
+        selectors_[10] = OrderModule.markApplicant.selector;
     }
 
     function createOrder(CreateParams calldata params, DepositAuth calldata auth)
@@ -62,6 +63,7 @@ contract OrderModule is EscrowStorage {
         TokenConfig storage config = _tokenConfigs[params.token];
         if (!config.allowed) revert TokenNotAllowed(params.token);
         if (params.amount == 0) revert InvalidAmount();
+        if (params.amount < minOrderAmount[params.token]) revert AmountBelowMinimum(minOrderAmount[params.token]);
         _checkSchedule(params.startsAt, params.deadline);
 
         bool escrowed = params.mode == PaymentMode.Escrowed;
@@ -103,6 +105,16 @@ contract OrderModule is EscrowStorage {
         order.deposited += amount;
         _collect(order.token, caller, amount, auth);
         emit OrderToppedUp(orderId, amount, order.deposited);
+    }
+
+    /// @notice El servidor avisa que la orden recibió su primera postulación. Cancelarla ya no es gratis.
+    function markApplicant(uint256 orderId) external onlyRole(APPLICANT_MARKER_ROLE) {
+        OrderStatus status = _orders[orderId].status;
+        if (status == OrderStatus.None) revert UnknownOrder(orderId);
+        if (status != OrderStatus.Open && status != OrderStatus.Reserved) revert InvalidStatus(orderId, status);
+        if (hadApplicants[orderId]) return;
+        hadApplicants[orderId] = true;
+        emit ApplicantsMarked(orderId);
     }
 
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)

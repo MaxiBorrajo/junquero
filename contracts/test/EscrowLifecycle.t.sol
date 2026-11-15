@@ -38,6 +38,8 @@ contract EscrowLifecycleTest is EscrowBase {
 
     function test_payerCancelAfterAgreementPaysPenaltySplit() public {
         uint256 orderId = _agreedScheduled(0, 0);
+        // sin fecha de inicio, pasado el primer día desde el acuerdo
+        vm.warp(block.timestamp + 25 hours);
         uint256 payerBefore = usdt.balanceOf(payer);
 
         vm.expectEmit(true, true, false, true);
@@ -80,18 +82,16 @@ contract EscrowLifecycleTest is EscrowBase {
         assertEq(uint8(_order(orderId).status), uint8(OrderStatus.Cancelled));
     }
 
-    function test_freeCancelWithEnoughNotice() public {
+    function test_cancelWithEnoughNoticeCostsTwoPercentToTheTreasury() public {
         uint256 orderId = _agreedScheduled(3 days, 0);
         uint256 payerBefore = usdt.balanceOf(payer);
         vm.warp(block.timestamp + 1 days);
         vm.prank(payer);
         escrow.cancel(orderId);
 
-        assertEq(usdt.balanceOf(payer) - payerBefore, PRICE);
+        assertEq(usdt.balanceOf(payer) - payerBefore, PRICE - 2 * USDC);
+        assertEq(usdt.balanceOf(address(treasury)), 2 * USDC);
         assertEq(usdt.balanceOf(payee), 0);
-        (uint8 account, uint8 pair) = escrow.freeCancelsUsed(payer, payee);
-        assertEq(account, 1);
-        assertEq(pair, 1);
     }
 
     function test_cancelInsideNoticeWindowPaysPenalty() public {
@@ -100,55 +100,16 @@ contract EscrowLifecycleTest is EscrowBase {
         vm.prank(payer);
         escrow.cancel(orderId);
         assertEq(usdt.balanceOf(payee), 8 * USDC);
-        (uint8 account,) = escrow.freeCancelsUsed(payer, payee);
-        assertEq(account, 0);
     }
 
-    function test_pairLimitMakesSecondFreeCancelCost() public {
-        uint256 first = _agreedScheduled(3 days, 0);
-        vm.prank(payer);
-        escrow.cancel(first);
-        assertEq(usdt.balanceOf(payee), 0);
-
-        uint256 second = _agreedScheduled(3 days, 0);
-        vm.prank(payer);
-        escrow.cancel(second);
-        assertEq(usdt.balanceOf(payee), 8 * USDC);
-    }
-
-    function test_accountLimitMakesThirdFreeCancelCost() public {
-        (address payee2, uint256 payee2Key) = makeAddrAndKey("payee2");
-        (address payee3, uint256 payee3Key) = makeAddrAndKey("payee3");
-
-        uint256 a = _scheduled(3 days, 0, Modality.OnSite, PaymentMode.Escrowed);
-        _agreeWith(a, payee, payeeKey);
-        vm.prank(payer);
-        escrow.cancel(a);
-
-        uint256 b = _scheduled(3 days, 0, Modality.OnSite, PaymentMode.Escrowed);
-        _agreeWith(b, payee2, payee2Key);
-        vm.prank(payer);
-        escrow.cancel(b);
-
-        uint256 c = _scheduled(3 days, 0, Modality.OnSite, PaymentMode.Escrowed);
-        _agreeWith(c, payee3, payee3Key);
-        vm.prank(payer);
-        escrow.cancel(c);
-
-        assertEq(usdt.balanceOf(payee), 0);
-        assertEq(usdt.balanceOf(payee2), 0);
-        assertEq(usdt.balanceOf(payee3), 8 * USDC);
-    }
-
-    function test_freeCancelLimitsResetNextMonth() public {
-        uint256 first = _agreedScheduled(3 days, 0);
-        vm.prank(payer);
-        escrow.cancel(first);
-
-        vm.warp(block.timestamp + 31 days);
-        uint256 second = _agreedScheduled(3 days, 0);
-        vm.prank(payer);
-        escrow.cancel(second);
+    function test_thereAreNoFreeCancelQuotas() public {
+        for (uint256 i = 0; i < 3; i++) {
+            uint256 orderId = _agreedScheduled(3 days, 0);
+            uint256 treasuryBefore = usdt.balanceOf(address(treasury));
+            vm.prank(payer);
+            escrow.cancel(orderId);
+            assertEq(usdt.balanceOf(address(treasury)) - treasuryBefore, 2 * USDC);
+        }
         assertEq(usdt.balanceOf(payee), 0);
     }
 

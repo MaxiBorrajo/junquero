@@ -32,11 +32,11 @@ contract EscrowModerateTest is EscrowBase {
         escrow.moderate(orderId, REASON);
     }
 
-    function test_moderateReservedOrderPaysNoCompensation() public {
+    function test_moderateReservedOrderWithApplicantsChargesNothing() public {
         uint256 orderId = _createUsdc(100 * USDC);
         _reserve(orderId);
         vm.warp(block.timestamp + 30 days);
-        assertGt(escrow.reservationCompensation(orderId), 0);
+        _markApplicant(orderId);
 
         vm.prank(moderator);
         escrow.moderate(orderId, REASON);

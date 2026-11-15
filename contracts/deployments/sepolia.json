@@ -5,83 +5,83 @@
  "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
  "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
  "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
- "startBlock": 12136881,
+ "startBlock": 12141086,
  "contracts": {
   "token": {
    "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
    "block": 12115214
   },
   "forwarder": {
-   "address": "0x98ca8312406c3b1D74919e75667976093D365bAb",
-   "block": 12136881
+   "address": "0xf9A95F4Dec87121da3cddb921D0c8c60361485E6",
+   "block": 12141086
   },
   "parameterRegistry": {
-   "address": "0x3B6BB6a36996A7d1512f4076f030F28C6dA41F9a",
-   "block": 12136881
+   "address": "0x6c523B229Df30030F21c26c74f9AE58185106280",
+   "block": 12141086
   },
   "treasury": {
-   "address": "0xA0C1288e122b15C9f81986Dd1d3719724450d361",
-   "block": 12136881
+   "address": "0xE502356b75FB4B9E84D35155B8cD6371991d2971",
+   "block": 12141086
   },
   "escrow": {
-   "address": "0x5cF0e730Dd9AFcf8061d69Bb6ccdacAb4e31E2Bc",
-   "block": 12136881
+   "address": "0xdc05BE8B7587e39De3fCC06d6F9D0eB827f311B5",
+   "block": 12141086
   },
   "orderModule": {
-   "address": "0x493e5756C75c320C4eDB269BD70A38298174cF78",
-   "block": 12136881
+   "address": "0xee85941771c9BC4A10215049dB4FE19EDe6a1b82",
+   "block": 12141086
   },
   "cancelModule": {
-   "address": "0x2275E1A9887642F04D6BdB9cDBCaE9fc9BD0b2EA",
-   "block": 12136881
+   "address": "0xDd5A30E63FD571e7C10037DE17D9EedA8060243a",
+   "block": 12141086
   },
   "adminModule": {
-   "address": "0x54Aa2601e884e0aa95A9ad31236279f566d3B862",
-   "block": 12136881
+   "address": "0xCfE4fA82F0c8AF00209C7fe4Cf6a217a15aFfC34",
+   "block": 12141086
   },
   "disputeModule": {
-   "address": "0xeC2C3Bd7039596B63459953ADD2210624397eda1",
-   "block": 12136882
+   "address": "0xBE5051750eAcA65cC2eEd35eCb305C0721C859dD",
+   "block": 12141086
   },
   "milestoneModule": {
-   "address": "0x0e5766150745655aEA2208fF9459E2C0b88e49d3",
-   "block": 12136882
+   "address": "0x034206deCb7400247aEC152233dC8A961CCB7b56",
+   "block": 12141086
   },
   "groupModule": {
-   "address": "0xd9Eb293B000CcE8e7CAb99D3974C208Ae5169bd2",
-   "block": 12136882
+   "address": "0x6dd0C7F08D2bA30AD29665063525935f6d3D9060",
+   "block": 12141086
   },
   "witnessModule": {
-   "address": "0x5d8cC115F1Ded96AFa1F10E2Bc3bFF30985581E4",
-   "block": 12136882
+   "address": "0x671E69362F9d72027eE3F952865D31cdE94001f7",
+   "block": 12141087
   },
   "credentials": {
-   "address": "0xC37Ee484756913EaFe8a51650413434ba1D54a0c",
-   "block": 12136882
+   "address": "0x9aafA3EE0695438C58F0DC35141a3C6ae978C91e",
+   "block": 12141088
   },
   "reputation": {
-   "address": "0x20dc9905CcDD7920f5Ee91679bAe20b876cF625A",
-   "block": 12136882
+   "address": "0x4b842d1f0A842C69FA6A4477845565030Fa054A5",
+   "block": 12141088
   },
   "receipt": {
-   "address": "0x0355c3a34A0dD68956bA1a6Ac0943a64650D1Aa4",
-   "block": 12136882
+   "address": "0x97a035941356Aa32E494df21c5c80E17FDC23F93",
+   "block": 12141088
   },
   "arbitration": {
-   "address": "0xfF7Dd03064B21FaeC9cd14aA66851Ed1136C81cF",
-   "block": 12136882
+   "address": "0x7BC3012dEbcBEC295468DA44247d7357daF28742",
+   "block": 12141088
   },
   "votingWeight": {
-   "address": "0x52D88dcB47B2747C87c1e6C787C1D9293b3fcaa3",
-   "block": 12136882
+   "address": "0x2C734AfeAEeD040EB648fcaCC6856d2aE89F2064",
+   "block": 12141088
   },
   "timelock": {
-   "address": "0x0DEe87402bAe3e6111cdEDd7298a2188F479DC1d",
-   "block": 12136882
+   "address": "0x1D14561046E1EB2CDadbDc39bfD3DD7dF785553E",
+   "block": 12141088
   },
   "governor": {
-   "address": "0x33570f8967e0AE3692705Ce421766ea119276C49",
-   "block": 12136883
+   "address": "0xE71fbCf4CfF2F0fC298736BbB9999f0b46dB63d2",
+   "block": 12141088
   }
  },
  "abiDirectory": "deployments/abi",

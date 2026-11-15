@@ -59,6 +59,8 @@ contract Deploy is Script {
         deployment = deploy(msg.sender, ISignatureTransfer(permit2), IERC20(usdc), demo);
         _configureToken(deployment.escrow, usdc, DepositMethod.Permit);
         if (usdt != address(0)) _configureToken(deployment.escrow, usdt, DepositMethod.Permit2);
+        address marker = vm.envOr("MARKER", address(0));
+        if (marker != address(0)) deployment.escrow.grantRole(deployment.escrow.APPLICANT_MARKER_ROLE(), marker);
         bool hasFinalAdmin = finalAdmin != address(0) && finalAdmin != msg.sender;
         if (governance) {
             if (hasFinalAdmin) handOverOperational(deployment, finalAdmin, msg.sender);
@@ -94,7 +96,8 @@ contract Deploy is Script {
             IParameterRegistry(address(deployment.registry)),
             address(deployment.treasury),
             permit2,
-            address(deployment.forwarder)
+            address(deployment.forwarder),
+            !demo
         );
         _defineParameters(deployment.registry, demo);
         deployment.treasury.grantRole(deployment.treasury.SPENDER_ROLE(), address(deployment.escrow));
@@ -239,17 +242,13 @@ contract Deploy is Script {
         registry.defineParameter(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH, 0, 20, 3);
         registry.defineParameter(ParameterKeys.REPUTATION_PAIR_CAP, 1, 10, 2);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
-        registry.defineParameter(ParameterKeys.RESERVATION_GRACE, 0, 7 days, 12 hours);
-        registry.defineParameter(ParameterKeys.RESERVATION_RAMP, 1 hours, 30 days, 3 days);
-        registry.defineParameter(ParameterKeys.RESERVATION_MAX_BPS, 0, 300, 200);
         registry.defineParameter(ParameterKeys.CASH_FEE_BPS, 0, 1000, 200);
         registry.defineParameter(ParameterKeys.CANCEL_FEE_AGREED_BPS, 0, 2000, 1000);
         registry.defineParameter(ParameterKeys.CANCEL_PAYEE_SHARE_BPS, 5000, 10_000, 8000);
         registry.defineParameter(ParameterKeys.NO_SHOW_COMPENSATION_BPS, 0, 2000, 1000);
         registry.defineParameter(ParameterKeys.NO_SHOW_WAIT, 5 minutes, 2 hours, 20 minutes);
         registry.defineParameter(ParameterKeys.FREE_CANCEL_NOTICE, 1 hours, 7 days, 24 hours);
-        registry.defineParameter(ParameterKeys.FREE_CANCELS_PER_ACCOUNT_MONTH, 0, 10, 2);
-        registry.defineParameter(ParameterKeys.FREE_CANCELS_PER_PAIR_MONTH, 0, 10, 1);
+        registry.defineParameter(ParameterKeys.CANCEL_APPLICANT_BPS, 0, 500, 200);
         _defineArbitrationParameters(registry, demo);
     }
 
@@ -300,5 +299,7 @@ contract Deploy is Script {
                 witnessFee: uint128(UNIT)
             })
         );
+        // Una changa vale como mínimo 5 y cancelar con postulaciones cuesta como mínimo 0,50.
+        escrow.setOrderLimits(token, uint128(5 * UNIT), uint128(UNIT / 2));
     }
 }

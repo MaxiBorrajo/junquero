@@ -52,6 +52,7 @@ abstract contract EscrowBase is Test {
     address internal payer;
     address internal payee;
     address internal other;
+    address internal marker = makeAddr("marker");
 
     function setUp() public virtual {
         (payer, payerKey) = makeAddrAndKey("payer");
@@ -64,13 +65,14 @@ abstract contract EscrowBase is Test {
         permit2 = new MockPermit2();
         vm.startPrank(admin);
         escrow = EscrowAssembly.deploy(
-            admin, IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder)
+            admin, IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder), true
         );
         vm.stopPrank();
 
         bytes32 setterRole = registry.SETTER_ROLE();
         vm.startPrank(admin);
         escrow.grantRole(escrow.MODERATOR_ROLE(), moderator);
+        escrow.grantRole(escrow.APPLICANT_MARKER_ROLE(), marker);
         registry.grantRole(setterRole, admin);
         registry.defineParameter(ParameterKeys.FEE_BPS, 0, 200, 0);
         registry.defineParameter(ParameterKeys.REQUEST_CHANGES_MAX, 0, 5, 2);
@@ -89,17 +91,13 @@ abstract contract EscrowBase is Test {
         registry.defineParameter(ParameterKeys.JURY_SIZE_LARGE, 1, 15, 5);
         registry.defineParameter(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH, 0, 20, 3);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
-        registry.defineParameter(ParameterKeys.RESERVATION_GRACE, 0, 7 days, 12 hours);
-        registry.defineParameter(ParameterKeys.RESERVATION_RAMP, 1 hours, 30 days, 3 days);
-        registry.defineParameter(ParameterKeys.RESERVATION_MAX_BPS, 0, 300, 200);
         registry.defineParameter(ParameterKeys.CASH_FEE_BPS, 0, 1000, 500);
         registry.defineParameter(ParameterKeys.CANCEL_FEE_AGREED_BPS, 0, 2000, 1000);
         registry.defineParameter(ParameterKeys.CANCEL_PAYEE_SHARE_BPS, 5000, 10_000, 8000);
         registry.defineParameter(ParameterKeys.NO_SHOW_COMPENSATION_BPS, 0, 2000, 1000);
         registry.defineParameter(ParameterKeys.NO_SHOW_WAIT, 5 minutes, 2 hours, 20 minutes);
         registry.defineParameter(ParameterKeys.FREE_CANCEL_NOTICE, 1 hours, 7 days, 24 hours);
-        registry.defineParameter(ParameterKeys.FREE_CANCELS_PER_ACCOUNT_MONTH, 0, 10, 2);
-        registry.defineParameter(ParameterKeys.FREE_CANCELS_PER_PAIR_MONTH, 0, 10, 1);
+        registry.defineParameter(ParameterKeys.CANCEL_APPLICANT_BPS, 0, 500, 200);
         vm.stopPrank();
 
         usdc = new MockPermitToken();
@@ -132,6 +130,15 @@ abstract contract EscrowBase is Test {
         });
         vm.prank(admin);
         escrow.configureToken(token, config);
+        // Sin monto mínimo en los tests; cancelar con postulaciones cuesta como mínimo 0,50.
+        vm.prank(admin);
+        escrow.setOrderLimits(token, 0, uint128(USDC / 2));
+    }
+
+    // Quien avisa que la orden recibió una postulación.
+    function _markApplicant(uint256 orderId) internal {
+        vm.prank(marker);
+        escrow.markApplicant(orderId);
     }
 
     function _configureThresholds(address token, uint256 smallMax, uint256 mediumMax) internal {

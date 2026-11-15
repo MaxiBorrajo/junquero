@@ -52,7 +52,7 @@ contract Verify is Script {
         _token();
         _parameters(demo);
         _roles();
-        _modules();
+        _modules(demo);
 
         console.log("failures", failures);
         require(failures == 0, "deployment check failed");
@@ -100,6 +100,8 @@ contract Verify is Script {
         _check(config.smallMax == 20e6 && config.mediumMax == 300e6, "token size thresholds");
         _check(config.witnessAmount == 300e6, "token witness");
         _check(config.jurorFee == 1e6, "token juror fee");
+        _check(escrow.minOrderAmount(token) == 5e6, "minimum amount");
+        _check(escrow.minCancelFee(token) == 5e5, "minimum cancel fee");
     }
 
     function _parameters(bool demo) private {
@@ -107,9 +109,7 @@ contract Verify is Script {
         _check(registry.get(ParameterKeys.JUROR_STAKE) == 10e6, "juror stake");
         _check(registry.get(ParameterKeys.VOTE_DEPOSIT) == 5e6, "vote deposit");
         _check(registry.get(ParameterKeys.VOTE_WEIGHT_CAP) == 20, "weight cap");
-        _check(registry.get(ParameterKeys.RESERVATION_GRACE) == 12 hours, "reservation grace");
-        _check(registry.get(ParameterKeys.RESERVATION_RAMP) == 3 days, "reservation ramp");
-        _check(registry.get(ParameterKeys.RESERVATION_MAX_BPS) == 200, "reservation max");
+        _check(registry.get(ParameterKeys.CANCEL_APPLICANT_BPS) == 200, "cancel with applicants");
         _check(registry.get(ParameterKeys.AUTO_RELEASE_SHORT) == 24 hours, "auto release short");
         _check(registry.get(ParameterKeys.AUTO_RELEASE_MILESTONE) == 72 hours, "auto release milestone");
         _check(registry.get(ParameterKeys.DISPUTE_RESPONSE_WINDOW) == (demo ? 5 minutes : 72 hours), "response window");
@@ -151,8 +151,9 @@ contract Verify is Script {
         _check(timelock.hasRole(timelock.EXECUTOR_ROLE(), address(0)), "open executor");
     }
 
-    function _modules() private {
-        _check(escrow.modulesLocked(), "modules locked");
+    function _modules(bool demo) private {
+        // En modo demostración los módulos quedan reemplazables; en producción se bloquean.
+        _check(escrow.modulesLocked() == !demo, "modules lock state");
         _check(escrow.moduleOf(IEscrow.openDispute.selector) != address(0), "dispute module routed");
         _check(escrow.moduleOf(IEscrow.configureToken.selector) != address(0), "admin module routed");
     }

@@ -25,6 +25,13 @@ contract DeployTest is Test {
             script.deploy(admin, ISignatureTransfer(address(new MockPermit2())), IERC20(address(stakeToken)), false);
     }
 
+    function test_demoDeploymentLeavesTheModulesReplaceableAndProductionLocksThem() public {
+        Deploy.Deployment memory demo =
+            script.deploy(admin, ISignatureTransfer(address(new MockPermit2())), IERC20(address(stakeToken)), true);
+        assertFalse(demo.escrow.modulesLocked());
+        assertTrue(deployment.escrow.modulesLocked());
+    }
+
     function test_wiresContractsTogether() public view {
         assertEq(address(deployment.escrow.registry()), address(deployment.registry));
         assertEq(deployment.escrow.treasury(), address(deployment.treasury));
@@ -112,8 +119,7 @@ contract DeployTest is Test {
         assertEq(deployment.registry.get(ParameterKeys.AUTO_RELEASE_SHORT), 24 hours);
         assertEq(deployment.registry.get(ParameterKeys.CANCEL_FEE_AGREED_BPS), 1000);
         assertEq(deployment.registry.get(ParameterKeys.NO_SHOW_WAIT), 20 minutes);
-        assertEq(deployment.registry.get(ParameterKeys.FREE_CANCELS_PER_ACCOUNT_MONTH), 2);
-        assertEq(deployment.registry.get(ParameterKeys.FREE_CANCELS_PER_PAIR_MONTH), 1);
+        assertEq(deployment.registry.get(ParameterKeys.CANCEL_APPLICANT_BPS), 200);
     }
 
     function test_feeStaysUnderTheTwoPercentCeiling() public view {

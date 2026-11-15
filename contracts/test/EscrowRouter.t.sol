@@ -46,8 +46,8 @@ contract EscrowRouterTest is EscrowBase {
         list[17] = IEscrow.configureToken.selector;
         list[18] = IEscrow.getOrder.selector;
         list[19] = IEscrow.tokenConfig.selector;
-        list[20] = IEscrow.reservationCompensation.selector;
-        list[21] = IEscrow.freeCancelsUsed.selector;
+        list[20] = IEscrow.setOrderLimits.selector;
+        list[21] = IEscrow.markApplicant.selector;
         list[22] = IEscrow.domainSeparator.selector;
         list[23] = IEscrow.setArbitration.selector;
         list[24] = IEscrow.openDispute.selector;
@@ -102,7 +102,7 @@ contract EscrowRouterTest is EscrowBase {
 
     function test_setModuleRegistersEverySelectorOfTheModule() public {
         vm.expectEmit(true, false, false, true);
-        emit Escrow.ModuleSet(address(orderModule), 10);
+        emit Escrow.ModuleSet(address(orderModule), 11);
         vm.prank(admin);
         fresh.setModule(address(orderModule));
 
@@ -139,6 +139,42 @@ contract EscrowRouterTest is EscrowBase {
         vm.expectRevert(Escrow.ModulesAreLocked.selector);
         fresh.setModule(address(orderModule));
         vm.stopPrank();
+    }
+
+    function test_replaceModuleSwapsTheLogicAndKeepsTheStorage() public {
+        vm.startPrank(admin);
+        fresh.setModule(address(orderModule));
+        OrderModule upgraded =
+            new OrderModule(IParameterRegistry(address(registry)), address(treasury), permit2, address(forwarder));
+        vm.expectEmit(true, false, false, true);
+        emit Escrow.ModuleReplaced(address(upgraded), 11);
+        fresh.replaceModule(address(upgraded));
+        vm.stopPrank();
+
+        assertEq(fresh.moduleOf(IEscrow.createOrder.selector), address(upgraded));
+        assertEq(fresh.moduleOf(IEscrow.topUp.selector), address(upgraded));
+    }
+
+    function test_replaceModuleIsRejectedOnceTheModulesAreLocked() public {
+        vm.startPrank(admin);
+        fresh.setModule(address(orderModule));
+        fresh.lockModules();
+        vm.expectRevert(Escrow.ModulesAreLocked.selector);
+        fresh.replaceModule(address(orderModule));
+        vm.stopPrank();
+    }
+
+    function test_replaceModuleRequiresTheAdminRoleAndMatchingImmutables() public {
+        vm.prank(other);
+        vm.expectRevert();
+        fresh.replaceModule(address(orderModule));
+
+        OrderModule stranger = new OrderModule(
+            IParameterRegistry(address(registry)), makeAddr("otherTreasury"), permit2, address(forwarder)
+        );
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(Escrow.ModuleMismatch.selector, address(stranger)));
+        fresh.replaceModule(address(stranger));
     }
 
     function test_lockModulesRequiresTheAdminRole() public {

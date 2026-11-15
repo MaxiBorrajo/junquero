@@ -71,8 +71,11 @@ contract ScenariosTest is Test {
             jurorFee: uint128(USDC),
             witnessFee: uint128(USDC)
         });
-        vm.prank(admin);
+        vm.startPrank(admin);
         d.escrow.configureToken(address(usdc), config);
+        d.escrow.setOrderLimits(address(usdc), 0, uint128(USDC / 2));
+        d.escrow.grantRole(d.escrow.APPLICANT_MARKER_ROLE(), makeAddr("marker"));
+        vm.stopPrank();
 
         (requester, requesterKey) = makeAddrAndKey("requester");
         (provider, providerKey) = makeAddrAndKey("provider");
@@ -346,6 +349,8 @@ contract ScenariosTest is Test {
         assertEq(usdc.balanceOf(requester) - payerBefore, 100 * USDC);
 
         uint256 reserved = _create(100 * USDC);
+        vm.prank(makeAddr("marker"));
+        d.escrow.markApplicant(reserved);
         Reservation memory reservation = Reservation({
             orderId: reserved, payer: requester, payee: provider, expiry: uint40(block.timestamp + 1 hours)
         });
@@ -361,23 +366,28 @@ contract ScenariosTest is Test {
         bytes memory payerSig = _sign(requesterKey, structHash);
         bytes memory payeeSig = _sign(providerKey, structHash);
         d.escrow.reserve(reservation, payerSig, payeeSig);
+        // con postulaciones cancelar cuesta el 2% al tesoro, sin importar cuánto pasó; el prestador reservado no cobra
         vm.warp(block.timestamp + 12 hours + 36 hours);
         uint256 providerBefore = usdc.balanceOf(provider);
+        uint256 treasuryBefore = usdc.balanceOf(address(d.treasury));
         vm.prank(requester);
         d.escrow.cancel(reserved);
-        assertEq(usdc.balanceOf(provider) - providerBefore, 1 * USDC);
+        assertEq(usdc.balanceOf(provider) - providerBefore, 0);
+        assertEq(usdc.balanceOf(address(d.treasury)) - treasuryBefore, 2 * USDC);
 
+        // acordada y sin fecha de inicio: pasado el primer día, 10% (80% al prestador y 20% al tesoro)
         uint256 agreed = _create(100 * USDC);
         _agree(agreed, 100 * USDC, requester, requesterKey);
+        vm.warp(block.timestamp + 25 hours);
         providerBefore = usdc.balanceOf(provider);
-        uint256 treasuryBefore = usdc.balanceOf(address(d.treasury));
+        treasuryBefore = usdc.balanceOf(address(d.treasury));
         vm.prank(requester);
         d.escrow.cancel(agreed);
         assertEq(usdc.balanceOf(provider) - providerBefore, 8 * USDC);
         assertEq(usdc.balanceOf(address(d.treasury)) - treasuryBefore, 2 * USDC);
     }
 
-    function test_D_aFixedDateChangaCanBeCancelledForFreeWithNoticeAndPaysTheNoShowCompensation() public {
+    function test_D_aFixedDateChangaCancelledWithNoticeCostsTwoPercentAndPaysTheNoShowCompensation() public {
         CreateParams memory params = _params(100 * USDC);
         params.startsAt = uint40(block.timestamp + 3 days);
         DepositAuth memory auth = _permit(requester, requesterKey, 100 * USDC);
@@ -387,7 +397,8 @@ contract ScenariosTest is Test {
         uint256 before = usdc.balanceOf(requester);
         vm.prank(requester);
         d.escrow.cancel(early);
-        assertEq(usdc.balanceOf(requester) - before, 100 * USDC);
+        // con tiempo de aviso paga solo el 2% al tesoro
+        assertEq(usdc.balanceOf(requester) - before, 98 * USDC);
 
         auth = _permit(requester, requesterKey, 100 * USDC);
         vm.prank(requester);

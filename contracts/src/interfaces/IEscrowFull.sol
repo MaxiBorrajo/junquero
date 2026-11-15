@@ -12,6 +12,7 @@ interface IEscrowFull is IEscrow, IAccessControl {
     function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
     function TOKEN_ADMIN_ROLE() external view returns (bytes32);
     function MODERATOR_ROLE() external view returns (bytes32);
+    function APPLICANT_MARKER_ROLE() external view returns (bytes32);
     function registry() external view returns (IParameterRegistry);
     function treasury() external view returns (address);
     function permit2() external view returns (ISignatureTransfer);

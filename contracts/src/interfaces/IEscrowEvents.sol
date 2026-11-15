@@ -25,6 +25,8 @@ interface IEscrowEvents {
         uint128 fee,
         uint8 category
     );
+    event ApplicantsMarked(uint256 indexed orderId);
+    event OrderLimitsSet(address indexed token, uint128 minAmount, uint128 minCancelFee);
     event OrderToppedUp(uint256 indexed orderId, uint128 added, uint128 deposited);
     event OrderReserved(uint256 indexed orderId, address indexed payee);
     event ReservationWithdrawn(uint256 indexed orderId, address indexed payee);
@@ -103,6 +105,7 @@ interface IEscrowEvents {
 
     error TokenNotAllowed(address token);
     error InvalidAmount();
+    error AmountBelowMinimum(uint128 minimum);
     error InvalidSchedule();
     error InvalidThresholds();
     error UnknownOrder(uint256 orderId);

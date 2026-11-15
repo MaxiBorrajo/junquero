@@ -47,6 +47,7 @@ contract GroupModule is EscrowStorage {
         TokenConfig storage config = _tokenConfigs[params.token];
         if (!config.allowed) revert TokenNotAllowed(params.token);
         if (params.amount == 0) revert InvalidAmount();
+        if (params.amount < minOrderAmount[params.token]) revert AmountBelowMinimum(minOrderAmount[params.token]);
         if (params.mode != PaymentMode.Escrowed) revert UnsupportedForMode();
         _checkSchedule(params.startsAt, params.deadline);
         if (group.fundingDeadline <= block.timestamp) revert InvalidDeadline();

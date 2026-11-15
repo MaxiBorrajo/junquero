@@ -274,6 +274,8 @@ contract EscrowGroupDecisionsTest is GroupBase {
 
     function test_aLateCancellationSplitsTheRemainderProportionally() public {
         uint256 orderId = _agreedGroup(100 * USDC);
+        // sin fecha de inicio, pasado el primer día desde el acuerdo
+        vm.warp(block.timestamp + 25 hours);
         uint256[4] memory before = _balances();
 
         vm.prank(payer);
@@ -286,6 +288,73 @@ contract EscrowGroupDecisionsTest is GroupBase {
         assertEq(afterwards[3] - before[3], 9 * USDC);
         assertEq(usdc.balanceOf(payee), 8 * USDC);
         assertEq(usdc.balanceOf(address(treasury)), 2 * USDC);
+    }
+
+    function test_anEarlyCancellationOfAnAgreedGroupChargesTwoPercentToTheTreasury() public {
+        uint256 orderId = _agreedGroup(100 * USDC);
+        uint256[4] memory before = _balances();
+
+        vm.prank(payer);
+        escrow.cancel(orderId);
+
+        // el coordinador de este grupo no aportó: el cobro se reparte en proporción
+        uint256[4] memory afterwards = _balances();
+        assertEq(afterwards[0] - before[0], 39_200_000);
+        assertEq(afterwards[1] - before[1], 29_400_000);
+        assertEq(afterwards[2] - before[2], 19_600_000);
+        assertEq(afterwards[3] - before[3], 9_800_000);
+        assertEq(usdc.balanceOf(payee), 0);
+        assertEq(usdc.balanceOf(address(treasury)), 2 * USDC);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
+    }
+
+    function test_whenTheCoordinatorContributedTheyAloneCoverTheCancellationFee() public {
+        // el miembro 0 es el coordinador y aporta 40 de los 100
+        vm.prank(payer);
+        uint256 orderId = escrow.createGroupOrder(
+            _params(address(usdc), 100 * USDC), GroupParams({coordinator: members[0], fundingDeadline: uint40(block.timestamp + 7 days)})
+        );
+        _fundStandard(orderId);
+        _markApplicant(orderId);
+        uint256[4] memory before = _balances();
+
+        vm.prank(members[0]);
+        escrow.cancel(orderId);
+
+        uint256[4] memory afterwards = _balances();
+        assertEq(afterwards[0] - before[0], 38 * USDC);
+        assertEq(afterwards[1] - before[1], 30 * USDC);
+        assertEq(afterwards[2] - before[2], 20 * USDC);
+        assertEq(afterwards[3] - before[3], 10 * USDC);
+        assertEq(usdc.balanceOf(address(treasury)), 2 * USDC);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
+    }
+
+    function test_cancellingAnOpenGroupAfterAnApplicationSplitsTheFeeWhenTheCoordinatorDidNotContribute() public {
+        uint256 orderId = _openGroup();
+        _markApplicant(orderId);
+        uint256[4] memory before = _balances();
+
+        vm.prank(payer);
+        escrow.cancel(orderId);
+
+        uint256[4] memory afterwards = _balances();
+        assertEq(afterwards[0] - before[0], 39_200_000);
+        assertEq(afterwards[3] - before[3], 9_800_000);
+        assertEq(usdc.balanceOf(address(treasury)), 2 * USDC);
+    }
+
+    function test_cancellingAnOpenGroupWithoutApplicationsIsFreeForEveryone() public {
+        uint256 orderId = _openGroup();
+        uint256[4] memory before = _balances();
+
+        vm.prank(payer);
+        escrow.cancel(orderId);
+
+        uint256[4] memory afterwards = _balances();
+        assertEq(afterwards[0] - before[0], 40 * USDC);
+        assertEq(afterwards[3] - before[3], 10 * USDC);
+        assertEq(usdc.balanceOf(address(treasury)), 0);
     }
 
     function test_theCoordinatorsDisputeRefundsTheContributorsProportionally() public {

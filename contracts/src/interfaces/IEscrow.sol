@@ -96,7 +96,10 @@ interface IEscrow is IEscrowEvents {
     function configureToken(address token, TokenConfig calldata config) external;
     function getOrder(uint256 orderId) external view returns (Order memory);
     function tokenConfig(address token) external view returns (TokenConfig memory);
-    function reservationCompensation(uint256 orderId) external view returns (uint128);
-    function freeCancelsUsed(address payer, address payee) external view returns (uint8 account, uint8 pair);
+    function setOrderLimits(address token, uint128 minAmount, uint128 minFee) external;
+    function markApplicant(uint256 orderId) external;
+    function hadApplicants(uint256 orderId) external view returns (bool);
+    function minOrderAmount(address token) external view returns (uint128);
+    function minCancelFee(address token) external view returns (uint128);
     function domainSeparator() external view returns (bytes32);
 }

@@ -16,6 +16,7 @@ contract Escrow is EscrowStorage {
 
     event ModuleSet(address indexed module, uint256 selectorCount);
     event ModulesLocked();
+    event ModuleReplaced(address indexed module, uint256 selectorCount);
 
     error ModulesAreLocked();
     error ModuleMismatch(address module);
@@ -44,6 +45,19 @@ contract Escrow is EscrowStorage {
             _modules[selectors[i]] = module;
         }
         emit ModuleSet(module, selectors.length);
+    }
+
+    /// @notice Solo mientras los módulos no estén bloqueados (modo demostración): cambia la lógica de un módulo
+    /// conservando los datos, las órdenes y la dirección del Escrow. Un módulo nuevo debe respetar el orden de
+    /// los datos guardados: solo se puede agregar al final.
+    function replaceModule(address module) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (modulesLocked) revert ModulesAreLocked();
+        if (IEscrowModule(module).configHash() != configHash()) revert ModuleMismatch(module);
+        bytes4[] memory selectors = IEscrowModule(module).selectors();
+        for (uint256 i = 0; i < selectors.length; i++) {
+            _modules[selectors[i]] = module;
+        }
+        emit ModuleReplaced(module, selectors.length);
     }
 
     function lockModules() external onlyRole(DEFAULT_ADMIN_ROLE) {

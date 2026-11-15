@@ -14,6 +14,7 @@ import {
     DepositMethod,
     CreateParams,
     DepositAuth,
+    GroupParams,
     TokenConfig
 } from "../src/libraries/OrderTypes.sol";
 
@@ -207,5 +208,42 @@ contract EscrowCreateTest is EscrowBase {
         uint256 orderId = escrow.createOrder(params, auth);
 
         assertEq(_order(orderId).category, 7);
+    }
+
+    function test_createRejectsAnAmountBelowTheMinimum() public {
+        vm.prank(admin);
+        escrow.setOrderLimits(address(usdc), uint128(5 * USDC), uint128(USDC / 2));
+        DepositAuth memory auth = _permitAuth(4 * USDC);
+        vm.prank(payer);
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.AmountBelowMinimum.selector, uint128(5 * USDC)));
+        escrow.createOrder(_params(address(usdc), 4 * USDC), auth);
+
+        auth = _permitAuth(5 * USDC);
+        vm.prank(payer);
+        uint256 orderId = escrow.createOrder(_params(address(usdc), 5 * USDC), auth);
+        assertEq(_order(orderId).deposited, 5 * USDC);
+    }
+
+    function test_theMinimumAlsoAppliesToAGroupTarget() public {
+        vm.prank(admin);
+        escrow.setOrderLimits(address(usdc), uint128(5 * USDC), uint128(USDC / 2));
+        vm.prank(payer);
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.AmountBelowMinimum.selector, uint128(5 * USDC)));
+        escrow.createGroupOrder(
+            _params(address(usdc), 4 * USDC), GroupParams({coordinator: address(0), fundingDeadline: uint40(block.timestamp + 7 days)})
+        );
+    }
+
+    function test_onlyATokenAdminCanSetTheLimits() public {
+        vm.prank(other);
+        vm.expectRevert();
+        escrow.setOrderLimits(address(usdc), 1, 1);
+
+        vm.expectEmit(true, false, false, true);
+        emit IEscrowEvents.OrderLimitsSet(address(usdc), uint128(5 * USDC), uint128(USDC / 2));
+        vm.prank(admin);
+        escrow.setOrderLimits(address(usdc), uint128(5 * USDC), uint128(USDC / 2));
+        assertEq(escrow.minOrderAmount(address(usdc)), 5 * USDC);
+        assertEq(escrow.minCancelFee(address(usdc)), USDC / 2);
     }
 }

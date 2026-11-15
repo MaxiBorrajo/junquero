@@ -19,7 +19,8 @@ library EscrowAssembly {
         IParameterRegistry registry,
         address treasury,
         ISignatureTransfer permit2,
-        address forwarder
+        address forwarder,
+        bool lock
     ) internal returns (IEscrowFull) {
         Escrow router = new Escrow(admin, registry, treasury, permit2, forwarder);
         router.setModule(address(new OrderModule(registry, treasury, permit2, forwarder)));
@@ -29,7 +30,7 @@ library EscrowAssembly {
         router.setModule(address(new MilestoneModule(registry, treasury, permit2, forwarder)));
         router.setModule(address(new GroupModule(registry, treasury, permit2, forwarder)));
         router.setModule(address(new WitnessModule(registry, treasury, permit2, forwarder)));
-        router.lockModules();
+        if (lock) router.lockModules();
         return IEscrowFull(address(router));
     }
 }

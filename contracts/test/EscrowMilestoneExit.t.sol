@@ -288,6 +288,7 @@ contract EscrowMilestoneExitTest is MilestoneBase {
 
     function test_plainCancelBeforeStartingStillChargesTheLateFee() public {
         uint256 orderId = _standard();
+        vm.warp(block.timestamp + 25 hours);
         uint256 payerBefore = usdc.balanceOf(payer);
 
         vm.prank(payer);

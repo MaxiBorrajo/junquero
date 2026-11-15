@@ -40,15 +40,14 @@ contract AdminModule is EscrowStorage {
     {}
 
     function selectors() external pure returns (bytes4[] memory selectors_) {
-        selectors_ = new bytes4[](8);
+        selectors_ = new bytes4[](7);
         selectors_[0] = AdminModule.claim.selector;
         selectors_[1] = AdminModule.setReputation.selector;
         selectors_[2] = AdminModule.configureToken.selector;
         selectors_[3] = AdminModule.getOrder.selector;
         selectors_[4] = AdminModule.tokenConfig.selector;
-        selectors_[5] = AdminModule.reservationCompensation.selector;
-        selectors_[6] = AdminModule.freeCancelsUsed.selector;
-        selectors_[7] = AdminModule.domainSeparator.selector;
+        selectors_[5] = AdminModule.setOrderLimits.selector;
+        selectors_[6] = AdminModule.domainSeparator.selector;
     }
 
     function claim(address token, address account) external nonReentrant {
@@ -79,14 +78,11 @@ contract AdminModule is EscrowStorage {
         return _tokenConfigs[token];
     }
 
-    function reservationCompensation(uint256 orderId) external view returns (uint128) {
-        return _reservationCompensation(_orders[orderId]);
-    }
-
-    function freeCancelsUsed(address payer, address payee) external view returns (uint8 account, uint8 pair) {
-        uint256 month = block.timestamp / MONTH;
-        account = _freeCancelsByAccount[payer][month];
-        pair = _freeCancelsByPair[_pairKey(payer, payee)][month];
+    /// @notice Monto mínimo de una changa y cobro mínimo por cancelar con postulaciones, para una moneda.
+    function setOrderLimits(address token, uint128 minAmount, uint128 minFee) external onlyRole(TOKEN_ADMIN_ROLE) {
+        minOrderAmount[token] = minAmount;
+        minCancelFee[token] = minFee;
+        emit OrderLimitsSet(token, minAmount, minFee);
     }
 
     function domainSeparator() external view returns (bytes32) {

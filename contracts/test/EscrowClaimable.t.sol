@@ -162,6 +162,7 @@ contract EscrowClaimableTest is EscrowBase {
     function test_blockedPayeeKeepsTheCancelCompensationClaimable() public {
         uint256 orderId = _createBlk(100 * USDC);
         _agree(orderId, 100 * USDC);
+        vm.warp(block.timestamp + 25 hours);
         blk.setBlocked(payee, true);
 
         vm.prank(payer);

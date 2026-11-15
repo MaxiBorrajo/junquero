@@ -57,23 +57,22 @@ contract CancelModule is EscrowStorage {
 
         if (status == OrderStatus.Open || status == OrderStatus.Reserved || status == OrderStatus.Funding) {
             if (caller != order.payer) revert NotPayer(caller);
-            _finishCancel(
-                orderId,
-                order,
-                caller,
-                CancelReason.PayerCancelled,
-                order.reservedPayee,
-                _reservationCompensation(order),
-                0
-            );
+            // Gratis si nadie se postuló; si hubo postulaciones (aunque se hayan retirado), cobra un porcentaje al tesoro.
+            uint128 fee = hadApplicants[orderId] ? _applicantFee(order, order.deposited) : 0;
+            _cancelWithTreasuryFee(orderId, order, caller, fee);
         } else if (status == OrderStatus.Agreed) {
             if (order.hasMilestones && _plans[orderId].started) revert MilestonesInProgress();
             if (caller == order.payee) {
                 _finishCancel(orderId, order, caller, CancelReason.PayeeCancelled, caller, 0, 0);
                 _recordFailure(orderId, caller, Role.Provider);
             } else if (caller == order.payer) {
-                (uint128 toPayee, uint128 toTreasury) = _lateCancelShares(order);
-                _finishCancel(orderId, order, caller, CancelReason.PayerCancelled, order.payee, toPayee, toTreasury);
+                if (_isEarlyCancel(order)) {
+                    // Con tiempo de aviso: el mismo cobro que antes de acordar, para el tesoro.
+                    _cancelWithTreasuryFee(orderId, order, caller, _applicantFee(order, order.price));
+                } else {
+                    (uint128 toPayee, uint128 toTreasury) = _lateCancelShares(order);
+                    _finishCancel(orderId, order, caller, CancelReason.PayerCancelled, order.payee, toPayee, toTreasury);
+                }
             } else {
                 revert NotParty(caller);
             }
@@ -138,25 +137,73 @@ contract CancelModule is EscrowStorage {
         _finishCancel(orderId, order, moderator, CancelReason.Moderated, address(0), 0, 0);
     }
 
-    function _lateCancelShares(Order storage order) private returns (uint128, uint128) {
-        if (order.mode == PaymentMode.Cash || _consumeFreeCancel(order)) return (0, 0);
+    // Con tiempo de aviso: hay fecha de inicio y faltan al menos `FREE_CANCEL_NOTICE` segundos; sin fecha de inicio,
+    // dentro de ese mismo período desde el acuerdo.
+    function _isEarlyCancel(Order storage order) private view returns (bool) {
+        uint256 notice = registry.get(ParameterKeys.FREE_CANCEL_NOTICE);
+        if (order.startsAt != 0) return block.timestamp + notice <= order.startsAt;
+        return block.timestamp <= uint256(order.agreedAt) + notice;
+    }
+
+    // Cancelación tardía: un porcentaje del monto, con la mayor parte para el prestador. En efectivo no se cobra.
+    function _lateCancelShares(Order storage order) private view returns (uint128, uint128) {
+        if (order.mode == PaymentMode.Cash) return (0, 0);
         return _shares((uint256(order.price) * registry.get(ParameterKeys.CANCEL_FEE_AGREED_BPS)) / BPS);
     }
 
-    function _consumeFreeCancel(Order storage order) private returns (bool) {
-        if (order.startsAt == 0 || block.timestamp + registry.get(ParameterKeys.FREE_CANCEL_NOTICE) > order.startsAt) {
-            return false;
+    // Devuelve todo salvo `fee`, que va al tesoro. En una changa grupal el cobro sale solo de la parte del coordinador
+    // (hasta el tope de su parte): los demás aportantes recuperan todo lo que les corresponde.
+    function _cancelWithTreasuryFee(uint256 orderId, Order storage order, address by, uint128 fee) private {
+        if (fee == 0) {
+            _finishCancel(orderId, order, by, CancelReason.PayerCancelled, address(0), 0, 0);
+            return;
         }
-        uint256 month = block.timestamp / MONTH;
-        bytes32 pair = _pairKey(order.payer, order.payee);
-        uint8 byAccount = _freeCancelsByAccount[order.payer][month];
-        uint8 byPair = _freeCancelsByPair[pair][month];
-        if (
-            byAccount >= registry.get(ParameterKeys.FREE_CANCELS_PER_ACCOUNT_MONTH)
-                || byPair >= registry.get(ParameterKeys.FREE_CANCELS_PER_PAIR_MONTH)
-        ) return false;
-        _freeCancelsByAccount[order.payer][month] = byAccount + 1;
-        _freeCancelsByPair[pair][month] = byPair + 1;
-        return true;
+        if (!order.isGroup) {
+            _finishCancel(orderId, order, by, CancelReason.PayerCancelled, address(0), 0, fee);
+            return;
+        }
+        _cancelGroupWithFee(orderId, order, by, fee);
+    }
+
+    // Lo que le toca a cada aportante del total, en proporción a su aporte (igual que un reintegro común).
+    function _groupShares(uint256 orderId, uint128 total) private view returns (uint128[] memory shares) {
+        address[] storage list = _contributors[orderId];
+        uint256 contributed = _groups[orderId].totalContributed;
+        shares = new uint128[](list.length);
+        uint128 remaining = total;
+        for (uint256 i = 0; i < list.length; i++) {
+            uint128 share = i == list.length - 1
+                ? remaining
+                : uint128((uint256(total) * _contributions[orderId][list[i]]) / contributed);
+            shares[i] = share;
+            remaining -= share;
+        }
+    }
+
+    function _cancelGroupWithFee(uint256 orderId, Order storage order, address by, uint128 fee) private {
+        uint128 total = order.deposited;
+        uint128[] memory shares = _groupShares(orderId, total);
+        address[] storage list = _contributors[orderId];
+        bool found;
+        for (uint256 i = 0; i < list.length; i++) {
+            if (list[i] != order.payer) continue;
+            if (fee > shares[i]) fee = shares[i];
+            shares[i] -= fee;
+            found = true;
+            break;
+        }
+        // Si el coordinador no aportó, no hay una parte suya de la cual descontar: el cobro se reparte en proporción.
+        if (!found) shares = _groupShares(orderId, total - fee);
+
+        address token = order.token;
+        order.status = OrderStatus.Cancelled;
+        order.deposited = 0;
+        order.reservedPayee = address(0);
+        order.reservedAt = 0;
+        for (uint256 i = 0; i < list.length; i++) {
+            _payout(token, list[i], shares[i]);
+        }
+        _payout(token, treasury, fee);
+        emit OrderCancelled(orderId, by, uint8(CancelReason.PayerCancelled), 0, fee, total - fee);
     }
 }

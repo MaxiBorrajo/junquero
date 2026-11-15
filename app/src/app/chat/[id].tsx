@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   theirs: { alignSelf: "flex-start", backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   mineText: { color: colors.white },
   fileRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderRadius: radius.sm, paddingVertical: spacing.xs + 2, paddingHorizontal: spacing.sm },
-  fileMine: { backgroundColor: "rgba(255,255,255,0.16)" },
+  fileMine: { backgroundColor: colors.glassSoft },
   fileTheirs: { backgroundColor: colors.background },
   failedRow: { flexDirection: "row", gap: spacing.sm },
   link: { textDecorationLine: "underline" },

@@ -12,9 +12,11 @@ interface ToastOptions {
   durationMs?: number;
 }
 
-const DEFAULT_DURATION_MS = 5000;
-const TONE_COLOR = { success: colors.success, error: colors.error, info: colors.brick } as const;
-const TONE_ICON: Record<Tone, IconName> = { success: "check", error: "info", info: "info" };
+// Una confirmación tiene que alcanzar para leerse con calma; los errores se quedan un poco más.
+export const DEFAULT_DURATION_MS = 7000;
+export const ERROR_DURATION_MS = 9000;
+const TONE_COLOR = { success: colors.success, error: colors.error, info: colors.info } as const;
+const TONE_ICON: Record<Tone, IconName> = { success: "check", error: "alert", info: "info" };
 
 const ToastContext = createContext<(options: ToastOptions) => void>(() => {});
 
@@ -42,7 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       setToast({ ...options, key: counter.current });
       progress.setValue(0);
       Animated.timing(progress, { toValue: 1, duration: 220, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }).start();
-      timer.current = setTimeout(hide, options.durationMs ?? DEFAULT_DURATION_MS);
+      timer.current = setTimeout(hide, options.durationMs ?? (options.tone === "error" ? ERROR_DURATION_MS : DEFAULT_DURATION_MS));
     },
     [hide, progress],
   );

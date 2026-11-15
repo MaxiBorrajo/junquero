@@ -108,7 +108,9 @@ export function Secondary({ children, style }: { children: ReactNode; style?: St
 export function ErrorText({ children }: { children: ReactNode }) {
   return (
     <View style={styles.errorBox} accessibilityRole="alert">
-      <Text style={styles.errorIcon}>!</Text>
+      <View style={styles.errorIcon}>
+        <Icon name="alert" size={14} color={colors.white} />
+      </View>
       <Text style={styles.errorText}>{children}</Text>
     </View>
   );
@@ -164,7 +166,7 @@ const styles = StyleSheet.create({
   inactive: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
   errorBox: { flexDirection: "row", gap: spacing.sm, backgroundColor: colors.white, borderColor: colors.error, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, alignItems: "center" },
-  errorIcon: { ...text.button, color: colors.white, backgroundColor: colors.error, width: 24, height: 24, borderRadius: 12, textAlign: "center", lineHeight: 24 },
+  errorIcon: { backgroundColor: colors.error, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   errorText: { ...text.body, color: colors.error, flex: 1 },
   field: { gap: spacing.xs },
   input: { ...text.body, backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, minHeight: 52 },

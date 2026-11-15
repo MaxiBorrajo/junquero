@@ -32,5 +32,5 @@ const styles = StyleSheet.create({
   fill: { width: "100%", height: "100%" },
   generic: { alignItems: "center", justifyContent: "center", padding: spacing.sm, gap: spacing.xs },
   name: { textAlign: "center", fontSize: 12 },
-  remove: { position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(35,24,21,0.75)", alignItems: "center", justifyContent: "center" },
+  remove: { position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.overlayStrong, alignItems: "center", justifyContent: "center" },
 });

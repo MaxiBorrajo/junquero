@@ -10,6 +10,15 @@ export const colors = {
   white: "#FFFFFF",
   muted: "#6B5C57",
   line: "#D9CDBE",
+  // Información neutra (marca.md): avisos que no son éxito, advertencia ni error.
+  info: "#2B6CB0",
+  // Fondos translúcidos: el telón de una hoja o ventana y los botones sobre imágenes o fondos oscuros.
+  overlay: "rgba(35,24,21,0.45)",
+  overlayStrong: "rgba(35,24,21,0.75)",
+  scrim: "rgba(0,0,0,0.4)",
+  imageBackdrop: "rgba(0,0,0,0.94)",
+  glass: "rgba(255,255,255,0.18)",
+  glassSoft: "rgba(255,255,255,0.16)",
 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;

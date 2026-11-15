@@ -26,5 +26,5 @@ export default function VideoScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
   video: { flex: 1 },
-  close: { position: "absolute", right: spacing.md, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  close: { position: "absolute", right: spacing.md, width: 44, height: 44, borderRadius: 22, backgroundColor: colors.glass, alignItems: "center", justifyContent: "center" },
 });

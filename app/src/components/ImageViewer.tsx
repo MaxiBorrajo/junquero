@@ -21,8 +21,8 @@ export function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () 
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.94)" },
+  backdrop: { flex: 1, backgroundColor: colors.imageBackdrop },
   image: { flex: 1 },
   top: { position: "absolute", top: 0, left: 0, right: 0, alignItems: "flex-end", padding: spacing.md },
-  close: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  close: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.glass, alignItems: "center", justifyContent: "center" },
 });

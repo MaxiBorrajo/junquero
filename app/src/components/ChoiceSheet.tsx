@@ -36,7 +36,7 @@ export function ChoiceSheet({ visible, choices, onClose }: { visible: boolean; c
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(35,24,21,0.45)", justifyContent: "flex-end" },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: "flex-end" },
   sheet: { backgroundColor: colors.background, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.md, gap: spacing.xs },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md, minHeight: 56, paddingHorizontal: spacing.sm, borderRadius: radius.md },
   pressed: { backgroundColor: colors.sand },

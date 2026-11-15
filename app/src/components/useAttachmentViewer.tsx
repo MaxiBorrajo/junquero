@@ -40,5 +40,5 @@ export function useAttachmentViewer(): { open: (item: Viewable) => void; viewer:
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
+  loading: { flex: 1, backgroundColor: colors.scrim, alignItems: "center", justifyContent: "center" },
 });

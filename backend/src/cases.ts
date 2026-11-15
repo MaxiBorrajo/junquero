@@ -8,8 +8,37 @@ const OPEN_LIMIT = 20;
 
 const toRef = (row: { case_id: number; order_id: number }): CaseRef => ({ caseId: row.case_id, orderId: row.order_id });
 
-export async function casesFor(db: D1Database, address: string) {
-  const [party, juror, open] = await db.batch([
+// Los casos que esperan jurado son los mismos para todos (menos los propios): se piden una vez cada 30 segundos y después
+// cada persona descarta los suyos. Antes se recorría la tabla de eventos entera por cada pedido de cada persona.
+const OPEN_CACHE_MS = 30_000;
+let openCache: { at: number; rows: { case_id: number; order_id: number; payer: string | null; payee: string | null }[] } | null = null;
+
+export const clearOpenCasesCache = (): void => {
+  openCache = null;
+};
+
+async function openCases(db: D1Database, now: number) {
+  if (openCache && now - openCache.at < OPEN_CACHE_MS) return openCache.rows;
+  const { results } = await db
+    .prepare(
+      `SELECT DISTINCT e.case_id AS case_id, oc.order_id AS order_id, p.payer AS payer, p.payee AS payee FROM events e
+       JOIN order_cases oc ON oc.case_id = e.case_id
+       LEFT JOIN order_parties p ON p.order_id = oc.order_id
+       WHERE e.name IN ('Responded', 'Appealed')
+         AND NOT EXISTS (
+           SELECT 1 FROM events x
+           WHERE x.case_id = e.case_id
+             AND (x.block_number > e.block_number OR (x.block_number = e.block_number AND x.log_index > e.log_index))
+             AND x.name IN ('JuryDrawn', 'NeedsEmergencyResolution', 'EmergencyResolved', 'ResolvedByDefault', 'CaseDecided'))
+       ORDER BY e.case_id DESC LIMIT ${OPEN_LIMIT * 3}`,
+    )
+    .all<{ case_id: number; order_id: number; payer: string | null; payee: string | null }>();
+  openCache = { at: now, rows: results };
+  return results;
+}
+
+export async function casesFor(db: D1Database, address: string, now = Date.now()) {
+  const [party, juror] = await db.batch([
     db
       .prepare(
         `SELECT oc.case_id AS case_id, oc.order_id AS order_id FROM order_cases oc
@@ -24,25 +53,12 @@ export async function casesFor(db: D1Database, address: string) {
          WHERE j.juror = ? ORDER BY j.case_id DESC LIMIT ${LIMIT}`,
       )
       .bind(address),
-    db
-      .prepare(
-        `SELECT DISTINCT e.case_id AS case_id, oc.order_id AS order_id FROM events e
-         JOIN order_cases oc ON oc.case_id = e.case_id
-         WHERE e.name IN ('Responded', 'Appealed')
-           AND NOT EXISTS (
-             SELECT 1 FROM events x
-             WHERE x.case_id = e.case_id
-               AND (x.block_number > e.block_number OR (x.block_number = e.block_number AND x.log_index > e.log_index))
-               AND x.name IN ('JuryDrawn', 'NeedsEmergencyResolution', 'EmergencyResolved', 'ResolvedByDefault', 'CaseDecided'))
-           AND NOT EXISTS (SELECT 1 FROM order_parties p WHERE p.order_id = oc.order_id AND (p.payer = ?1 OR p.payee = ?1))
-         ORDER BY e.case_id DESC LIMIT ${OPEN_LIMIT}`,
-      )
-      .bind(address),
   ]);
   type Rows = { results: { case_id: number; order_id: number }[] };
+  const open = (await openCases(db, now)).filter((row) => row.payer !== address && row.payee !== address).slice(0, OPEN_LIMIT);
   return {
     asParty: (party as unknown as Rows).results.map(toRef),
     asJuror: (juror as unknown as Rows).results.map(toRef),
-    openForJury: (open as unknown as Rows).results.map(toRef),
+    openForJury: open.map(toRef),
   };
 }

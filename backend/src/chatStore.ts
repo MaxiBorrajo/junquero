@@ -87,7 +87,8 @@ export class ChatStore {
       .exec("SELECT COUNT(*) AS total FROM messages WHERE sender = ? AND created_at > ?", sender, nowSeconds - 3600)
       .toArray() as { total: number }[];
     if (lastHour[0].total >= MAX_PER_HOUR) return { ok: false, status: 429, error: "too many messages" };
-    const all = this.sql.exec("SELECT COUNT(*) AS total FROM messages").toArray() as { total: number }[];
+    // Los mensajes nunca se borran, así que el último número de secuencia es la cantidad (no hace falta contar fila por fila).
+    const all = this.sql.exec("SELECT COALESCE(MAX(seq), 0) AS total FROM messages").toArray() as { total: number }[];
     if (all[0].total >= MAX_PER_CONVERSATION) return { ok: false, status: 429, error: "conversation is full" };
 
     this.sql.exec("INSERT INTO messages (sender, nonce, body, client_id, created_at) VALUES (?, ?, ?, ?, ?)", sender, nonce, body, clientId, nowSeconds);

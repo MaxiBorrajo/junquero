@@ -109,11 +109,11 @@ export async function profileStats(db: D1Database, address: string) {
   const row = await db
     .prepare(
       `SELECT
-         (SELECT COUNT(*) FROM order_parties p JOIN changas c ON c.order_id = p.order_id WHERE p.payee = ?1 AND c.status = 'settled') AS done_as_payee,
-         (SELECT COUNT(*) FROM order_parties p JOIN changas c ON c.order_id = p.order_id WHERE p.payer = ?1 AND c.status = 'settled') AS done_as_payer,
-         (SELECT COUNT(*) FROM order_parties p JOIN changas c ON c.order_id = p.order_id WHERE (p.payee = ?1 OR p.payer = ?1) AND c.status = 'disputed') AS disputed,
-         (SELECT AVG(rating) FROM releases WHERE payee = ?1) AS rating_avg,
-         (SELECT COUNT(*) FROM releases WHERE payee = ?1) AS rating_count`,
+         (SELECT COUNT(*) FROM order_parties p WHERE p.payee = ?1 AND EXISTS (SELECT 1 FROM changas c WHERE c.order_id = p.order_id AND c.status = 'settled')) AS done_as_payee,
+         (SELECT COUNT(*) FROM order_parties p WHERE p.payer = ?1 AND EXISTS (SELECT 1 FROM changas c WHERE c.order_id = p.order_id AND c.status = 'settled')) AS done_as_payer,
+         (SELECT COUNT(*) FROM order_parties p WHERE (p.payee = ?1 OR p.payer = ?1) AND EXISTS (SELECT 1 FROM changas c WHERE c.order_id = p.order_id AND c.status = 'disputed')) AS disputed,
+         (SELECT AVG(rating) FROM payee_ratings WHERE payee = ?1) AS rating_avg,
+         (SELECT COUNT(*) FROM payee_ratings WHERE payee = ?1) AS rating_count`,
     )
     .bind(address)
     .first<{ done_as_payee: number; done_as_payer: number; disputed: number; rating_avg: number | null; rating_count: number }>();

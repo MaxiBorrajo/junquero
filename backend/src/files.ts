@@ -154,13 +154,21 @@ export async function deleteFile(db: D1Database, bucket: R2Bucket, owner: string
   await db.prepare("DELETE FROM files WHERE owner = ? AND hash = ?").bind(owner, hash).run();
 }
 
+const PURGE_ROUNDS = 20;
+
+// Borra de a 100 hasta vaciar los archivos huérfanos (antes borraba 100 por día y, si se subían más, R2 crecía sin parar).
 export async function purgeOrphanFiles(db: D1Database, bucket: R2Bucket, nowSeconds: number): Promise<number> {
-  const { results } = await db
-    .prepare("SELECT owner, hash FROM files WHERE linked = 0 AND created_at < ? LIMIT ?")
-    .bind(nowSeconds - ORPHAN_TTL_SECONDS, DELETE_BATCH)
-    .all<{ owner: string; hash: string }>();
-  if (!results.length) return 0;
-  await bucket.delete(results.map((row) => objectKey(row.owner, row.hash)));
-  await db.batch(results.map((row) => db.prepare("DELETE FROM files WHERE owner = ? AND hash = ?").bind(row.owner, row.hash)));
-  return results.length;
+  let total = 0;
+  for (let round = 0; round < PURGE_ROUNDS; round += 1) {
+    const { results } = await db
+      .prepare("SELECT owner, hash FROM files WHERE linked = 0 AND created_at < ? LIMIT ?")
+      .bind(nowSeconds - ORPHAN_TTL_SECONDS, DELETE_BATCH)
+      .all<{ owner: string; hash: string }>();
+    if (!results.length) break;
+    await bucket.delete(results.map((row) => objectKey(row.owner, row.hash)));
+    await db.batch(results.map((row) => db.prepare("DELETE FROM files WHERE owner = ? AND hash = ?").bind(row.owner, row.hash)));
+    total += results.length;
+    if (results.length < DELETE_BATCH) break;
+  }
+  return total;
 }

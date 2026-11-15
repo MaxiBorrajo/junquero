@@ -72,6 +72,10 @@ export const relayPolicy: RelayPolicy = {
 
 export const app = new Hono<AppEnv>();
 export const readCache = new TtlCache<unknown>(READ_CACHE_MS, READ_CACHE_ENTRIES);
+// Datos que cambian poco y se piden mucho (el historial de un perfil): un minuto de caché.
+const SLOW_CACHE_MS = 60_000;
+const BBOX_GRID = 0.05;
+export const slowCache = new TtlCache<unknown>(SLOW_CACHE_MS, READ_CACHE_ENTRIES);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 const limitBy = (pick: (env: Env) => Env["READ_LIMITER"]) =>
@@ -109,6 +113,15 @@ async function cachedRead(url: string, produce: () => Promise<unknown>): Promise
   if (hit !== undefined) return hit;
   const value = await produce();
   readCache.set(url, value, now);
+  return value;
+}
+
+async function cachedSlow<T>(key: string, produce: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const hit = slowCache.get(key, now);
+  if (hit !== undefined) return hit as T;
+  const value = await produce();
+  slowCache.set(key, value, now);
   return value;
 }
 
@@ -203,7 +216,7 @@ app.get("/profiles/:address", async (c) => {
   if (!ADDRESS.test(address)) return c.json({ error: "invalid address" }, 400);
   const row = await getProfile(c.env.DB, address.toLowerCase());
   if (!row) return c.json({ error: "not found" }, 404);
-  return c.json({ profile: { ...presentPublicProfile(row), stats: await profileStats(c.env.DB, address.toLowerCase()) } });
+  return c.json({ profile: { ...presentPublicProfile(row), stats: await cachedSlow(`stats:${address.toLowerCase()}`, () => profileStats(c.env.DB, address.toLowerCase())) } });
 });
 
 app.post("/me/changas", async (c) => {
@@ -335,9 +348,22 @@ app.get("/files/:owner/:hash", async (c) => {
   const owner = c.req.param("owner").toLowerCase();
   const hash = c.req.param("hash").toLowerCase();
   if (!ADDRESS.test(owner) || !/^[0-9a-f]{64}$/.test(hash)) return c.json({ error: "invalid file" }, 400);
+  // Los archivos públicos no cambian nunca (el nombre es su hash): se sirven desde la caché del borde y solo la primera vez
+  // se lee la base y el almacenamiento.
+  const edge = typeof caches === "undefined" ? null : (caches as unknown as { default: Cache }).default;
+  const cached = edge ? await edge.match(c.req.raw).catch(() => undefined) : undefined;
+  if (cached) return cached;
   const file = await readFile(c.env.DB, c.env.FILES, owner, hash, "public");
   if (!file) return c.json({ error: "not found" }, 404);
-  return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, true) });
+  const response = new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, true) });
+  if (edge) {
+    try {
+      c.executionCtx.waitUntil(edge.put(c.req.raw, response.clone()).catch(() => undefined));
+    } catch {
+      // sin contexto de ejecución (pruebas)
+    }
+  }
+  return response;
 });
 
 app.put("/me/push-token", async (c) => {
@@ -745,7 +771,7 @@ app.post("/admin/reports/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-app.get("/me/activity", async (c) => c.json(await activitySummary(c.env.DB, c.get("address"))));
+app.get("/me/activity", async (c) => c.json(await cachedRead(`activity:${c.get("address")}`, () => activitySummary(c.env.DB, c.get("address")))));
 
 app.get("/me/notifications", async (c) => c.json({ notifications: await listNotifications(c.env.DB, c.get("address"), nowSeconds()) }));
 
@@ -783,7 +809,9 @@ app.get("/changas", async (c) => {
     const valid = [minLat, maxLat, minLng, maxLng].every(Number.isFinite);
     if (!valid || minLat > maxLat || minLng > maxLng) return c.json({ error: "bbox is required: minLat, maxLat, minLng, maxLng" }, 400);
     if (maxLat - minLat > MAX_BBOX_DEGREES || maxLng - minLng > MAX_BBOX_DEGREES) return c.json({ error: "bbox is too large" }, 400);
-    filters.bbox = { minLat, maxLat, minLng, maxLng };
+    // El recuadro se ajusta a una grilla de 0,05° (unos 5 km) hacia afuera: dos personas (o la misma moviendo apenas el mapa)
+    // piden exactamente lo mismo y comparten la caché. Se trae un poco de más y la pantalla muestra solo lo que cae adentro.
+    filters.bbox = { minLat: Math.floor(minLat / BBOX_GRID) * BBOX_GRID, maxLat: Math.ceil(maxLat / BBOX_GRID) * BBOX_GRID, minLng: Math.floor(minLng / BBOX_GRID) * BBOX_GRID, maxLng: Math.ceil(maxLng / BBOX_GRID) * BBOX_GRID };
   }
 
   const category = optionalInt(query.category);
@@ -796,7 +824,9 @@ app.get("/changas", async (c) => {
   if (maxAmount !== undefined) filters.maxAmountMicro = maxAmount as number;
   if (before !== undefined) filters.before = before as number;
 
-  const body = await cachedRead(c.req.url, async () => ({ changas: (await listOpen(c.env.DB, filters)).map(presentChanga) }));
+  const key = `changas:${JSON.stringify(filters)}`;
+  const body = await cachedRead(key, async () => ({ changas: (await listOpen(c.env.DB, filters)).map(presentChanga) }));
+  c.header("Cache-Control", "public, max-age=10");
   return c.json(body);
 });
 

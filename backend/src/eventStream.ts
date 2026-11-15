@@ -19,6 +19,16 @@ export async function runStatements(db: D1Database, statements: D1PreparedStatem
   }
 }
 
+// ¿Hay eventos guardados que todavía no se procesaron? Una sola lectura por clave primaria.
+export async function hasUnprocessedEvents(db: D1Database): Promise<boolean> {
+  const mark = await db.prepare("SELECT value FROM meta WHERE key = ?").bind(SYNC_KEY).first<{ value: number }>();
+  const after = mark ? mark.value : -1;
+  const afterBlock = Math.floor(after / POSITION_BASE);
+  const afterIndex = after - afterBlock * POSITION_BASE;
+  const row = await db.prepare("SELECT 1 AS found FROM events WHERE (block_number, log_index) > (?, ?) LIMIT 1").bind(afterBlock, afterIndex).first<{ found: number }>();
+  return row !== null;
+}
+
 export async function processEvents(db: D1Database, handlers: EventHandler[], scanLimit: number): Promise<number> {
   const mark = await db.prepare("SELECT value FROM meta WHERE key = ?").bind(SYNC_KEY).first<{ value: number }>();
   const after = mark ? mark.value : -1;
@@ -29,10 +39,10 @@ export async function processEvents(db: D1Database, handlers: EventHandler[], sc
       `SELECT block_number, log_index, name, order_id, case_id,
               CASE WHEN name IN ('OrderCreated', 'OrderToppedUp', 'OrderAgreed', 'OrderSettled', 'JuryDrawn', 'VoteCommitted', 'VoteRevealed', 'OrderReserved', 'CaseOpened', 'GroupCreated', 'CoordinatorChanged', 'Contributed', 'ContributionWithdrawn', 'OrderCancelled', 'DisputeOpened', 'DisputeResolved', 'MilestoneDelivered', 'MilestonePaid', 'ProgressReported', 'OrderTerminated', 'OrderAbandoned') THEN args END AS args
        FROM events
-       WHERE block_number > ? OR (block_number = ? AND log_index > ?)
+       WHERE (block_number, log_index) > (?, ?)
        ORDER BY block_number, log_index LIMIT ?`,
     )
-    .bind(afterBlock, afterBlock, afterIndex, scanLimit)
+    .bind(afterBlock, afterIndex, scanLimit)
     .all<StreamEvent>();
   if (!results.length) return 0;
 

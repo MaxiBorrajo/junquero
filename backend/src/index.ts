@@ -3,13 +3,14 @@ import { purgeAgreements } from "./agreements";
 import { purgeReleases } from "./releases";
 import { applicationsHandler } from "./applications";
 import { chatEventsHandler } from "./chatEvents";
+import { ratingsHandler } from "./ratings";
 import { withChatNotify } from "./chatNotify";
 import { partiesHandler } from "./parties";
 import { createChangasHandler, purgeStaleDrafts } from "./changas";
 import { deployedTokenDecimals, indexedContracts, startBlock } from "./contracts";
 import type { Env } from "./env";
-import { processEvents } from "./eventStream";
-import { runIndexerRounds, type ChainClient } from "./indexer";
+import { hasUnprocessedEvents, processEvents } from "./eventStream";
+import { readCursor, runIndexerRounds, type ChainClient } from "./indexer";
 import { purgeOrphanFiles } from "./files";
 import { hasNoLogs, verifySignature, withSyncLock } from "./hook";
 import { isPurgeMinute, purgeOldLogs } from "./maintenance";
@@ -37,10 +38,20 @@ function chainClient(rpcUrl: string): ChainClient {
 
 const changasHandler = createChangasHandler(deployedTokenDecimals);
 
-const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler, chatEventsHandler];
+const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler, chatEventsHandler, ratingsHandler];
 
 // Indexa la cadena y después arma las tablas de consulta con los eventos nuevos, en ese orden y de una sola vez.
+// ¿Hay algo para hacer? Un bloque nuevo ya confirmado o eventos guardados sin procesar. Si no, no se toma el candado ni se
+// escribe nada: el reloj de cada minuto cuesta una consulta y una lectura a la red en vez de varias escrituras.
+async function chainHasWork(env: Env, confirmations: number): Promise<boolean> {
+  const cursor = await readCursor(env.DB, startBlock);
+  const head = await chainClient(env.RPC_URL).getBlockNumber();
+  if (BigInt(cursor) + 1n <= head - BigInt(confirmations)) return true;
+  return hasUnprocessedEvents(env.DB);
+}
+
 async function syncChain(env: Env, confirmations: number): Promise<void> {
+  if (!(await chainHasWork(env, confirmations))) return;
   await withSyncLock(env.DB, Date.now(), async () => {
     const options = {
       contracts: indexedContracts,

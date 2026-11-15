@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { readCache } from "../src/app";
 import { authed, owner, setup, stranger, tokenFor } from "./helpers";
+
+beforeEach(() => readCache.clear());
 
 function changa(raw: ReturnType<typeof setup>["raw"], id: number, status: string, amountMicro: number, payer: string, payee: string) {
   raw

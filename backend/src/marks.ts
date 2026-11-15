@@ -5,7 +5,8 @@ import type { Hex } from "viem";
 
 export const MARK_BATCH = 20;
 export const MARK_MAX_ATTEMPTS = 6;
-export const MARK_RETRY_SECONDS = 60;
+// Más de lo que tarda en minarse la transacción (unos 12 s por bloque): antes se reintentaba al minuto y podía mandar la misma transacción repetida, gastando gas.
+export const MARK_RETRY_SECONDS = 180;
 
 export type MarkAttempt = { sent: true; txHash: Hex } | { sent: false };
 

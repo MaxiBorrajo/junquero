@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { clearOpenCasesCache } from "../src/cases";
+import { readCache } from "../src/app";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { authed, owner, setup, stranger, tokenFor } from "./helpers";
+
+beforeEach(() => {
+  readCache.clear();
+  clearOpenCasesCache();
+});
 
 const third = privateKeyToAccount(generatePrivateKey());
 
@@ -18,7 +25,9 @@ function world() {
   return ctx;
 }
 
+// Estos tests cambian los eventos a mano entre una consulta y otra, así que no usan la caché de 30 segundos.
 const list = async (ctx: ReturnType<typeof setup>, account = owner) => {
+  clearOpenCasesCache();
   const session = await tokenFor(ctx.call, account);
   return (await (await ctx.call("/me/cases", authed(session.body.token, "GET"))).json()) as { asParty: unknown[]; asJuror: unknown[]; openForJury: unknown[] };
 };
@@ -78,5 +87,19 @@ describe("my cases", () => {
     event(ctx.raw, "Responded", 1, 11);
     event(ctx.raw, "SeedRoundStarted", 1, 12);
     expect((await list(ctx, third)).openForJury).toEqual([{ caseId: 1, orderId: 1 }]);
+  });
+});
+
+describe("lista de casos abiertos cacheada", () => {
+  it("la comparten todas las personas durante la ventana y cada una no ve los suyos", async () => {
+    const ctx = world();
+    event(ctx.raw, "Responded", 1, 11);
+    expect((await list(ctx, third)).openForJury).toHaveLength(1);
+    event(ctx.raw, "Responded", 2, 12, 1);
+    const session = await tokenFor(ctx.call, third);
+    const cached = (await (await ctx.call("/me/cases", authed(session.body.token, "GET"))).json()) as { openForJury: unknown[] };
+    expect(cached.openForJury).toHaveLength(1);
+    clearOpenCasesCache();
+    expect((await list(ctx, third)).openForJury).toHaveLength(2);
   });
 });

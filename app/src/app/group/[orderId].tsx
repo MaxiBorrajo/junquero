@@ -8,6 +8,7 @@ import { checkContribution, contributionLimits, encodeContribute, encodeSupportC
 import { OrderStatus } from "../../chain/orderAbi";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readContributionRule, readGroup, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { OwnerTag } from "../../components/OwnerTag";
 import { StatusChip } from "../../components/StatusChip";
 import { Journey } from "../../components/Journey";
 import { Banner } from "../../components/Banner";
@@ -95,6 +96,7 @@ export default function GroupScreen() {
   return (
     <Screen footer={funding ? <Button label={t.group.contribute} icon="wallet" onPress={contribute} loading={busy} disabled={!check.ok} /> : null}>
       <Title>{title ?? t.group.title}</Title>
+      {order.data.payer.toLowerCase() === me ? <OwnerTag label={t.detail.ownChangaTag} /> : null}
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
           <Title>{title ?? t.group.title}</Title>

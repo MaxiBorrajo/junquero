@@ -13,6 +13,7 @@ import { disputeCost, reasonHash } from "../../chain/jury";
 import { formatAmount } from "../../lib/money";
 import { Banner } from "../../components/Banner";
 import { StatusChip } from "../../components/StatusChip";
+import { OwnerTag } from "../../components/OwnerTag";
 import { PersonCard } from "../../components/PersonCard";
 import { Journey, type JourneyStep } from "../../components/Journey";
 import { Card } from "../../components/Card";
@@ -172,13 +173,13 @@ export default function OrderScreen() {
         ) : null
       }
     >
+      {role === "payer" || role === "payee" ? <OwnerTag label={role === "payer" ? t.order.role.payer : t.order.role.payee} /> : null}
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
           <Title>{title ?? t.order.title}</Title>
         </View>
         {chip ? <StatusChip label={chip.label} warn={chip.warn} /> : null}
       </View>
-      <Secondary>{role === "payer" ? t.order.role.payer : role === "payee" ? t.order.role.payee : ""}</Secondary>
       <Card gap="xs">
         <Text style={text.label}>{t.order.amount}</Text>
         <Text style={text.amount}>{formatUsdc(state.price.toString())}</Text>

@@ -52,7 +52,7 @@ La pregunta es: ¿qué le pasó a la persona?
 - **`Banner`**: aviso que se queda en pantalla. Tonos: `sand` (invitación o contexto), `info`, `success`, `warning`, `error`. Lleva siempre ícono y, si hace falta, una acción en texto.
 - **Filas de lista** (mensajes, notificaciones, postulaciones, jurado): tarjeta con el mismo padding, separación `sm` entre filas y la información principal a la izquierda. El estado (no leído, en revisión) se marca con un número, un ícono o una palabra, no solo con color.
 - **Estado de algo** (en curso, juntando aportes, en revisión, cancelada): siempre en una pastilla (`StatusChip`) al lado del título. Nunca como texto suelto en el cuerpo de la pantalla. Lo que sigue vigente y pide acción va en un `Banner`.
-- **Etiqueta de pertenencia**: "Publicaste este trabajo" va arriba del título (`OwnerTag`).
+- **Etiqueta de pertenencia**: "Publicaste este trabajo" o "Hacés este trabajo" va arriba del título (`OwnerTag`), igual en todas las pantallas de un trabajo (detalle, orden, grupo). Nunca como texto debajo del título.
 - **Adjuntos**: siempre como miniatura (`AttachmentTile`): foto con vista previa o ícono y nombre para otros archivos, con una X para quitarlo. Si son varios van en una fila con desplazamiento horizontal y aire arriba y abajo. Tocar una miniatura la abre en grande (visor de imágenes, video o documento), igual en el chat, las postulaciones, la evidencia y la publicación.
 - **Hojas de opciones** (`ChoiceSheet`): para elegir entre acciones que no entran en la pantalla (sacar foto, elegir de la galería, menú de tres puntos).
 

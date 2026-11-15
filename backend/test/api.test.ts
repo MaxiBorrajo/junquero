@@ -131,6 +131,16 @@ describe("publishing from chain events", () => {
     expect(((await detail.json()) as any).changas[0].orderId).toBe(7);
   });
 
+  it("updates the amount of an open changa when the payer tops up the deposit", async () => {
+    const ctx = setup();
+    const specHash = await publish(ctx);
+    createdEvent(ctx.raw, 12, specHash, owner.address);
+    plainEvent(ctx.raw, "OrderToppedUp", 12, 400, { orderId: "12", added: "5000000", deposited: "15000000" });
+    await processEvents(ctx.db, [handler], 100);
+    const listed = ((await (await ctx.call(`/changas?${query}`)).json()) as any).changas;
+    expect(listed[0]).toMatchObject({ orderId: 12, amount: "15000000" });
+  });
+
   it("ignores an order created by someone else with the same hash", async () => {
     const ctx = setup();
     const specHash = await publish(ctx);

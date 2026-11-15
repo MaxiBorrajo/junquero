@@ -199,6 +199,16 @@ export function createChangasHandler(decimalsByToken: ReadonlyMap<string, number
         );
         continue;
       }
+      if (event.name === "OrderToppedUp" && event.args) {
+        const args = JSON.parse(event.args) as { deposited?: string };
+        if (!args.deposited) continue;
+        statements.push(
+          db
+            .prepare("UPDATE changas SET amount = ?, amount_micro = ? WHERE order_id = ? AND status = 'open'")
+            .bind(args.deposited, amountMicro(args.deposited, groupDecimals), event.order_id),
+        );
+        continue;
+      }
       if (event.name === "GroupCreated" && event.args) {
         const args = JSON.parse(event.args) as { creator?: string; target?: string; deadline?: string | number };
         if (!args.creator || !args.target || args.deadline === undefined) continue;

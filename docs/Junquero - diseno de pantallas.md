@@ -138,7 +138,7 @@ Decisiones de diseño:
 - La confirmación del acuerdo es la firma EIP-712 de las dos partes, presentada como un solo botón Confirmar sin mostrar datos técnicos; el detalle técnico queda en un enlace "Ver acuerdo completo".
 - Si la otra parte no confirma en 24 horas, el acuerdo vence y la changa vuelve a estar abierta.
 - Una vez confirmado por ambas partes, el acuerdo no se edita; cualquier cambio es un acuerdo nuevo.
-- Las contraofertas se tratan como una propuesta distinta, no como cambio del monto publicado.
+- Las contraofertas se tratan como una propuesta distinta. Pueden ser más chicas (el contrato devuelve la diferencia al acordar) o más grandes: al elegir una más grande, quien publicó confirma y suma la diferencia en garantía (`topUp`), el monto de la changa pasa a ser el nuevo y recién después se firma el acuerdo.
 
 ## Chat
 

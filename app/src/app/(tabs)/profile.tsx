@@ -6,6 +6,8 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { readTokenBalance } from "../../chain/reader";
+import { Icon } from "../../components/Icon";
+import { Logo } from "../../components/Logo";
 import { Body, Button, Screen, Secondary, Title } from "../../components/ui";
 import { API_URL } from "../../config";
 import { t } from "../../i18n";
@@ -15,12 +17,17 @@ import { useLastSeen, useNotifications, countUnread } from "../../data/useNotifi
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { unregisterPush } from "../../push/register";
 import { useSession } from "../../session/SessionProvider";
-import { colors, radius, spacing, text } from "../../theme";
+import { colors, fonts, radius, spacing, text } from "../../theme";
 
-const SELFIE_TEXT = { approved: t.me.verified, pending: t.me.pending, rejected: t.me.rejected, none: t.me.notVerified } as const;
+const SELFIE_BADGE = {
+  approved: { text: t.me.verified, icon: "info", color: colors.success },
+  pending: { text: t.me.pending, icon: "clock", color: colors.warning },
+  rejected: { text: t.me.rejected, icon: "info", color: colors.error },
+  none: { text: t.me.notVerified, icon: "info", color: colors.muted },
+} as const;
 
 export default function Profile() {
-  const { profile, address, api, signOut } = useSession();
+  const { profile, address, api, signOut, refresh: refreshSession } = useSession();
   const { disconnect } = useAppKit();
   const [copied, setCopied] = useState(false);
   const activity = useActivity();
@@ -34,7 +41,7 @@ export default function Profile() {
     queryFn: () => readTokenBalance(address as `0x${string}`),
   });
 
-  const refresh = useManualRefresh([() => balance.refetch(), () => activity.refetch(), () => notifications.refetch()]);
+  const refresh = useManualRefresh([() => refreshSession(), () => balance.refetch(), () => activity.refetch(), () => notifications.refetch()]);
 
   if (!address) {
     return (
@@ -67,7 +74,16 @@ export default function Profile() {
         {profile?.photo ? <Image source={{ uri: `${API_URL}${profile.photo.url}` }} style={styles.photo} /> : <View style={[styles.photo, styles.empty]} />}
         <View style={{ flex: 1 }}>
           <Title>{profile?.name ?? t.me.title}</Title>
-          <Secondary>{SELFIE_TEXT[selfie]}</Secondary>
+          <View style={[styles.badge, { backgroundColor: `${SELFIE_BADGE[selfie].color}1A` }]}>
+            {selfie === "approved" ? (
+              <Logo size={20} color={SELFIE_BADGE[selfie].color} />
+            ) : selfie === "pending" ? (
+              <Image source={require("../../../assets/images/junco-pin.png")} style={styles.junco} tintColor={SELFIE_BADGE[selfie].color} />
+            ) : (
+              <Icon name={SELFIE_BADGE[selfie].icon} size={16} color={SELFIE_BADGE[selfie].color} />
+            )}
+            <Text style={[styles.badgeText, { color: SELFIE_BADGE[selfie].color }]}>{SELFIE_BADGE[selfie].text}</Text>
+          </View>
         </View>
       </View>
       <View style={styles.box}>
@@ -114,6 +130,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
   figure: { width: "46%", gap: 2 },
   good: { color: colors.success },
+  badge: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: spacing.xs, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999 },
+  junco: { width: 20, height: 20 },
+  badgeText: { fontFamily: fonts.semibold, fontSize: 13 },
   header: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
   photo: { width: 72, height: 72, borderRadius: radius.pill },
   empty: { backgroundColor: colors.map },

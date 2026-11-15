@@ -32,8 +32,10 @@ export default function Apply() {
   const planValid = !change || (total === expected && editable.every((item) => item.name.trim().length >= 2 && item.criteria.trim().length >= 3 && item.evidence.trim().length >= 3));
   const [error, setError] = useState<string | null>(null);
 
-  const offer = parseCounterOffer(amount, max && /^\d+$/.test(max) ? BigInt(max) : undefined);
+  const offer = parseCounterOffer(amount);
   const amountError = offer.ok ? null : t.apply.amountInvalid;
+  const published = max && /^\d+$/.test(max) ? BigInt(max) : null;
+  const extra = offer.ok && offer.value && published !== null && BigInt(offer.value) > published ? BigInt(offer.value) - published : null;
 
   const submit = async () => {
     if (!offer.ok) return;
@@ -58,7 +60,7 @@ export default function Apply() {
       <Title>{t.apply.title}</Title>
       <Body>{t.apply.explanation}</Body>
       {plan !== "1" && changa.data && suggestMilestones(max && /^\d+$/.test(max) ? BigInt(max) : null, (changa.data.spec.deadline ? changa.data.spec.deadline - Math.floor(Date.now() / 1000) : 0)) ? <Secondary>{t.apply.singlePaymentLong}</Secondary> : null}
-      {plan === "1" ? null : <Field label={t.apply.amount} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={t.apply.amountPlaceholder} error={amountError} hint={t.apply.amountHint} />}
+      {plan === "1" ? null : <Field label={t.apply.amount} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={t.apply.amountPlaceholder} error={amountError} hint={extra !== null ? t.apply.amountHigher.replace("{extra}", formatUsdc(extra.toString())) : t.apply.amountHint} />}
       <Field label={t.apply.message} value={message} onChangeText={setMessage} multiline maxLength={MESSAGE_MAX} hint={`${message.length}/${MESSAGE_MAX}`} />
       {plan === "1" && original.length > 0 ? (
         <>

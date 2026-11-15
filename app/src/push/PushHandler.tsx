@@ -17,7 +17,7 @@ function open(data: Record<string, unknown> | undefined) {
 }
 
 export function PushHandler() {
-  const { status, api, address } = useSession();
+  const { status, api, address, refresh } = useSession();
 
   useEffect(() => {
     if (status !== "ready" || !address) return;
@@ -25,6 +25,12 @@ export function PushHandler() {
       .then((on) => (on ? registerForPush(api) : undefined))
       .catch(() => {});
   }, [status, api, address]);
+
+  useEffect(() => {
+    if (status !== "ready") return;
+    const subscription = Notifications.addNotificationReceivedListener(() => void refresh().catch(() => {}));
+    return () => subscription.remove();
+  }, [status, refresh]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => open(response.notification.request.content.data));

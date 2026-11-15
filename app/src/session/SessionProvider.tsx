@@ -1,3 +1,4 @@
+import { AppState } from "react-native";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { API_URL } from "../config";
 import { createApi, type Api } from "../api/client";
@@ -62,6 +63,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       alive = false;
     };
   }, [api]);
+
+  // El perfil se pide al iniciar sesión; lo actualizamos al volver a la app y mientras la selfie espera revisión.
+  const pendingSelfie = profile?.selfieStatus === "pending";
+  useEffect(() => {
+    if (status !== "ready") return;
+    const reload = () => void refresh().catch(() => {});
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") reload();
+    });
+    const timer = pendingSelfie ? setInterval(reload, 20_000) : null;
+    return () => {
+      subscription.remove();
+      if (timer) clearInterval(timer);
+    };
+  }, [status, pendingSelfie, refresh]);
 
   const signIn = useCallback(
     async (address: string, sign: SignMessage) => {

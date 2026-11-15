@@ -14,6 +14,7 @@ export const orderAbi = parseAbi([
   "function requestChanges(uint256 orderId, bytes32 reasonHash)",
   "function openDispute(uint256 orderId, bytes32 reasonHash, DepositAuth auth)",
   "function autoRelease(uint256 orderId)",
+  "function topUp(uint256 orderId, uint128 amount, DepositAuth auth)",
 ]);
 
 export enum OrderStatus {

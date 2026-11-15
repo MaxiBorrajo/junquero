@@ -34,6 +34,8 @@ export const NO_AUTH = { method: 0, nonce: 0n, deadline: 0n, signature: "0x" as 
 
 export const encodeOpenDispute = (orderId: bigint, reasonHash: Hex, auth: { method: number; nonce: bigint; deadline: bigint; signature: Hex }): Hex =>
   encodeFunctionData({ abi: orderAbi, functionName: "openDispute", args: [orderId, reasonHash, auth] });
+export const encodeTopUp = (orderId: bigint, amount: bigint, auth: { method: number; nonce: bigint; deadline: bigint; signature: Hex }): Hex =>
+  encodeFunctionData({ abi: orderAbi, functionName: "topUp", args: [orderId, amount, auth] });
 export const encodeRelease = (data: ReleaseData, payerSignature: Hex): Hex => encodeFunctionData({ abi: orderAbi, functionName: "release", args: [data, payerSignature] });
 
 export interface RelayDeps {

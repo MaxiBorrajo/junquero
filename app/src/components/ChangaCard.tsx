@@ -26,6 +26,7 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
       </View>
       <Text style={text.secondary}>{where}</Text>
       {when ? <Text style={text.secondary}>{`${spec.modality === "remote" ? `${t.publish.deadlineLabel} ` : ""}${formatDate(when)}`}</Text> : null}
+      {strip ? <StatusStrip data={strip} /> : null}
       {status || unavailable || action ? (
         <View style={styles.footer}>
           {status ? (
@@ -40,7 +41,6 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
           ) : null}
         </View>
       ) : null}
-      {strip ? <StatusStrip data={strip} /> : null}
     </Card>
   );
 }

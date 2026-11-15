@@ -80,11 +80,16 @@ export function Button({
   );
 }
 
-export function Chip({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: IconName }) {
+export function Chip({ label, selected, onPress, icon, badge }: { label: string; selected: boolean; onPress: () => void; icon?: IconName; badge?: number }) {
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
       {icon ? <Icon name={icon} size={16} color={selected ? colors.white : text.label.color} /> : null}
       <Text style={[text.label, styles.chipLabel, selected && styles.chipOnLabel]}>{label}</Text>
+      {badge ? (
+        <View style={[styles.chipBadge, selected && styles.chipBadgeOn]}>
+          <Text style={[text.label, styles.chipBadgeText, selected && { color: colors.brick }]}>{badge}</Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -172,6 +177,9 @@ const styles = StyleSheet.create({
   chip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.brick, borderColor: colors.brick },
   chipLabel: { includeFontPadding: false },
+  chipBadge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.brick, alignItems: "center", justifyContent: "center" },
+  chipBadgeOn: { backgroundColor: colors.white },
+  chipBadgeText: { color: colors.white, includeFontPadding: false },
   chipOnLabel: { color: colors.white },
   fieldError: { ...text.secondary, color: colors.error },
 });

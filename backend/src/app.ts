@@ -592,6 +592,14 @@ app.put("/me/applications/:changaId", async (c) => {
   return c.json({ application: presentApplication(outcome.row) }, outcome.created ? 201 : 200);
 });
 
+// Borra un borrador que nunca llegó a publicarse (por ejemplo si se canceló una firma). Una changa publicada no se toca.
+app.delete("/me/drafts/:specHash", async (c) => {
+  const specHash = c.req.param("specHash").toLowerCase();
+  if (!/^0x[0-9a-f]{64}$/.test(specHash)) return c.json({ error: "invalid spec hash" }, 400);
+  const result = await c.env.DB.prepare("DELETE FROM changas WHERE owner = ? AND spec_hash = ? AND order_id IS NULL").bind(c.get("address"), specHash).run();
+  return (result.meta?.changes ?? 0) > 0 ? c.json({ ok: true }) : c.json({ error: "draft not found" }, 404);
+});
+
 app.delete("/me/applications/:changaId", async (c) => {
   const changaId = parseChangaId(c.req.param("changaId"));
   if (changaId === null) return c.json({ error: "invalid changa id" }, 400);

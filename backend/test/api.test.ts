@@ -108,6 +108,35 @@ describe("changas", () => {
   });
 });
 
+describe("discarding drafts", () => {
+  it("lets the owner delete a draft that was never published, and never a published changa", async () => {
+    const ctx = setup();
+    const { body } = await tokenFor(ctx.call, owner);
+    const created = await ctx.call("/me/changas", authed(body.token, "POST", futureSpec("nonce-draft-a")));
+    const { specHash } = (await created.json()) as { specHash: string };
+    expect((await ctx.call(`/me/drafts/${specHash}`, authed(body.token, "DELETE"))).status).toBe(200);
+    expect((await ctx.call(`/me/drafts/${specHash}`, authed(body.token, "DELETE"))).status).toBe(404);
+    expect(((await (await ctx.call("/me/changas", authed(body.token, "GET"))).json()) as any).changas).toEqual([]);
+
+    const second = await ctx.call("/me/changas", authed(body.token, "POST", futureSpec("nonce-draft-b")));
+    const published = ((await second.json()) as { specHash: string }).specHash;
+    createdEvent(ctx.raw, 5, published, owner.address);
+    await processEvents(ctx.db, [createChangasHandler(new Map([[TOKEN.toLowerCase(), 6]]))], 100);
+    expect((await ctx.call(`/me/drafts/${published}`, authed(body.token, "DELETE"))).status).toBe(404);
+    expect(((await (await ctx.call("/me/changas", authed(body.token, "GET"))).json()) as any).changas).toHaveLength(1);
+  });
+
+  it("does not let someone else delete a draft and validates the hash", async () => {
+    const ctx = setup();
+    const { body } = await tokenFor(ctx.call, owner);
+    const created = await ctx.call("/me/changas", authed(body.token, "POST", futureSpec("nonce-draft-c")));
+    const { specHash } = (await created.json()) as { specHash: string };
+    const other = await tokenFor(ctx.call, stranger);
+    expect((await ctx.call(`/me/drafts/${specHash}`, authed(other.body.token, "DELETE"))).status).toBe(404);
+    expect((await ctx.call("/me/drafts/nope", authed(body.token, "DELETE"))).status).toBe(400);
+  });
+});
+
 describe("publishing from chain events", () => {
   const handler = createChangasHandler(new Map([[TOKEN.toLowerCase(), 6]]));
   const query = "minLat=-35&maxLat=-34&minLng=-59&maxLng=-58";

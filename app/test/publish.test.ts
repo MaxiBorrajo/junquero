@@ -79,13 +79,30 @@ describe("publicar", () => {
     await expect(publishChanga({ ...deps, signTypedData: sign }, draft, 25_000_000n)).rejects.toMatchObject({ missing: 15_000_000n });
     await expect(publishChanga({ ...deps, signTypedData: sign }, draft, 25_000_000n)).rejects.toBeInstanceOf(InsufficientBalance);
     expect(sign).not.toHaveBeenCalled();
-    expect(calls.every((c) => c.path === "/me/changas")).toBe(true);
+    expect(calls.some((c) => c.path === "/relay")).toBe(false);
+    // el borrador que se había guardado se borra
+    expect(calls.map((c) => c.path)).toContain(`/me/drafts/${SPEC_HASH}`);
   });
 
   it("si la persona cancela la firma, no se llama al relayer", async () => {
     const { deps, calls } = setup({ signTypedData: async () => Promise.reject(new Error("User rejected")) });
     await expect(publishChanga(deps, draft, 25_000_000n)).rejects.toThrow("User rejected");
     expect(calls.some((c) => c.path === "/relay")).toBe(false);
+    expect(calls.map((c) => c.path)).toContain(`/me/drafts/${SPEC_HASH}`);
+  });
+
+  it("no borra el borrador si el pedido ya salió hacia el relayer", async () => {
+    const { deps, calls } = setup();
+    const failing = vi.fn(async (url: string, init?: RequestInit) => {
+      const path = url.replace("https://x", "");
+      calls.push({ path, body: init?.body ? JSON.parse(init.body as string) : undefined });
+      if (path === "/me/changas") return new Response(JSON.stringify({ specHash: SPEC_HASH }), { status: 201 });
+      return new Response(JSON.stringify({ error: "relay failed" }), { status: 502 });
+    });
+    const api = createApi({ baseUrl: "https://x", fetcher: failing, getToken: () => "t" });
+    await expect(publishChanga({ ...deps, api }, draft, 25_000_000n)).rejects.toBeTruthy();
+    expect(calls.some((c) => c.path === "/relay")).toBe(true);
+    expect(calls.some((c) => c.path.startsWith("/me/drafts/"))).toBe(false);
   });
 });
 

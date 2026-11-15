@@ -32,12 +32,30 @@ export interface PublishResult {
   txHash: Hex;
 }
 
+// Guarda el borrador en el servidor (hace falta para calcular el hash de la changa) y arma, firma y manda la publicación.
+// Si algo falla antes de que el pedido salga (se cancela una firma, falta saldo, error de red), el borrador se borra
+// para que no queden changas "confirmando" que nunca se publicaron.
 export async function publishChanga(deps: PublishDeps, draft: Draft, amount: bigint): Promise<PublishResult> {
-  const { api, deployment, account } = deps;
-
+  const { api } = deps;
   deps.onStep?.("spec");
   const spec = buildSpec(draft, deps.nonce(), deps.now());
   const savedRequest = api.send<{ specHash: Hex }>("POST", "/me/changas", spec);
+  let sent = false;
+  try {
+    return await publishSaved(deps, spec, amount, savedRequest, () => {
+      sent = true;
+    });
+  } catch (failure) {
+    if (!sent) {
+      const saved = await savedRequest.catch(() => null);
+      if (saved) await api.send("DELETE", `/me/drafts/${saved.specHash}`).catch(() => {});
+    }
+    throw failure;
+  }
+}
+
+async function publishSaved(deps: PublishDeps, spec: ReturnType<typeof buildSpec>, amount: bigint, savedRequest: Promise<{ specHash: Hex }>, markSent: () => void): Promise<PublishResult> {
+  const { api, deployment, account } = deps;
 
   if (spec.group) {
     const [saved, groupNonce] = await Promise.all([savedRequest, deps.readForwarderNonce()]);
@@ -50,9 +68,10 @@ export async function publishChanga(deps: PublishDeps, draft: Draft, amount: big
     const groupDeadline = deps.now() + FORWARD_VALIDITY_SECONDS;
     const groupSignature = await deps.signTypedData(forwardTypedData(deployment, account, deployment.escrow, groupData, groupNonce, groupDeadline, GAS_CREATE_ORDER));
     deps.onStep?.("relay");
-    const sent = await api.send<{ txHash: Hex }>("POST", "/relay", relayBody(account, deployment.escrow, groupData, GAS_CREATE_ORDER, groupDeadline, groupSignature));
+    markSent();
+    const relayed = await api.send<{ txHash: Hex }>("POST", "/relay", relayBody(account, deployment.escrow, groupData, GAS_CREATE_ORDER, groupDeadline, groupSignature));
     deps.onStep?.("confirming");
-    return { specHash: saved.specHash, txHash: sent.txHash };
+    return { specHash: saved.specHash, txHash: relayed.txHash };
   }
 
   const [saved, balance, permitNonce, forwardNonce] = await Promise.all([savedRequest, deps.readBalance(), deps.readTokenNonce(), deps.readForwarderNonce()]);
@@ -70,6 +89,7 @@ export async function publishChanga(deps: PublishDeps, draft: Draft, amount: big
   const forwardSignature = await deps.signTypedData(forwardTypedData(deployment, account, deployment.escrow, data, forwardNonce, forwardDeadline, GAS_CREATE_ORDER));
 
   deps.onStep?.("relay");
+  markSent();
   const { txHash } = await api.send<{ txHash: Hex }>("POST", "/relay", relayBody(account, deployment.escrow, data, GAS_CREATE_ORDER, forwardDeadline, forwardSignature));
 
   deps.onStep?.("confirming");

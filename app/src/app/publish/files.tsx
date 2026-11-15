@@ -60,7 +60,7 @@ export default function PublishFiles() {
   const remove = (hash: string) => update((d) => ({ ...d, attachments: d.attachments.filter((item) => item.hash !== hash) }));
 
   return (
-    <WizardStep step={3} title={t.publish.filesTitle} onNext={() => router.push("/publish/price")}>
+    <WizardStep step={3} title={t.publish.filesTitle} onNext={() => router.push("/publish/payment")}>
       <Body>{t.publish.filesWarning}</Body>
       <View style={styles.grid}>
         {draft.attachments.map((file) => (

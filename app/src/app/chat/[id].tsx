@@ -5,7 +5,7 @@ import { useMyAgreements, useMyApplications, useMyChangas, useReceivedApplicatio
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
-import { useChatEvents } from "../../data/useChatEvents";
+import { useChatEvents, type ChatEvent } from "../../data/useChatEvents";
 import { buildTimeline, eventText } from "../../lib/chatTimeline";
 import { StepCard } from "../../components/StepCard";
 import { AgreementCard } from "../../components/AgreementCard";
@@ -51,6 +51,9 @@ function ProtectedCard() {
     </Card>
   );
 }
+
+const EVENT_ICON = { proposed: "send", accepted: "check", rejected: "close", cancelled: "close", agreed: "check", checkedin: "pin", delivered: "check", settled: "wallet" } as const;
+const EVENT_COLOR = { proposed: colors.brick, accepted: colors.success, rejected: colors.error, cancelled: colors.muted, agreed: colors.success, checkedin: colors.brick, delivered: colors.brick, settled: colors.success } as const;
 
 export default function ChatScreen() {
   const { id, counterpart, title } = useLocalSearchParams<{ id: string; counterpart: string; title?: string }>();
@@ -225,10 +228,16 @@ export default function ChatScreen() {
                 </View>
               ) : null}
             {row.type === "event" ? (
-              <View style={styles.event}>
-                <Icon name="check" size={14} color={colors.muted} />
-                <Text style={[text.secondary, styles.eventText]}>{eventText(row.event, me, counterpartName ?? t.chat.unknownUser, t.chat.events)}</Text>
-                <Text style={text.label}>{formatClock(row.event.createdAt)}</Text>
+              <View style={styles.eventWrap}>
+                <View style={styles.event}>
+                  <View style={[styles.eventBadge, { backgroundColor: EVENT_COLOR[(row.event as ChatEvent).kind] }]}>
+                    <Icon name={EVENT_ICON[(row.event as ChatEvent).kind]} size={14} color={colors.white} />
+                  </View>
+                  <View style={{ flexShrink: 1 }}>
+                    <Text style={text.secondary}>{eventText(row.event, me, counterpartName ?? t.chat.unknownUser, t.chat.events)}</Text>
+                    <Text style={text.label}>{formatClock(row.event.createdAt)}</Text>
+                  </View>
+                </View>
               </View>
             ) : (() => { const item = row.message; return (
             <View style={[styles.bubble, item.mine ? styles.mine : styles.theirs]}>
@@ -344,8 +353,9 @@ const styles = StyleSheet.create({
   applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.xs },
   entry: { gap: spacing.sm },
   proposal: { marginTop: spacing.sm },
-  event: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs, paddingHorizontal: spacing.md },
-  eventText: { flexShrink: 1, textAlign: "center" },
+  eventWrap: { alignItems: "center", paddingHorizontal: spacing.sm },
+  event: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, maxWidth: "92%" },
+  eventBadge: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   time: { alignSelf: "flex-end" },
   bubble: { maxWidth: "80%", borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.xs },

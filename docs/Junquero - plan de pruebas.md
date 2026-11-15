@@ -137,7 +137,7 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Observaciones: _
 
 **2.11 Pasos del asistente de publicar** · Rol: Ana
-- [ ] Pasos: publicar una changa individual sin hitos, otra con hitos y una grupal, mirando el contador de pasos y la barra de avance.
+- [ x ] Pasos: publicar una changa individual sin hitos, otra con hitos y una grupal, mirando el contador de pasos y la barra de avance.
 - Esperado: cada paso tiene una sola idea. Sin hitos son 7 pasos: qué necesitás, dónde y cuándo, fotos, cómo se paga, cuánto pagás, qué evidencia pedís (con una explicación) y revisar. "Cómo se paga" pregunta primero si se divide en hitos; con "Sí" se cargan los hitos y los materiales, con "No" no hay nada más que elegir (y en las grupales va también el plazo para juntar los aportes). "Cuánto pagás" viene después: sin hitos se escribe el monto o la meta; con hitos el total aparece fijo, calculado como la suma de los hitos (con un botón para volver a editarlos), y no se puede escribir. Si el monto es grande o el plazo largo y no se eligieron hitos, "Cuánto pagás" sugiere volver a dividirlos. Con hitos no hay paso de evidencia (cada hito pide la suya) y el total de pasos pasa a 6 en cuanto se elige "Sí". En el paso de evidencia no deja avanzar sin al menos una prueba, y se pueden agregar hasta 5 y quitarlas con el tacho.
 
 **2.10 Monto mínimo** · Rol: Ana
@@ -614,7 +614,7 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.16 Campana de notificaciones** · [ ] Recibir una notificación con la app abierta en el mapa. Esperado: el globito de la campana aparece solo; al entrar a Notificaciones se apaga.
 
-**15.17 Camino del trabajo** · [ ] Como quien trabaja y como quien publicó, abrir "Tu trabajo". Esperado: una tarjeta con los pasos (llegar, subir pruebas, terminar, esperar la aprobación / esperar, revisar, aprobar), el paso actual resaltado con su explicación y los hechos con tilde.
+**15.17 Camino del trabajo** · [ ] Como quien trabaja y como quien publicó, abrir "Tu trabajo" (también un trabajo con hitos y uno grupal). Esperado: una tarjeta con los pasos (llegar, subir pruebas, terminar, esperar la aprobación / esperar, revisar, aprobar), el paso actual resaltado con su explicación y los hechos con tilde.
 
 ---
 

@@ -21,6 +21,7 @@ import { useSession } from "../session/SessionProvider";
 import { signTyped } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
 import { Card } from "./Card";
+import { Journey } from "./Journey";
 import { DetailActions } from "./DetailActions";
 import { Body, Button, Chip, ErrorText, Row, Secondary } from "./ui";
 import { Stars } from "./Stars";
@@ -82,6 +83,13 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   return (
     <View style={styles.box}>
       <Text style={text.subtitle}>{t.milestonesBoard.title}</Text>
+      {role !== "viewer" && !allPaid(state.milestones) ? (
+        <Journey
+          title={t.journeyMilestone.title}
+          steps={role === "payee" ? [{ key: "work", ...t.journeyMilestone.payee.work }, { key: "deliver", ...t.journeyMilestone.payee.deliver }, { key: "review", ...t.journeyMilestone.payee.review }] : [{ key: "wait", ...t.journeyMilestone.payer.wait }, { key: "review", ...t.journeyMilestone.payer.review }, { key: "approve", ...t.journeyMilestone.payer.approve }]}
+          current={role === "payee" ? (action === "wait-review" ? 2 : mine.length === 0 ? 0 : 1) : action === "review" ? 1 : 0}
+        />
+      ) : null}
       {state.milestones.map((item, index) => {
         const info = changa?.spec.milestones?.[index];
         return (

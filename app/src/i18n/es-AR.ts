@@ -512,6 +512,26 @@ export const esAR = {
       done: { label: "Listo: el pago llega a quien trabajó", hint: "" },
     },
   },
+  journeyGroup: {
+    title: "El camino de este trabajo grupal",
+    fund: { label: "Juntar la meta", hint: "Cada persona aporta lo que puede hasta llegar a la meta antes del plazo. Si no se llega, se devuelve todo." },
+    pick: { label: "Elegir a quien trabaja", hint: "Quien publicó propone a una persona de las que se postularon." },
+    veto: { label: "Plazo para objetar la propuesta", hint: "Quienes aportaron pueden vetar a la persona propuesta. Si nadie objeta, queda acordado." },
+    work: { label: "Seguir el trabajo", hint: "Quien trabaja entrega y quienes aportaron revisan las pruebas desde \"Mis aportes\"." },
+  },
+  journeyMilestone: {
+    title: "Camino del hito actual",
+    payee: {
+      work: { label: "Hacé el hito y subí las pruebas", hint: "Subí fotos o archivos de lo que hiciste en este hito." },
+      deliver: { label: "Entregá el hito", hint: "Ya subiste pruebas. Tocá \"Entregar\" para que quien publicó lo revise." },
+      review: { label: "Esperá la aprobación y cobrá", hint: "Cuando aprueben, cobrás este hito y pasás al siguiente." },
+    },
+    payer: {
+      wait: { label: "Esperá a que entreguen el hito", hint: "Te avisamos cuando suban las pruebas." },
+      review: { label: "Revisá las pruebas", hint: "Mirá lo entregado y calificá." },
+      approve: { label: "Aprobá y liberá el pago del hito", hint: "Mostrá el código o aprobá desde acá." },
+    },
+  },
   publicProfile: {
     since: "En Junquero desde {date}",
     doneAsPayee: "Trabajos hechos",

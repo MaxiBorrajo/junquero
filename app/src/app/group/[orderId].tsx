@@ -8,6 +8,7 @@ import { checkContribution, contributionLimits, encodeContribute, encodeSupportC
 import { OrderStatus } from "../../chain/orderAbi";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readContributionRule, readGroup, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { Journey } from "../../components/Journey";
 import { Banner } from "../../components/Banner";
 import { Card } from "../../components/Card";
 import { DetailActions, type DetailAction } from "../../components/DetailActions";
@@ -93,6 +94,16 @@ export default function GroupScreen() {
   return (
     <Screen footer={funding ? <Button label={t.group.contribute} icon="wallet" onPress={contribute} loading={busy} disabled={!check.ok} /> : null}>
       <Title>{title ?? t.group.title}</Title>
+      <Journey
+        title={t.journeyGroup.title}
+        steps={[
+          { key: "fund", ...t.journeyGroup.fund },
+          { key: "pick", ...t.journeyGroup.pick },
+          { key: "veto", ...t.journeyGroup.veto },
+          { key: "work", ...t.journeyGroup.work },
+        ]}
+        current={funding ? 0 : open ? (hasProposal ? 2 : 1) : 3}
+      />
       <Body>{funding ? t.group.funding : open ? t.group.funded : ""}</Body>
       <Card>
         <Text style={text.label}>{t.group.raised}</Text>

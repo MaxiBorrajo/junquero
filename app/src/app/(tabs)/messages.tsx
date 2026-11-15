@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { Card } from "../../components/Card";
 import { router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { ChatSummary } from "../../api/types";
 import { PREVIEW_LABELS, loadPreview, previewFromSealed } from "../../chat/preview";
@@ -15,7 +16,7 @@ import { t } from "../../i18n";
 import { usePullGesture } from "../../lib/usePullGesture";
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { useSession } from "../../session/SessionProvider";
-import { colors, fonts, radius, spacing, text } from "../../theme";
+import { colors, fonts, spacing, text } from "../../theme";
 
 function ChatRow({ chat }: { chat: ChatSummary }) {
   const { api, address } = useSession();
@@ -48,8 +49,7 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
         ? t.chat.newMessage
         : "";
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Card
       onPress={() => router.push({ pathname: "/chat/[id]", params: { id: String(chat.applicationId), counterpart: chat.counterpart, title: chat.title } })}
       style={styles.row}
     >
@@ -78,7 +78,7 @@ function ChatRow({ chat }: { chat: ChatSummary }) {
         </View>
         {!chat.writable ? <Text style={text.label}>{t.chat.readOnly}</Text> : null}
       </View>
-    </Pressable>
+    </Card>
   );
 }
 
@@ -123,13 +123,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   pad: { padding: spacing.md, gap: spacing.md },
   list: { padding: spacing.md, gap: spacing.sm },
-  row: { flexDirection: "row", alignItems: "center", backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.line },
+  row: { flexDirection: "row", alignItems: "center" },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
-  avatarText: { fontFamily: fonts.bold, fontSize: 18, color: colors.brick },
+  avatarText: { ...text.subtitle, color: colors.brick },
   line: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  name: { flex: 1, fontFamily: fonts.semibold, fontSize: 16, color: colors.ink },
-  preview: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: colors.muted },
+  name: { flex: 1, ...text.body, fontFamily: fonts.semibold },
+  preview: { flex: 1, ...text.secondary },
   strong: { fontFamily: fonts.bold, color: colors.ink },
   badge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.brick, alignItems: "center", justifyContent: "center" },
-  badgeText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
+  badgeText: { ...text.label, fontFamily: fonts.bold, color: colors.white },
 });

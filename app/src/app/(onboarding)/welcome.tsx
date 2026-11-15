@@ -34,6 +34,6 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   hero: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm },
-  name: { ...text.title, fontSize: 44, color: colors.brick },
-  slogan: { textAlign: "center", paddingHorizontal: spacing.lg, color: colors.ink, fontSize: 15 },
+  name: { ...text.amount,  color: colors.brick },
+  slogan: { textAlign: "center", paddingHorizontal: spacing.lg, color: colors.ink },
 });

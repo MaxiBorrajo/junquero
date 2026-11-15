@@ -18,8 +18,9 @@ import { formatDate } from "../lib/format";
 import { formatUsdc } from "../lib/money";
 import { relayDepsFor } from "../lib/relayHelpers";
 import { useSession } from "../session/SessionProvider";
-import { isRejection, signTyped } from "../wallet/sign";
+import { signTyped } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
+import { Card } from "./Card";
 import { DetailActions } from "./DetailActions";
 import { Body, Button, Chip, ErrorText, Row, Secondary } from "./ui";
 import { Stars } from "./Stars";
@@ -84,11 +85,11 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
       {state.milestones.map((item, index) => {
         const info = changa?.spec.milestones?.[index];
         return (
-          <View key={index} style={[styles.item, index === state.next && styles.currentItem]}>
+          <Card key={index} gap="xs" style={index === state.next && styles.currentItem}>
             <Body>{`${index + 1}. ${info?.name ?? ""} · ${formatUsdc(item.amount.toString())}`}</Body>
             <Text style={text.label}>{t.milestonesBoard.status[item.status] ?? ""}</Text>
             {info && index === state.next && action !== "none" ? <Secondary>{`${t.milestonesBoard.criteria}: ${info.criteria}`}</Secondary> : null}
-          </View>
+          </Card>
         );
       })}
       {allPaid(state.milestones) ? <Body>{t.milestonesBoard.allPaid}</Body> : null}
@@ -181,7 +182,6 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
 
 const styles = StyleSheet.create({
   box: { gap: spacing.sm },
-  item: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: 2, borderWidth: 1, borderColor: colors.line },
   currentItem: { borderColor: colors.brick },
   qr: { alignItems: "center", gap: spacing.md, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md },
 });

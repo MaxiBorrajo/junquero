@@ -16,7 +16,7 @@ import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
 import { useSwitchAccount } from "../../session/useSwitchAccount";
 import { isRejection, isStaleWalletSession, signTyped } from "../../wallet/sign";
-import { colors, radius, spacing, text } from "../../theme";
+import { colors, spacing, text } from "../../theme";
 
 function Point({ icon, children }: { icon: IconName; children: string }) {
   return (

@@ -1,4 +1,5 @@
 import { File } from "expo-file-system";
+import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -27,14 +28,14 @@ function ProtectedCard() {
     setCollapsed(!collapsed);
   };
   return (
-    <Pressable accessibilityRole="button" onPress={toggle} style={styles.protectedCard}>
+    <Card gap="xs" onPress={toggle}>
       <View style={styles.protectedHead}>
         <Icon name="shield" size={18} color={colors.success} />
         <Text style={styles.protectedTitle}>{t.chat.protectedTitle}</Text>
         <Text style={styles.protectedToggle}>{collapsed ? t.chat.protectedShow : t.chat.protectedHide}</Text>
       </View>
       {collapsed ? null : <Text style={styles.protectedBody}>{t.chat.protectedBody}</Text>}
-    </Pressable>
+    </Card>
   );
 }
 
@@ -177,7 +178,7 @@ export default function ChatScreen() {
                 >
                   <Icon name={file.mime.startsWith("image/") ? "image" : "file"} size={20} color={item.mine ? colors.white : colors.brick} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[text.body, { fontSize: 14 }, item.mine && styles.mineText]} numberOfLines={1}>
+                    <Text style={[text.secondary, { color: colors.ink }, item.mine && styles.mineText]} numberOfLines={1}>
                       {file.name}
                     </Text>
                     {file.size > 0 ? <Text style={[text.label, item.mine && styles.mineText]}>{formatSize(file.size)}</Text> : null}
@@ -283,11 +284,10 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, gap: spacing.xs },
   iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   messages: { padding: spacing.md, gap: spacing.sm },
-  protectedCard: { backgroundColor: colors.white, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: spacing.sm + 4, gap: spacing.xs },
   protectedHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  protectedTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 14, color: colors.success },
-  protectedToggle: { fontFamily: fonts.medium, fontSize: 12, color: colors.muted },
-  protectedBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.ink },
+  protectedTitle: { flex: 1, ...text.secondary, fontFamily: fonts.semibold, color: colors.success },
+  protectedToggle: { ...text.label },
+  protectedBody: { ...text.secondary, color: colors.ink },
   applicationCard: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, gap: 2, marginBottom: spacing.sm },
   bubble: { maxWidth: "80%", borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.xs },
   mine: { alignSelf: "flex-end", backgroundColor: colors.brick },

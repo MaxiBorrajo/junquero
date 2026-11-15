@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Card } from "./Card";
 import { Icon } from "./Icon";
 import type { Changa } from "../api/types";
 import { t } from "../i18n";
@@ -14,7 +15,7 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
   const where = [t.publish.categories[spec.category], spec.modality === "remote" ? t.map.remoteTag : t.map.onsiteTag, distanceM !== undefined ? `${t.map.away} ${formatDistance(distanceM)}` : null].filter(Boolean).join(" · ");
   const when = spec.startsAt ?? spec.deadline ?? null;
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+    <Card gap="xs" onPress={onPress}>
       <View style={styles.row}>
         <Text style={styles.title} numberOfLines={2}>
           {spec.title}
@@ -39,13 +40,11 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
           ) : null}
         </View>
       ) : null}
-    </Pressable>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
-  pressed: { opacity: 0.85 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: spacing.md },
   title: { ...text.subtitle, flex: 1 },
   amount: { ...text.subtitle, color: colors.brick },

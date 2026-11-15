@@ -1,4 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Card } from "../../components/Card";
+import { Banner } from "../../components/Banner";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
@@ -21,7 +23,7 @@ import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
 import { isRejection, signTyped } from "../../wallet/sign";
-import { colors, radius, spacing, text } from "../../theme";
+import { colors, spacing, text } from "../../theme";
 
 export default function ReceivedApplications() {
   const { changaId } = useLocalSearchParams<{ changaId: string }>();
@@ -138,17 +140,14 @@ export default function ReceivedApplications() {
           <View style={{ gap: spacing.sm }}>
             <Title>{t.received.title}</Title>
             {proposal ? (
-              <View style={styles.banner}>
-                <Text style={text.body}>{t.received.pendingTitle}</Text>
-                <Button label={t.received.cancelProposal} icon="close" variant="ghost" onPress={cancelProposal} />
-              </View>
+              <Banner icon="clock" action={{ label: t.received.cancelProposal, onPress: () => void cancelProposal() }}>{t.received.pendingTitle}</Banner>
             ) : null}
             {failed ? <ErrorText>{t.received.chooseFailed}</ErrorText> : null}
           </View>
         }
         ListEmptyComponent={<Secondary>{t.received.empty}</Secondary>}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <Card gap="xs">
             <View style={styles.cardHeader}>
               <Text style={[text.subtitle, { flex: 1 }]} onPress={() => router.push({ pathname: "/profile-public", params: { address: item.applicant } })}>{item.profile?.name ?? item.applicant.slice(0, 8)}</Text>
               <PersonMenu role="owner" applicationId={item.id} changaId={id} counterpart={item.applicant} active={item.status === "active"} />
@@ -171,7 +170,7 @@ export default function ReceivedApplications() {
               ]}
             />
             {changa && changa.status === "open" ? <Button label={t.received.choose} icon="check" onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
-          </View>
+          </Card>
         )}
       />
     </SafeAreaView>
@@ -181,7 +180,5 @@ export default function ReceivedApplications() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.md, gap: spacing.md },
-  card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  banner: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
 });

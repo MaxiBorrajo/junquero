@@ -14,7 +14,7 @@ import { useToast } from "../components/Toast";
 import { pushEnabledByUser, setPushEnabledByUser } from "../push/preference";
 import { registerForPush, unregisterPush } from "../push/register";
 import { useSession } from "../session/SessionProvider";
-import { colors, radius, spacing, text } from "../theme";
+import { colors, spacing, text } from "../theme";
 
 type PushState = "on" | "off" | "blocked" | "unavailable";
 

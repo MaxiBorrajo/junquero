@@ -1,9 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Text, View } from "react-native";
+import { Card } from "../../components/Card";
 import { useChangaBySpec } from "../../data/useChangas";
 import { formatUsdc, toMicro } from "../../lib/money";
 import { milestoneTotal, suggestMilestones } from "../../chain/terms";
-import { colors, text } from "../../theme";
 import { Chip, Labeled, Row } from "../../components/ui";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -80,12 +79,12 @@ export default function Apply() {
             <>
               <Secondary>{t.planChange.note}</Secondary>
               {editable.map((item, index) => (
-                <View key={index} style={{ gap: 8, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 12, backgroundColor: colors.white }}>
+                <Card key={index}>
                   <Field label={t.publish.milestoneName} value={item.name} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, name: value } : m)))} maxLength={60} />
                   <Field label={t.publish.milestoneAmount} value={item.amount} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, amount: value } : m)))} keyboardType="decimal-pad" />
                   <Field label={t.publish.milestoneCriteria} value={item.criteria} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, criteria: value } : m)))} maxLength={200} multiline />
                   <Field label={t.publish.milestoneEvidence} value={item.evidence} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, evidence: value } : m)))} maxLength={100} />
-                </View>
+                </Card>
               ))}
               {total !== expected ? <ErrorText>{t.planChange.totalMismatch.replace("{total}", formatUsdc(expected.toString()).replace(" USDC", ""))}</ErrorText> : null}
             </>

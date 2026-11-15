@@ -1,106 +1,106 @@
 {
-  "chainId": 11155111,
-  "mode": "demo",
-  "governanceHandedOver": false,
-  "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
-  "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
-  "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
-  "startBlock": 12115214,
-  "contracts": {
-    "token": {
-      "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
-      "block": 12115214
-    },
-    "forwarder": {
-      "address": "0xcCB173C2E6AB19421aAC62537cfE752F9258b71d",
-      "block": 12115214
-    },
-    "parameterRegistry": {
-      "address": "0x27678b49807A463aDDCB1537919179Bc61bAB7Bd",
-      "block": 12115214
-    },
-    "treasury": {
-      "address": "0x8BC2d64942B3f92266dDb75C372CF32f67b1b2C6",
-      "block": 12115214
-    },
-    "escrow": {
-      "address": "0x99C9117F940c0a9f8e9C70971d39B3bB6b5697fe",
-      "block": 12115214
-    },
-    "orderModule": {
-      "address": "0xf216eA84041c39749F9e95C4Ab29Aa097b34f34f",
-      "block": 12115214
-    },
-    "cancelModule": {
-      "address": "0x14751CCe32AC64066F9a9ecF183683c78407bfB9",
-      "block": 12115214
-    },
-    "adminModule": {
-      "address": "0xE8A15faD1152b3204b9E0fdcb7655663A47E55A6",
-      "block": 12115214
-    },
-    "disputeModule": {
-      "address": "0xdfd5556923F72b1A6359dc27B3FDF83453eceecf",
-      "block": 12115215
-    },
-    "milestoneModule": {
-      "address": "0x4b4d934353a60482f3dF0b5d33144CBdeb1D72D0",
-      "block": 12115215
-    },
-    "groupModule": {
-      "address": "0xf284DD1941f72EcD9061d51a5f085340B8f30949",
-      "block": 12115215
-    },
-    "witnessModule": {
-      "address": "0xb01c169d84013d3e84C8a0360319af582fd7653e",
-      "block": 12115215
-    },
-    "credentials": {
-      "address": "0xE3189cA53B1e1755D6cEaEa02668aa71C01e9B78",
-      "block": 12115215
-    },
-    "reputation": {
-      "address": "0x0fd60Ea175141d302E7Fa4B02A1100ea5456e73C",
-      "block": 12115215
-    },
-    "receipt": {
-      "address": "0x1661861E25C427d35595a083B9b26420843B1049",
-      "block": 12115216
-    },
-    "arbitration": {
-      "address": "0x800408863B0164c57bBB31556A537413F984eB18",
-      "block": 12115216
-    },
-    "votingWeight": {
-      "address": "0xFfc450E3Da927BCe02b1e1a7575Ce43B3cE1aB19",
-      "block": 12115216
-    },
-    "timelock": {
-      "address": "0x46F88020eE2657DbF8fA05306EC692994cbA2883",
-      "block": 12115216
-    },
-    "governor": {
-      "address": "0xE3dcC63E136ACD897efD89cECfF666f661BB5F20",
-      "block": 12115216
-    }
+ "chainId": 11155111,
+ "mode": "demo",
+ "governanceHandedOver": false,
+ "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
+ "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
+ "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+ "startBlock": 12136881,
+ "contracts": {
+  "token": {
+   "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
+   "block": 12115214
   },
-  "abiDirectory": "deployments/abi",
-  "abiNotes": "Escrow.json une el router y los siete modulos (misma direccion, una sola interfaz).",
-  "demoAccounts": {
-    "solicitante": "0x6419B1743FCd4b36a25dd14cacAB1c1d78d22fBa",
-    "prestador": "0x99e5486D3BeC0c971a4104dF5D564bd99d762ee0",
-    "jurors": [
-      "0x1B56dB16685BACcB58c5fC9e9E5Eab89DD65Cc05",
-      "0xB4f8eccEf4975B0AD7f06e6Bb46D713BcDB024d8",
-      "0x98fbFd1516d9164CaB979C284ac15DA30feAc33F",
-      "0x9017620e283a3A6006A15b213613A466299F37EE",
-      "0xfEB47472fe647c437576F72213CaB65dff50a6a8"
-    ],
-    "contributors": [
-      "0x32c3be9194e1Ab9C2780805a4d6a05D962089053",
-      "0x34711Aa19d8437E7d9905770B5391e807eC018DA",
-      "0xD45c525621d51FD6ff5689067Ff1658c8a15F231"
-    ],
-    "witness": "0xe811699865567fab481e98637A21AA7e028fe31A"
+  "forwarder": {
+   "address": "0x98ca8312406c3b1D74919e75667976093D365bAb",
+   "block": 12136881
+  },
+  "parameterRegistry": {
+   "address": "0x3B6BB6a36996A7d1512f4076f030F28C6dA41F9a",
+   "block": 12136881
+  },
+  "treasury": {
+   "address": "0xA0C1288e122b15C9f81986Dd1d3719724450d361",
+   "block": 12136881
+  },
+  "escrow": {
+   "address": "0x5cF0e730Dd9AFcf8061d69Bb6ccdacAb4e31E2Bc",
+   "block": 12136881
+  },
+  "orderModule": {
+   "address": "0x493e5756C75c320C4eDB269BD70A38298174cF78",
+   "block": 12136881
+  },
+  "cancelModule": {
+   "address": "0x2275E1A9887642F04D6BdB9cDBCaE9fc9BD0b2EA",
+   "block": 12136881
+  },
+  "adminModule": {
+   "address": "0x54Aa2601e884e0aa95A9ad31236279f566d3B862",
+   "block": 12136881
+  },
+  "disputeModule": {
+   "address": "0xeC2C3Bd7039596B63459953ADD2210624397eda1",
+   "block": 12136882
+  },
+  "milestoneModule": {
+   "address": "0x0e5766150745655aEA2208fF9459E2C0b88e49d3",
+   "block": 12136882
+  },
+  "groupModule": {
+   "address": "0xd9Eb293B000CcE8e7CAb99D3974C208Ae5169bd2",
+   "block": 12136882
+  },
+  "witnessModule": {
+   "address": "0x5d8cC115F1Ded96AFa1F10E2Bc3bFF30985581E4",
+   "block": 12136882
+  },
+  "credentials": {
+   "address": "0xC37Ee484756913EaFe8a51650413434ba1D54a0c",
+   "block": 12136882
+  },
+  "reputation": {
+   "address": "0x20dc9905CcDD7920f5Ee91679bAe20b876cF625A",
+   "block": 12136882
+  },
+  "receipt": {
+   "address": "0x0355c3a34A0dD68956bA1a6Ac0943a64650D1Aa4",
+   "block": 12136882
+  },
+  "arbitration": {
+   "address": "0xfF7Dd03064B21FaeC9cd14aA66851Ed1136C81cF",
+   "block": 12136882
+  },
+  "votingWeight": {
+   "address": "0x52D88dcB47B2747C87c1e6C787C1D9293b3fcaa3",
+   "block": 12136882
+  },
+  "timelock": {
+   "address": "0x0DEe87402bAe3e6111cdEDd7298a2188F479DC1d",
+   "block": 12136882
+  },
+  "governor": {
+   "address": "0x33570f8967e0AE3692705Ce421766ea119276C49",
+   "block": 12136883
   }
+ },
+ "abiDirectory": "deployments/abi",
+ "abiNotes": "Escrow.json une el router y los siete modulos (misma direccion, una sola interfaz).",
+ "demoAccounts": {
+  "solicitante": "0x6419B1743FCd4b36a25dd14cacAB1c1d78d22fBa",
+  "prestador": "0x99e5486D3BeC0c971a4104dF5D564bd99d762ee0",
+  "jurors": [
+   "0x1B56dB16685BACcB58c5fC9e9E5Eab89DD65Cc05",
+   "0xB4f8eccEf4975B0AD7f06e6Bb46D713BcDB024d8",
+   "0x98fbFd1516d9164CaB979C284ac15DA30feAc33F",
+   "0x9017620e283a3A6006A15b213613A466299F37EE",
+   "0xfEB47472fe647c437576F72213CaB65dff50a6a8"
+  ],
+  "contributors": [
+   "0x32c3be9194e1Ab9C2780805a4d6a05D962089053",
+   "0x34711Aa19d8437E7d9905770B5391e807eC018DA",
+   "0xD45c525621d51FD6ff5689067Ff1658c8a15F231"
+  ],
+  "witness": "0xe811699865567fab481e98637A21AA7e028fe31A"
+ }
 }

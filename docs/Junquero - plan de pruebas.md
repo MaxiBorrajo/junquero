@@ -157,7 +157,7 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: queda retenida la garantía de postulante. Ana recibe un aviso de nueva postulación. Si el monto es mayor al publicado, el campo avisa cuánto es de más y que quien publica tendrá que sumar esa diferencia. (Las contraofertas más altas se prueban completas en 3.8.)
 
 **3.2 Ver postulaciones y elegir** · Rol: Ana
-- [ ] Pasos: Mis trabajos → la changa → postulaciones → perfil de Beto → "Elegir".
+- [ x ] Pasos: Mis trabajos → la changa → postulaciones → perfil de Beto → "Elegir".
 - Esperado: se ve la reputación y la actividad de Beto; Beto recibe el aviso "Te eligieron".
 
 **3.3 Cancelar después de una postulación** · Rol: Ana y Beto

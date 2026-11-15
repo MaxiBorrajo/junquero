@@ -17,7 +17,7 @@ import { appKit, wagmiAdapter } from "../wallet/appkit";
 SplashScreen.preventAutoHideAsync();
 
 // Un corte de red momentáneo al bajar las fuentes del mapa no es un error de la app: en desarrollo no abre el cartel rojo.
-LogBox.ignoreLogs(["Failed to load glyph range"]);
+LogBox.ignoreLogs(["Failed to load glyph range", "emitting session_request"]);
 
 function Shell() {
   const { status } = useSession();

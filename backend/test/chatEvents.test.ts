@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { readCache } from "../src/app";
 import { applicationsHandler } from "../src/applications";
 import { purgeAgreements } from "../src/agreements";
+import { notifyChat, withChatNotify } from "../src/chatNotify";
 import { chatEventsHandler, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "../src/chatEvents";
 import { createChangasHandler } from "../src/changas";
 import { processEvents } from "../src/eventStream";
@@ -99,5 +100,46 @@ describe("más hechos del flujo", () => {
     const rows = rowsOf(ctx);
     expect(rows.map((row) => row.kind)).toEqual(["applied", "agreed", "evidence", "approved", "expired", "withdrawn"]);
     expect(JSON.parse(rows[2].data as string)).toEqual({ count: 2 });
+  });
+});
+
+function fakeChat() {
+  const hit: string[] = [];
+  const CHAT = {
+    idFromName: (name: string) => name,
+    get: (id: string) => ({ fetch: async (url: string, init: { method: string }) => { hit.push(`${id}:${url}:${init.method}`); return new Response(null, { status: 204 }); } }),
+  } as unknown as DurableObjectNamespace;
+  return { hit, CHAT };
+}
+
+describe("aviso en vivo a los chats abiertos", () => {
+  it("avisa una sola vez a cada chat, ignora ids raros y tolera que no haya binding", async () => {
+    const { hit, CHAT } = fakeChat();
+    await notifyChat({ CHAT }, [5, 5, 7, Number.NaN]);
+    expect(hit).toEqual(["5:https://chat/notify:POST", "7:https://chat/notify:POST"]);
+    await expect(notifyChat({} as never, [1])).resolves.toBeUndefined();
+  });
+
+  it("avisa solo a los chats que tuvieron hechos nuevos durante el trabajo", async () => {
+    const { ctx, applicationId } = await chat();
+    const { hit, CHAT } = fakeChat();
+    plainEvent(ctx.raw, "OrderAgreed", 1, 900, { orderId: "1", payee: stranger.address });
+    await withChatNotify({ CHAT, DB: ctx.db }, () => processEvents(ctx.db, handlers, 100));
+    expect(hit).toEqual([`${applicationId}:https://chat/notify:POST`]);
+    hit.length = 0;
+    await withChatNotify({ CHAT, DB: ctx.db }, () => processEvents(ctx.db, handlers, 100));
+    expect(hit).toEqual([]);
+  });
+
+  it("un hecho repetido no vuelve a avisar", async () => {
+    const { ctx } = await chat();
+    const first = await recordOrderEvent(ctx.db, "approved", 1, owner.address, "x", 10).all();
+    expect(first.results).toEqual([]);
+    plainEvent(ctx.raw, "OrderAgreed", 1, 901, { orderId: "1", payee: stranger.address });
+    await processEvents(ctx.db, handlers, 100);
+    const again = await recordOrderEvent(ctx.db, "approved", 1, owner.address, "x", 10).all<{ application_id: number }>();
+    const repeat = await recordOrderEvent(ctx.db, "approved", 1, owner.address, "x", 10).all<{ application_id: number }>();
+    expect(again.results).toHaveLength(1);
+    expect(repeat.results).toHaveLength(0);
   });
 });

@@ -19,14 +19,14 @@ const applicationOf = "(SELECT a.id FROM applications a JOIN changas c ON c.id =
 // Una acción de la propuesta de acuerdo (mandar, aceptar, rechazar, cancelar). Puede repetirse, así que cada una lleva su hora como referencia.
 export function recordAgreementEvent(db: D1Database, kind: ChatEventKind, orderId: number, payee: string, actor: string, nowSeconds: number) {
   return db
-    .prepare(`INSERT OR IGNORE INTO chat_events (application_id, kind, actor, ref, created_at) SELECT ${applicationOf}, ?, ?, ?, ? WHERE ${applicationOf} IS NOT NULL`)
+    .prepare(`INSERT OR IGNORE INTO chat_events (application_id, kind, actor, ref, created_at) SELECT ${applicationOf}, ?, ?, ?, ? WHERE ${applicationOf} IS NOT NULL RETURNING application_id`)
     .bind(orderId, payee.toLowerCase(), kind, actor.toLowerCase(), crypto.randomUUID(), nowSeconds, orderId, payee.toLowerCase());
 }
 
 // Un hecho de la postulación misma (postularse, bajarse, ser descartada).
 export function recordApplicationEvent(db: D1Database, kind: ChatEventKind, applicationId: number, actor: string, nowSeconds: number, data: Data = null) {
   return db
-    .prepare("INSERT OR IGNORE INTO chat_events (application_id, kind, actor, ref, created_at, data) VALUES (?, ?, ?, ?, ?, ?)")
+    .prepare("INSERT OR IGNORE INTO chat_events (application_id, kind, actor, ref, created_at, data) VALUES (?, ?, ?, ?, ?, ?) RETURNING application_id")
     .bind(applicationId, kind, actor.toLowerCase(), crypto.randomUUID(), nowSeconds, data ? JSON.stringify(data) : null);
 }
 
@@ -36,7 +36,7 @@ export function recordOrderEvent(db: D1Database, kind: ChatEventKind, orderId: n
     .prepare(
       `INSERT OR IGNORE INTO chat_events (application_id, kind, actor, ref, created_at, data)
        SELECT a.id, ?, ?, ?, ?, ? FROM order_parties p JOIN changas c ON c.order_id = p.order_id JOIN applications a ON a.changa_id = c.id AND a.applicant = p.payee
-       WHERE p.order_id = ? AND p.payee IS NOT NULL`,
+       WHERE p.order_id = ? AND p.payee IS NOT NULL RETURNING application_id`,
     )
     .bind(kind, actor.toLowerCase(), ref, nowSeconds, data ? JSON.stringify(data) : null, orderId);
 }

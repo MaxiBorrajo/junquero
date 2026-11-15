@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 import { API_URL } from "../config";
 import { open, pairFromSecretHex, publicKeyHex, seal, type ChatKeyPair } from "../crypto/chat";
 import { decryptFile, encryptFile } from "../crypto/chatFile";
@@ -7,6 +8,7 @@ import type { PickedFile } from "../lib/pick";
 import { encodeEnvelope, type ChatFile } from "./envelope";
 import { fetchCounterpartKey } from "../crypto/keyManager";
 import { secureKeyStorage } from "../crypto/secureKeyStorage";
+import { reconnectDelay } from "./reconnect";
 import { useSession } from "../session/SessionProvider";
 import { useChatKey } from "./ChatKeyProvider";
 import { addPending, applyServer, dropPending, emptyChat, failPending, lastSeq, newClientId, retryPending, viewOf, type ChatMessageView, type ChatState, type ServerMessage } from "./state";
@@ -38,7 +40,7 @@ async function hasActiveKey(address: string): Promise<boolean> {
 const POLL_MS = 12_000;
 const WS_URL = API_URL.replace(/^http/, "ws");
 
-export function useChatRoom(applicationId: number, counterpart: string) {
+export function useChatRoom(applicationId: number, counterpart: string, onEvent?: () => void) {
   const { api, address } = useSession();
   const { ensure } = useChatKey();
   const [status, setStatus] = useState<RoomStatus>("loading");
@@ -106,21 +108,50 @@ export function useChatRoom(applicationId: number, counterpart: string) {
     void start();
   }, [start]);
 
+  // El socket avisa al instante cuando algo cambia (un mensaje nuevo o un hecho del acuerdo). Si se corta, se vuelve a abrir
+  // con espera creciente; mientras no está, se consulta de a poco. En segundo plano no se mantiene nada abierto.
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
   useEffect(() => {
     if (status !== "ready") return;
     let closed = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let suspended = AppState.currentState !== "active";
+    let attempt = 0;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let poller: ReturnType<typeof setInterval> | null = null;
 
-    const poll = () => {
-      if (timer === null) timer = setInterval(() => void pull().catch(() => {}), POLL_MS);
+    const stopPoll = () => {
+      if (poller) clearInterval(poller);
+      poller = null;
+    };
+    const startPoll = () => {
+      if (poller === null && !suspended) poller = setInterval(() => void pull().catch(() => {}), POLL_MS);
+    };
+    // Los avisos que pasaron con el socket cerrado no se reenvían: al (re)conectar se pone todo al día.
+    const catchUp = () => {
+      void pull().catch(() => {});
+      onEventRef.current?.();
+    };
+    const schedule = () => {
+      if (closed || suspended) return;
+      startPoll();
+      if (retry) clearTimeout(retry);
+      retry = setTimeout(() => void connect(), reconnectDelay(attempt));
+      attempt += 1;
     };
 
-    (async () => {
+    const connect = async () => {
+      if (closed || suspended || socket.current) return;
       try {
         const { ticket } = await api.send<{ ticket: string }>("POST", `/me/chats/${applicationId}/ticket`);
-        if (closed) return;
+        if (closed || suspended) return;
         const ws = new WebSocket(`${WS_URL}/chat/${applicationId}/ws?ticket=${encodeURIComponent(ticket)}`);
         socket.current = ws;
+        ws.onopen = () => {
+          attempt = 0;
+          stopPoll();
+          catchUp();
+        };
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(String(event.data)) as { t: string; message?: ServerMessage };
@@ -128,19 +159,45 @@ export function useChatRoom(applicationId: number, counterpart: string) {
               merge([data.message]);
               // Si contestó la otra persona puede haberse abierto el chat: se vuelve a leer el estado.
               if (data.message.sender.toLowerCase() !== address?.toLowerCase()) void pull().catch(() => {});
+            } else if (data.t === "event") {
+              catchUp();
             }
           } catch {}
         };
-        ws.onclose = poll;
-        ws.onerror = poll;
+        ws.onclose = () => {
+          if (socket.current === ws) socket.current = null;
+          schedule();
+        };
+        ws.onerror = () => {};
       } catch {
-        poll();
+        schedule();
       }
-    })();
+    };
+
+    const subscription = AppState.addEventListener("change", (next) => {
+      if (next === "active") {
+        suspended = false;
+        attempt = 0;
+        if (socket.current) catchUp();
+        else void connect().then(catchUp);
+      } else {
+        suspended = true;
+        stopPoll();
+        if (retry) clearTimeout(retry);
+        retry = null;
+        const current = socket.current;
+        socket.current = null;
+        current?.close();
+      }
+    });
+
+    if (!suspended) void connect();
 
     return () => {
       closed = true;
-      if (timer) clearInterval(timer);
+      subscription.remove();
+      if (retry) clearTimeout(retry);
+      stopPoll();
       socket.current?.close();
       socket.current = null;
     };

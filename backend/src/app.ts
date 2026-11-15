@@ -41,6 +41,7 @@ import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
+import { notifyChat } from "./chatNotify";
 import { listChatEvents, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "./chatEvents";
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
@@ -382,7 +383,7 @@ app.post("/me/orders/:orderId/evidence", async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const outcome = await registerEvidence(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
-  if (outcome.created) await recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), parsed.value.hash, nowSeconds(), { count: 1 }).run();
+  if (outcome.created) await record(c, recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), parsed.value.hash, nowSeconds(), { count: 1 }));
   return c.json({ hash: parsed.value.hash }, outcome.created ? 201 : 200);
 });
 
@@ -393,7 +394,7 @@ app.post("/me/orders/:orderId/evidence/batch", async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const outcome = await registerEvidenceBatch(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
   if (!outcome.ok) return c.json({ error: outcome.error, index: outcome.index }, outcome.status);
-  if (outcome.hashes.length > 0) await recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), outcome.hashes[0]!, nowSeconds(), { count: outcome.hashes.length }).run();
+  if (outcome.hashes.length > 0) await record(c, recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), outcome.hashes[0]!, nowSeconds(), { count: outcome.hashes.length }));
   return c.json({ hashes: outcome.hashes }, 201);
 });
 
@@ -441,6 +442,17 @@ const callRoom = (c: ChatContext, applicationId: number, path: string, init: Req
   const stub = c.env.CHAT.get(c.env.CHAT.idFromName(String(applicationId)));
   return stub.fetch(new Request(`https://chat${path}`, { ...init, headers }));
 };
+
+// Anota un hecho en el historial del chat y avisa a los chats abiertos para que se actualicen al instante.
+async function record(c: Context<AppEnv>, statement: D1PreparedStatement): Promise<void> {
+  const { results } = await statement.all<{ application_id: number }>();
+  if (results.length === 0) return;
+  try {
+    c.executionCtx.waitUntil(notifyChat(c.env, results.map((row) => row.application_id)));
+  } catch {
+    // sin contexto de ejecución (pruebas): el celular se pone al día solo
+  }
+}
 
 app.put("/me/chat-key", async (c) => {
   const body = (await readJson(c)) as { publicKey?: unknown; signature?: unknown } | undefined;
@@ -585,7 +597,7 @@ app.put("/me/applications/:changaId", async (c) => {
   );
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
   await linkFiles(c.env.DB, c.get("address"), attached.map((item) => item.hash));
-  if (outcome.reactivated) await recordApplicationEvent(c.env.DB, "applied", outcome.row.id, c.get("address"), nowSeconds()).run();
+  if (outcome.reactivated) await record(c, recordApplicationEvent(c.env.DB, "applied", outcome.row.id, c.get("address"), nowSeconds()));
   if (outcome.created) {
     const changa = await c.env.DB.prepare("SELECT owner FROM changas WHERE id = ?").bind(changaId).first<{ owner: string }>();
     if (changa) await queueNotification(c.env.DB, changa.owner, "application_new", String(changaId)).run();
@@ -615,7 +627,7 @@ app.delete("/me/applications/:changaId", async (c) => {
   if (changaId === null) return c.json({ error: "invalid changa id" }, 400);
   const active = await c.env.DB.prepare("SELECT id FROM applications WHERE changa_id = ? AND applicant = ? AND status = 'active'").bind(changaId, c.get("address")).first<{ id: number }>();
   const withdrawn = await withdrawApplication(c.env.DB, changaId, c.get("address"), nowSeconds());
-  if (withdrawn && active) await recordApplicationEvent(c.env.DB, "withdrawn", active.id, c.get("address"), nowSeconds()).run();
+  if (withdrawn && active) await record(c, recordApplicationEvent(c.env.DB, "withdrawn", active.id, c.get("address"), nowSeconds()));
   return withdrawn ? c.json({ ok: true }) : c.json({ error: "no active application" }, 404);
 });
 
@@ -627,7 +639,7 @@ app.post("/me/applications/:id/dismiss", async (c) => {
   const result = await dismissApplication(c.env.DB, c.get("address"), id, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
   // Si además se bloquea, el chat solo dice que la descartaron: no se revela el bloqueo.
-  await recordApplicationEvent(c.env.DB, "dismissed", id, c.get("address"), nowSeconds()).run();
+  await record(c, recordApplicationEvent(c.env.DB, "dismissed", id, c.get("address"), nowSeconds()));
   if (body.block === true) {
     const blocked = await blockUser(c.env.DB, c.get("address"), result.applicant, nowSeconds());
     if (!blocked.ok) return c.json({ error: blocked.error }, blocked.status);
@@ -669,7 +681,7 @@ app.post("/me/orders/:orderId/agreement", async (c) => {
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const result = await propose(c.env.DB, c.get("address"), orderId, parsed.value, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
-  await recordAgreementEvent(c.env.DB, "proposed", orderId, result.row.payee, c.get("address"), nowSeconds()).run();
+  await record(c, recordAgreementEvent(c.env.DB, "proposed", orderId, result.row.payee, c.get("address"), nowSeconds()));
   return c.json({ agreement: presentAgreement(result.row, nowSeconds()) }, 201);
 });
 
@@ -681,7 +693,7 @@ app.post("/me/orders/:orderId/release", async (c) => {
   const parsed = parseRelease(await readJson(c));
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const result = await submitRelease(c.env.DB, orderId, c.get("address"), parsed.value, nowSeconds());
-  if (result.ok) await recordOrderEvent(c.env.DB, "approved", orderId, c.get("address"), String(nowSeconds()), nowSeconds()).run();
+  if (result.ok) await record(c, recordOrderEvent(c.env.DB, "approved", orderId, c.get("address"), String(nowSeconds()), nowSeconds()));
   return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
 });
 
@@ -747,7 +759,7 @@ app.post("/me/orders/:orderId/agreement/accept", async (c) => {
   if (!body || typeof body.signature !== "string" || !isHex(body.signature)) return c.json({ error: "invalid signature" }, 400);
   const result = await acceptAgreement(c.env.DB, createAgreementChain(c.env.RPC_URL, c.env.RELAYER_KEY), orderId, c.get("address"), body.signature, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
-  await recordAgreementEvent(c.env.DB, "accepted", orderId, c.get("address"), c.get("address"), nowSeconds()).run();
+  await record(c, recordAgreementEvent(c.env.DB, "accepted", orderId, c.get("address"), c.get("address"), nowSeconds()));
   return c.json({ txHash: result.txHash });
 });
 
@@ -757,7 +769,7 @@ app.delete("/me/orders/:orderId/agreement", async (c) => {
   const before = await c.env.DB.prepare("SELECT payee FROM agreements WHERE order_id = ?").bind(orderId).first<{ payee: string }>();
   const result = await cancelAgreement(c.env.DB, orderId, c.get("address"), nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
-  if (before) await recordAgreementEvent(c.env.DB, before.payee === c.get("address") ? "rejected" : "cancelled", orderId, before.payee, c.get("address"), nowSeconds()).run();
+  if (before) await record(c, recordAgreementEvent(c.env.DB, before.payee === c.get("address") ? "rejected" : "cancelled", orderId, before.payee, c.get("address"), nowSeconds()));
   return c.json({ ok: true });
 });
 

@@ -3,6 +3,7 @@ import { purgeAgreements } from "./agreements";
 import { purgeReleases } from "./releases";
 import { applicationsHandler } from "./applications";
 import { chatEventsHandler } from "./chatEvents";
+import { withChatNotify } from "./chatNotify";
 import { partiesHandler } from "./parties";
 import { createChangasHandler, purgeStaleDrafts } from "./changas";
 import { deployedTokenDecimals, indexedContracts, startBlock } from "./contracts";
@@ -49,7 +50,8 @@ async function syncChain(env: Env, confirmations: number): Promise<void> {
       maxBlocksWithLogs: MAX_BLOCKS_WITH_LOGS,
     };
     await runIndexerRounds(env.DB, chainClient(env.RPC_URL), options, Number(env.CHUNKS_PER_RUN));
-    await processEvents(env.DB, projections, EVENT_SCAN_LIMIT);
+    // Los hechos nuevos de la cadena (acordado, llegó, entregó...) le avisan a los chats abiertos.
+    await withChatNotify(env, () => processEvents(env.DB, projections, EVENT_SCAN_LIMIT));
   });
 }
 
@@ -84,7 +86,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const nowSeconds = Math.floor(event.scheduledTime / 1000);
     if (isPurgeMinute(event.scheduledTime)) {
-      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds), purgeSentNotifications(env.DB, nowSeconds, 7 * 24 * 3600), purgeAgreements(env.DB, nowSeconds), purgeReleases(env.DB, nowSeconds)]));
+      ctx.waitUntil(Promise.all([purgeOldLogs(env.DB, nowSeconds), purgeStaleDrafts(env.DB, nowSeconds), purgeOrphanFiles(env.DB, env.FILES, nowSeconds), purgeSentNotifications(env.DB, nowSeconds, 7 * 24 * 3600), withChatNotify(env, () => purgeAgreements(env.DB, nowSeconds)), purgeReleases(env.DB, nowSeconds)]));
     }
     ctx.waitUntil(syncChain(env, Number(env.CONFIRMATIONS)).catch((error) => console.error("sync failed", error)));
     ctx.waitUntil(deliverDue(env.DB, (url, init) => fetch(url, init), nowSeconds).catch((error) => console.error("push failed", error)));

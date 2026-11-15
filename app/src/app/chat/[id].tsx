@@ -14,7 +14,7 @@ import { Avatar } from "../../components/Avatar";
 import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, type ChatFile } from "../../chat/envelope";
@@ -71,7 +71,12 @@ const EVENT_COLOR: Record<ChatEventKind, string> = {
 
 export default function ChatScreen() {
   const { id, counterpart, title } = useLocalSearchParams<{ id: string; counterpart: string; title?: string }>();
-  const room = useChatRoom(Number(id), String(counterpart));
+  const queryClient = useQueryClient();
+  // Cuando el servidor avisa que algo cambió (o al volver a conectar), se actualiza solo lo que muestra este chat.
+  const refreshFromServer = useCallback(() => {
+    for (const key of [["agreements"], ["chat-events", Number(id)], ["order"], ["applications"], ["evidence"]]) void queryClient.invalidateQueries({ queryKey: key });
+  }, [queryClient, id]);
+  const room = useChatRoom(Number(id), String(counterpart), refreshFromServer);
   const toast = useToast();
   const { choose } = useChooseApplicant();
   const counterpartProfile = usePublicProfile(String(counterpart));
@@ -81,14 +86,6 @@ export default function ChatScreen() {
   const events = useChatEvents(Number(id)).data ?? [];
   const timeline = buildTimeline(room.view, events);
 
-  // Con el chat abierto, lo que cambia el acuerdo o el trabajo (la otra persona acepta, rechaza, llega...) se ve en pocos segundos.
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    const timer = setInterval(() => {
-      for (const key of ["agreements", "chat-events", "order", "applications", "evidence"]) void queryClient.invalidateQueries({ queryKey: [key] });
-    }, 5_000);
-    return () => clearInterval(timer);
-  }, [queryClient]);
   const ownerAddress = room.access.role === "owner" ? me : String(counterpart);
   const applicantAddress = room.access.role === "owner" ? String(counterpart) : me;
   const proposal = agreements.find((item) => item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;

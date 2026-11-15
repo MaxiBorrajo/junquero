@@ -33,7 +33,13 @@ export class ChatRoom extends DurableObject<Env> {
   }
 
   async fetch(request: Request): Promise<Response> {
-    if (new URL(request.url).pathname !== "/ws") return this.core.handleHttp(request, nowSeconds());
+    const path = new URL(request.url).pathname;
+    // Señal interna (solo la alcanza un Worker con el binding CHAT): hay algo nuevo en el historial de este chat.
+    if (path === "/notify" && request.method === "POST") {
+      for (const socket of this.ctx.getWebSockets()) socket.send('{"t":"event"}');
+      return new Response(null, { status: 204 });
+    }
+    if (path !== "/ws") return this.core.handleHttp(request, nowSeconds());
 
     const address = request.headers.get("x-address");
     const applicationId = Number(request.headers.get("x-application-id"));

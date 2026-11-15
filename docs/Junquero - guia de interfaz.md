@@ -72,6 +72,10 @@ La pregunta es: ¿qué le pasó a la persona?
 - Los pasos de un asistente (publicar) llevan barra de avance y "Paso X de N".
 - Las acciones que no se pueden hacer se apagan y explican por qué.
 
+- **Camino feliz** (`Journey`): las pantallas de un trabajo en curso muestran los pasos que faltan hasta cobrar o liberar el pago, con el paso actual resaltado y una línea que dice qué hacer ahora. Nunca hay botones sueltos sin contexto.
+- **Antes de mover compromisos** (elegir a una persona, aceptar un acuerdo, aprobar un pago) se pide confirmación con el nombre y el monto, y después se muestra el estado ("Propuesta enviada, esperando que acepte") en la tarjeta, nunca como texto suelto.
+- **Perfil de otra persona**: antes de elegirla se puede ver su perfil con historial (calificación, trabajos cerrados, reclamos), desde la tarjeta de postulación y desde el menú del chat.
+
 ## 8. Tono
 - Voseo siempre, frases cortas, verbos concretos.
 - Sin términos de cadena de bloques: "billetera", "pago en garantía", "costo de red", "comprobante".

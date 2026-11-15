@@ -35,7 +35,7 @@ import { listPendingSelfies, markSelfiePending, pendingSelfieHash, reviewSelfie 
 import type { Env } from "./env";
 import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
-import { getProfile, presentOwnProfile, presentPublicProfile, upsertProfile, validateProfile } from "./profiles";
+import { getProfile, presentOwnProfile, presentPublicProfile, profileStats, upsertProfile, validateProfile } from "./profiles";
 import { emergencyCases, listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
 import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
@@ -201,7 +201,7 @@ app.get("/profiles/:address", async (c) => {
   if (!ADDRESS.test(address)) return c.json({ error: "invalid address" }, 400);
   const row = await getProfile(c.env.DB, address.toLowerCase());
   if (!row) return c.json({ error: "not found" }, 404);
-  return c.json({ profile: presentPublicProfile(row) });
+  return c.json({ profile: { ...presentPublicProfile(row), stats: await profileStats(c.env.DB, address.toLowerCase()) } });
 });
 
 app.post("/me/changas", async (c) => {

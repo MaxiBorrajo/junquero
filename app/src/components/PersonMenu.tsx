@@ -81,6 +81,7 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
       onPress: () => confirm(t.person.blockTitle, t.person.blockBody, () => void run(() => api.send("POST", "/me/blocks", { address: counterpart }), t.person.done.block)),
     });
   }
+  choices.unshift({ key: "profile", label: t.received.viewProfile, icon: "user", onPress: () => router.push({ pathname: "/profile-public", params: { address: counterpart } }) });
   choices.push({ key: "report", label: t.person.report, icon: "flag", onPress: () => router.push({ pathname: "/report/[kind]", params: { kind: "user", target: counterpart } }) });
 
   return (

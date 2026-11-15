@@ -9,7 +9,8 @@ export interface NotificationItem {
   createdAt: number;
 }
 
-const seenKey = (address: string): string => `junquero.notifications.seen.${address.toLowerCase()}`;
+// Se guarda el id más alto que ya se vio (no la hora): no depende de relojes distintos entre el servidor y el celular.
+const seenKey = (address: string): string => `junquero.notifications.seenId.${address.toLowerCase()}`;
 
 export function useNotifications() {
   const { api, address } = useSession();
@@ -50,4 +51,4 @@ export function useMarkSeen() {
   });
 }
 
-export const countUnread = (items: NotificationItem[], lastSeen: number): number => items.filter((item) => item.createdAt > lastSeen).length;
+export const countUnread = (items: NotificationItem[], lastSeenId: number): number => items.filter((item) => item.id > lastSeenId).length;

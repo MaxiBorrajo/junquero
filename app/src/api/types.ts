@@ -87,7 +87,7 @@ export interface Application {
 }
 
 export interface MyApplication extends Application {
-  changa: { specHash: string; orderId: number | null; status: ChangaStatus; title: string };
+  changa: { specHash: string; orderId: number | null; status: ChangaStatus; title: string; amount: string | null; category: number | null; modality: "onsite" | "remote" | null; when: number | null };
 }
 
 export interface ReceivedApplication extends Application {
@@ -133,6 +133,9 @@ export interface PublicProfile {
   name: string;
   photo: FileRef | null;
   verified: boolean;
+  categories?: number[];
+  createdAt?: number;
+  stats?: { doneAsPayee: number; doneAsPayer: number; disputed: number; rating: number | null; ratings: number };
 }
 
 export interface Milestone {

@@ -51,7 +51,7 @@ export default function AgreementScreen() {
       const signature = await signTyped(agreementTypedData(deployment, terms));
       await api.send("POST", `/me/orders/${agreement.orderId}/agreement/accept`, { signature });
       await queryClient.invalidateQueries({ queryKey: ["agreements"] });
-      toast({ text: t.agreement.done, icon: "check" });
+      toast({ text: t.agreement.accepted, tone: "info", icon: "clock" });
       router.replace("/my-changas");
     } catch (error) {
       if (isRejection(error)) setMessage(t.agreement.cancelled);

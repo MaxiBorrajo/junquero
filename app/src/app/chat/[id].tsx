@@ -1,6 +1,6 @@
 import { File } from "expo-file-system";
 import { formatClock, formatDayLabel, sameDay } from "../../lib/format";
-import { useMyChangas, useReceivedApplications } from "../../data/useMine";
+import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
@@ -49,9 +49,10 @@ export default function ChatScreen() {
   const room = useChatRoom(Number(id), String(counterpart));
   const toast = useToast();
   const { choose } = useChooseApplicant();
+  const agreements = useMyAgreements().data ?? [];
   const ownChanga = (useMyChangas().data ?? []).find((item) => item.id === room.access.changaId) ?? null;
   const application = (useReceivedApplications(room.access.changaId, room.access.role === "owner").data ?? []).find((item) => item.id === Number(id)) ?? null;
-  const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null;
+  const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null && !agreements.some((item) => item.orderId === ownChanga.orderId && (item.status === "pending" || item.status === "sending"));
   const attachmentViewer = useAttachmentViewer();
   const [draft, setDraft] = useState("");
   const [picks, setPicks] = useState<PickedFile[]>([]);

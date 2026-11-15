@@ -37,6 +37,15 @@ export function useChooseApplicant() {
       ], { onDismiss: () => resolve(false) });
     });
 
+  // Antes de mandar la propuesta se confirma a quién y por cuánto.
+  const confirmChoice = (name: string, price: bigint) =>
+    new Promise<boolean>((resolve) => {
+      Alert.alert(t.received.chooseTitle.replace("{name}", name), t.received.chooseBody.replace("{price}", formatUsdc(price.toString())), [
+        { text: t.common.cancel, style: "cancel", onPress: () => resolve(false) },
+        { text: t.received.chooseConfirm, onPress: () => resolve(true) },
+      ], { onDismiss: () => resolve(false) });
+    });
+
   // Suma la diferencia al depósito y espera a que el backend ya muestre el monto nuevo.
   const topUp = async (target: Changa, price: bigint, published: bigint): Promise<"done" | "balance" | "waiting"> => {
     const account = address as `0x${string}`;
@@ -60,7 +69,9 @@ export function useChooseApplicant() {
     if (price === null) return;
     const published = target.amount !== null && /^\d+$/.test(target.amount) ? BigInt(target.amount) : null;
     const higher = !plan && published !== null && price > published;
-    if (higher && !(await confirmTopUp(price, published))) return;
+    if (higher) {
+      if (!(await confirmTopUp(price, published))) return;
+    } else if (!(await confirmChoice(application.profile?.name ?? t.received.thisPerson, price))) return;
     setBusy(application.id);
     setFailed(false);
     try {

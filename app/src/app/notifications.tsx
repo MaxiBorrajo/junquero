@@ -21,7 +21,7 @@ export default function Notifications() {
   const refresh = useManualRefresh([() => list.refetch()]);
   const pull = usePullGesture(refresh);
   const items = list.data ?? [];
-  const newest = items[0]?.createdAt ?? 0;
+  const newest = items.reduce((max, item) => Math.max(max, item.id), 0);
   const lastSeen = seen.data ?? 0;
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function Notifications() {
         data={items}
         keyExtractor={(item) => String(item.id)}
         ListEmptyComponent={<Secondary>{list.isLoading ? t.common.loading : t.notifications.empty}</Secondary>}
-        renderItem={({ item }) => <Row item={item} isNew={item.createdAt > lastSeen} />}
+        renderItem={({ item }) => <Row item={item} isNew={item.id > lastSeen} />}
       />
     </SafeAreaView>
   );

@@ -103,3 +103,25 @@ export const presentPublicProfile = (row: ProfileRow) => ({
   verified: row.selfie_status === "approved",
   createdAt: row.created_at,
 });
+
+// Historial público de una persona: trabajos cerrados, calificación promedio y reclamos. Se calcula con lo que ya está registrado.
+export async function profileStats(db: D1Database, address: string) {
+  const row = await db
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM order_parties p JOIN changas c ON c.order_id = p.order_id WHERE p.payee = ?1 AND c.status = 'settled') AS done_as_payee,
+         (SELECT COUNT(*) FROM order_parties p JOIN changas c ON c.order_id = p.order_id WHERE p.payer = ?1 AND c.status = 'settled') AS done_as_payer,
+         (SELECT COUNT(*) FROM order_parties p JOIN changas c ON c.order_id = p.order_id WHERE (p.payee = ?1 OR p.payer = ?1) AND c.status = 'disputed') AS disputed,
+         (SELECT AVG(rating) FROM releases WHERE payee = ?1) AS rating_avg,
+         (SELECT COUNT(*) FROM releases WHERE payee = ?1) AS rating_count`,
+    )
+    .bind(address)
+    .first<{ done_as_payee: number; done_as_payer: number; disputed: number; rating_avg: number | null; rating_count: number }>();
+  return {
+    doneAsPayee: row?.done_as_payee ?? 0,
+    doneAsPayer: row?.done_as_payer ?? 0,
+    disputed: row?.disputed ?? 0,
+    rating: row && row.rating_count > 0 && row.rating_avg !== null ? Math.round(row.rating_avg * 10) / 10 : null,
+    ratings: row?.rating_count ?? 0,
+  };
+}

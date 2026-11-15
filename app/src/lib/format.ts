@@ -47,3 +47,8 @@ export function formatDayLabel(seconds: number, now: number = Math.floor(Date.no
 }
 
 export const sameDay = (a: number, b: number): boolean => startOfDay(a) === startOfDay(b);
+
+// "noviembre de 2026"
+export function formatMonthYear(seconds: number, locale = "es-AR"): string {
+  return new Date(seconds * 1000).toLocaleDateString(locale, { month: "long", year: "numeric" });
+}

@@ -608,6 +608,14 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 **15.13 Confirmaciones con toast** · [ ] Aportar a un grupo, retirar el aporte, aprobar, cobrar, votar, depositar como jurado, proponer un proveedor, copiar la dirección y reportar. Esperado: aparece "Enviado, esperando confirmación…", y recién cuando la red confirma y los montos ya se actualizaron sale el toast de éxito con ícono (dura unos 7 segundos, se cierra tocándolo). Nunca se ve "Listo" con los montos viejos. Cancelar la firma muestra un toast informativo, no un error.
 
+**15.14 Elegir con confirmación y estados claros** · [ ] Como quien publicó: tocar "Elegir" (en la lista o desde el chat). Esperado: pregunta "¿Elegir a ...?" con el monto. Después la tarjeta marca "Propuesta enviada" y no deja elegir de nuevo. Como la otra persona: aceptar el acuerdo y ver el aviso "Lo estamos confirmando"; en "Mis postulaciones" la tarjeta dice "Aceptaste... confirmando" y a los segundos pasa a "Te eligieron".
+
+**15.15 Perfil con historial** · [ ] Desde una postulación y desde el menú del chat, tocar "Ver perfil e historial". Esperado: nombre, verificado, desde cuándo está, calificación promedio, trabajos hechos y cerrados, reclamos y rubros.
+
+**15.16 Campana de notificaciones** · [ ] Recibir una notificación con la app abierta en el mapa. Esperado: el globito de la campana aparece solo; al entrar a Notificaciones se apaga.
+
+**15.17 Camino del trabajo** · [ ] Como quien trabaja y como quien publicó, abrir "Tu trabajo". Esperado: una tarjeta con los pasos (llegar, subir pruebas, terminar, esperar la aprobación / esperar, revisar, aprobar), el paso actual resaltado con su explicación y los hechos con tilde.
+
 ---
 
 ## 16. Resumen de estado

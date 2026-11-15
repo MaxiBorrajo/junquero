@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { Card } from "../../components/Card";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
+import { Banner } from "../../components/Banner";
 import { ChangaCard } from "../../components/ChangaCard";
 import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
@@ -11,6 +12,8 @@ import { Button, Chip, Row, Secondary, Title } from "../../components/ui";
 import { effectiveStatus, useCancelling } from "../../data/cancelling";
 import { useMyAgreements, useMyApplications, useMyChangas, useMyContributions } from "../../data/useMine";
 import { t } from "../../i18n";
+import { formatDate } from "../../lib/format";
+import { formatUsdc } from "../../lib/money";
 import { matchesQuery } from "../../lib/search";
 import { usePullGesture } from "../../lib/usePullGesture";
 import { useManualRefresh } from "../../lib/useManualRefresh";
@@ -46,7 +49,7 @@ export default function MyChangas() {
   }
 
   const toConfirm = (agreements.data ?? []).filter((item) => item.payee === address && item.status === "pending");
-  const waiting = new Set((agreements.data ?? []).filter((item) => item.payer === address).map((item) => item.orderId));
+  const waiting = new Set((agreements.data ?? []).filter((item) => item.payer === address && (item.status === "pending" || item.status === "sending")).map((item) => item.orderId));
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -97,7 +100,7 @@ export default function MyChangas() {
           data={(applied.data ?? []).filter((item) => matchesQuery(query, [item.changa.title, item.message, statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyApplied}</Secondary>}
-          renderItem={({ item }) => <AppliedItem application={item} />}
+          renderItem={({ item }) => <AppliedItem application={item} proposal={(agreements.data ?? []).find((agreement) => agreement.payee === address && agreement.specHash === item.changa.specHash && (agreement.status === "pending" || agreement.status === "sending"))} />}
         />
       )}
     </SafeAreaView>
@@ -106,10 +109,9 @@ export default function MyChangas() {
 
 function AgreementBanner({ agreement }: { agreement: AgreementRecord }) {
   return (
-    <View style={styles.banner}>
-      <Text style={text.body}>{t.mine.pendingAgreement}</Text>
-      <Button label={t.mine.confirmAgreement} icon="check" onPress={() => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(agreement.orderId) } })} />
-    </View>
+    <Banner icon="check" action={{ label: t.mine.confirmAgreement, onPress: () => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(agreement.orderId) } }) }}>
+      {t.mine.pendingAgreement}
+    </Banner>
   );
 }
 
@@ -126,22 +128,36 @@ function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }
   return (
     <View style={styles.item}>
       <ChangaCard changa={changa} status={status} action={action} onPress={changa.status === "draft" ? () => undefined : open} />
-      {waiting ? <Secondary>{t.mine.waitingAgreement}</Secondary> : null}
+      {waiting ? <Banner icon="clock">{t.mine.waitingAgreement}</Banner> : null}
     </View>
   );
 }
 
-function AppliedItem({ application }: { application: MyApplication }) {
-  const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: application.changa.specHash } });
-  const chosen = application.status === "chosen" && application.changa.orderId !== null;
+function AppliedItem({ application, proposal }: { application: MyApplication; proposal: AgreementRecord | undefined }) {
+  const { changa } = application;
+  const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
+  const where = [changa.category !== null ? t.publish.categories[changa.category] : null, changa.modality === "remote" ? t.map.remoteTag : changa.modality === "onsite" ? t.map.onsiteTag : null, changa.when ? formatDate(changa.when) : null].filter(Boolean).join(" · ");
+  const states = t.mine.applicationState;
+  let state: ReactNode;
+  if (proposal?.status === "sending") {
+    state = <Banner icon="clock">{states.confirming}</Banner>;
+  } else if (proposal) {
+    state = <Banner icon="check" action={{ label: t.mine.confirmAgreement, onPress: () => router.push({ pathname: "/agreement/[orderId]", params: { orderId: String(proposal.orderId) } }) }}>{states.proposal}</Banner>;
+  } else if (application.status === "chosen") {
+    state = <Banner tone="success" icon="check" action={changa.orderId !== null ? { label: t.mine.openOrder, onPress: () => router.push({ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId) } }) } : undefined}>{states.chosen}</Banner>;
+  } else if (application.status === "active") {
+    state = <Banner icon="clock">{states.waiting}</Banner>;
+  } else {
+    state = <Banner icon="close">{states[application.status as "closed" | "dismissed" | "withdrawn"] ?? states.closed}</Banner>;
+  }
   return (
-    <Card gap="xs" onPress={open}>
-      <Text style={text.subtitle} numberOfLines={2}>{application.changa.title}</Text>
-      <View style={styles.statusPill}>
-        <Text style={text.label}>{statusLabel(application.status)}</Text>
+    <Card gap="sm" onPress={open}>
+      <View style={styles.titleRow}>
+        <Text style={[text.subtitle, { flex: 1 }]} numberOfLines={2}>{changa.title}</Text>
+        {changa.amount ? <Text style={[text.subtitle, { color: colors.brick }]}>{formatUsdc(changa.amount)}</Text> : null}
       </View>
-      {application.message ? <Text style={text.secondary} numberOfLines={2}>{application.message}</Text> : null}
-      {chosen ? <Button label={t.mine.openOrder} icon="briefcase" variant="outline" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(application.changa.orderId) } })} /> : null}
+      {where ? <Text style={text.secondary}>{where}</Text> : null}
+      {state}
     </Card>
   );
 }
@@ -151,7 +167,7 @@ const styles = StyleSheet.create({
   pad: { padding: spacing.md, gap: spacing.md },
   list: { padding: spacing.md, gap: spacing.md },
   item: { gap: spacing.xs },
+  titleRow: { flexDirection: "row", gap: spacing.sm },
   status: { ...text.label, color: colors.brick },
-  statusPill: { alignSelf: "flex-start", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   banner: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
 });

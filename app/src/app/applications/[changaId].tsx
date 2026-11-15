@@ -35,7 +35,7 @@ export default function ReceivedApplications() {
   const toast = useToast();
   const [failed, setFailed] = useState(false);
 
-  const proposal = changa?.orderId ? (agreements.data ?? []).find((item) => item.orderId === changa.orderId && item.status === "pending") : undefined;
+  const proposal = changa?.orderId ? (agreements.data ?? []).find((item) => item.orderId === changa.orderId && (item.status === "pending" || item.status === "sending")) : undefined;
 
   const { choose, busy: choosing, failed: chooseFailed } = useChooseApplicant();
   const working = busy ?? choosing;
@@ -86,7 +86,8 @@ export default function ReceivedApplications() {
           const name = item.profile?.name ?? item.applicant.slice(0, 8);
           const offer = item.amount ? formatUsdc(item.amount) : changa ? formatUsdc(changa.amount) : t.received.publishedAmount;
           const verified = item.profile?.verified ? t.received.verified : t.received.unverified;
-          const open = changa !== null && changa.status === "open";
+          const sentToThis = proposal?.payee.toLowerCase() === item.applicant.toLowerCase();
+          const open = changa !== null && changa.status === "open" && !proposal;
           const talk = () => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } });
           const choosePress = () => changa && void choose(item, changa);
           const menu = <PersonMenu role="owner" applicationId={item.id} changaId={id} counterpart={item.applicant} active={item.status === "active"} />;
@@ -108,11 +109,13 @@ export default function ReceivedApplications() {
           return (
             <Card gap="md">
               <View style={styles.cardHeader}>
-                {avatar}
-                <View style={{ flex: 1 }}>
-                  <Text style={text.subtitle}>{name}</Text>
-                  <Text style={text.secondary}>{verified}</Text>
-                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel={t.received.viewProfile} onPress={() => router.push({ pathname: "/profile-public", params: { address: item.applicant } })} style={styles.who}>
+                  {avatar}
+                  <View style={{ flex: 1 }}>
+                    <Text style={text.subtitle}>{name}</Text>
+                    <Text style={[text.secondary, { color: colors.brick }]}>{`${verified} · ${t.received.viewProfile}`}</Text>
+                  </View>
+                </Pressable>
                 <Text style={[text.subtitle, { color: colors.brick }]}>{offer}</Text>
                 {menu}
               </View>
@@ -124,6 +127,12 @@ export default function ReceivedApplications() {
                   <Icon name="message" size={16} color={colors.brick} />
                   <Text style={[styles.smallLabel, { color: colors.brick }]}>{t.received.talk}</Text>
                 </Pressable>
+                {sentToThis ? (
+                  <View style={[styles.small, styles.smallOutline]}>
+                    <Icon name="clock" size={16} color={colors.brick} />
+                    <Text style={[styles.smallLabel, { color: colors.brick }]}>{t.received.proposalSentTag}</Text>
+                  </View>
+                ) : null}
                 {open ? (
                   <Pressable accessibilityRole="button" disabled={working !== null} onPress={choosePress} style={[styles.small, styles.smallSolid, working !== null && { opacity: 0.5 }]}>
                     <Icon name="check" size={16} color={colors.white} />
@@ -144,6 +153,7 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md, gap: spacing.md },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center" },
+  who: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm },
   actions: { flexDirection: "row", gap: spacing.sm },
   small: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs, height: 40, borderRadius: radius.pill },
   smallOutline: { borderWidth: 1.5, borderColor: colors.brick },

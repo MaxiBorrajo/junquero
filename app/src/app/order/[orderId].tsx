@@ -11,6 +11,7 @@ import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrde
 import { encodeObject } from "../../chain/group";
 import { disputeCost, reasonHash } from "../../chain/jury";
 import { formatAmount } from "../../lib/money";
+import { Journey, type JourneyStep } from "../../components/Journey";
 import { Card } from "../../components/Card";
 import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
@@ -124,6 +125,31 @@ export default function OrderScreen() {
       setQr({ text: encodeReleaseQr(data, signature), expiry });
     }, t.order.releaseFailed, t.order.codeReady, "scan");
 
+  const j = t.journey;
+  const payeeSteps = [
+    ...(state.modality === 0 ? [{ key: "arrive", ...j.payee.arrive }] : []),
+    { key: "work", ...j.payee.work },
+    { key: "finish", ...j.payee.finish },
+    { key: "review", ...j.payee.review },
+  ];
+  const payerSteps = [
+    { key: "wait", ...j.payer.wait },
+    { key: "review", ...j.payer.review },
+    { key: "approve", ...j.payer.approve },
+    { key: "done", ...j.payer.done },
+  ];
+  const settled = view === "settled";
+  let journey: { steps: JourneyStep[]; current: number } | null = null;
+  if (!state.hasMilestones && !contributor) {
+    if (role === "payee" && (view === "worker-working" || view === "worker-waiting-review" || settled)) {
+      const at = (key: string) => payeeSteps.findIndex((step) => step.key === key);
+      const current = settled ? payeeSteps.length : view === "worker-waiting-review" ? at("review") : state.modality === 0 && state.checkedInAt === 0 ? at("arrive") : items.length === 0 ? at("work") : at("finish");
+      journey = { steps: payeeSteps, current };
+    } else if (role === "payer" && (view === "payer-waiting-work" || view === "payer-reviewing" || settled)) {
+      journey = { steps: payerSteps, current: settled ? payerSteps.length : view === "payer-waiting-work" ? 0 : 1 };
+    }
+  }
+
   return (
     <Screen
       footer={
@@ -142,6 +168,8 @@ export default function OrderScreen() {
         <Text style={text.label}>{t.order.amount}</Text>
         <Text style={text.amount}>{formatUsdc(state.price.toString())}</Text>
       </Card>
+
+      {journey ? <Journey title={role === "payer" ? t.journey.payerTitle : t.journey.payeeTitle} steps={journey.steps} current={journey.current} /> : null}
 
       {state.hasMilestones && view !== "settled" && view !== "cancelled" && view !== "disputed" ? (
         <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} />

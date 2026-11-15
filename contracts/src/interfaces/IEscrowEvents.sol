@@ -25,6 +25,7 @@ interface IEscrowEvents {
         uint128 fee,
         uint8 category
     );
+    event OrderToppedUp(uint256 indexed orderId, uint128 added, uint128 deposited);
     event OrderReserved(uint256 indexed orderId, address indexed payee);
     event ReservationWithdrawn(uint256 indexed orderId, address indexed payee);
     event OrderAgreed(

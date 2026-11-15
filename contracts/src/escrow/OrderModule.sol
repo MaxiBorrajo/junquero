@@ -40,7 +40,7 @@ contract OrderModule is EscrowStorage {
     {}
 
     function selectors() external pure returns (bytes4[] memory selectors_) {
-        selectors_ = new bytes4[](9);
+        selectors_ = new bytes4[](10);
         selectors_[0] = OrderModule.createOrder.selector;
         selectors_[1] = OrderModule.reserve.selector;
         selectors_[2] = OrderModule.withdrawReservation.selector;
@@ -50,6 +50,7 @@ contract OrderModule is EscrowStorage {
         selectors_[6] = OrderModule.autoRelease.selector;
         selectors_[7] = OrderModule.extendReview.selector;
         selectors_[8] = OrderModule.requestChanges.selector;
+        selectors_[9] = OrderModule.topUp.selector;
     }
 
     function createOrder(CreateParams calldata params, DepositAuth calldata auth)
@@ -85,6 +86,23 @@ contract OrderModule is EscrowStorage {
         _payout(params.token, treasury, fee);
 
         _emitCreated(orderId, payer, params, fee);
+    }
+
+    /// @notice The payer adds funds to an open escrowed order so a higher offer can be agreed.
+    function topUp(uint256 orderId, uint128 amount, DepositAuth calldata auth) external nonReentrant {
+        Order storage order = _orders[orderId];
+        OrderStatus status = order.status;
+        if (status == OrderStatus.None) revert UnknownOrder(orderId);
+        if (status != OrderStatus.Open && status != OrderStatus.Reserved) revert InvalidStatus(orderId, status);
+        address caller = _msgSender();
+        if (caller != order.payer) revert NotPayer(caller);
+        if (order.mode != PaymentMode.Escrowed) revert UnsupportedForMode();
+        if (order.isGroup) revert NotAvailableForGroup();
+        if (amount == 0) revert InvalidAmount();
+
+        order.deposited += amount;
+        _collect(order.token, caller, amount, auth);
+        emit OrderToppedUp(orderId, amount, order.deposited);
     }
 
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)

@@ -4316,5 +4316,75 @@
    }
   ],
   "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "topUp",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "amount",
+    "type": "uint128",
+    "internalType": "uint128"
+   },
+   {
+    "name": "auth",
+    "type": "tuple",
+    "internalType": "struct DepositAuth",
+    "components": [
+     {
+      "name": "method",
+      "type": "uint8",
+      "internalType": "enum DepositMethod"
+     },
+     {
+      "name": "nonce",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "deadline",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "signature",
+      "type": "bytes",
+      "internalType": "bytes"
+     }
+    ]
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "event",
+  "name": "OrderToppedUp",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "added",
+    "type": "uint128",
+    "indexed": false,
+    "internalType": "uint128"
+   },
+   {
+    "name": "deposited",
+    "type": "uint128",
+    "indexed": false,
+    "internalType": "uint128"
+   }
+  ],
+  "anonymous": false
  }
 ]

@@ -28,6 +28,7 @@ import {
 
 interface IEscrow is IEscrowEvents {
     function createOrder(CreateParams calldata params, DepositAuth calldata auth) external returns (uint256 orderId);
+    function topUp(uint256 orderId, uint128 amount, DepositAuth calldata auth) external;
     function reserve(Reservation calldata reservation, bytes calldata payerSignature, bytes calldata payeeSignature)
         external;
     function withdrawReservation(uint256 orderId) external;

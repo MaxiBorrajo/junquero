@@ -11,6 +11,7 @@ import {
     SizeClass,
     PaymentMode,
     CreateParams,
+    DepositAuth,
     Reservation,
     Agreement
 } from "../src/libraries/OrderTypes.sol";
@@ -66,6 +67,58 @@ contract EscrowAgreeTest is EscrowBase {
         bytes memory payeeSig = _sign(payeeKey, h);
         vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.PriceExceedsDeposit.selector, 101 * USDC, 100 * USDC));
         escrow.agree(a, payerSig, payeeSig);
+    }
+
+    function test_topUpLetsTheAgreementExceedTheFirstDeposit() public {
+        uint256 orderId = _createUsdc(100 * USDC);
+        usdc.mint(payer, 50 * USDC);
+        DepositAuth memory auth = _permitAuth(50 * USDC);
+        vm.prank(payer);
+        escrow.topUp(orderId, uint128(50 * USDC), auth);
+        assertEq(_order(orderId).deposited, 150 * USDC);
+
+        _agree(orderId, 150 * USDC);
+        Order memory order = _order(orderId);
+        assertEq(order.price, 150 * USDC);
+        assertEq(usdc.balanceOf(address(escrow)), 150 * USDC);
+    }
+
+    function test_topUpRefundsTheSurplusIfAgreedLower() public {
+        uint256 orderId = _createUsdc(100 * USDC);
+        usdc.mint(payer, 50 * USDC);
+        DepositAuth memory auth = _permitAuth(50 * USDC);
+        vm.prank(payer);
+        escrow.topUp(orderId, uint128(50 * USDC), auth);
+        uint256 before = usdc.balanceOf(payer);
+
+        _agree(orderId, 100 * USDC);
+        assertEq(usdc.balanceOf(payer) - before, 50 * USDC);
+    }
+
+    function test_topUpOnlyByThePayer() public {
+        uint256 orderId = _createUsdc(100 * USDC);
+        DepositAuth memory auth = _permitAuth(10 * USDC);
+        vm.prank(payee);
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.NotPayer.selector, payee));
+        escrow.topUp(orderId, uint128(10 * USDC), auth);
+    }
+
+    function test_topUpRevertsOnceAgreed() public {
+        uint256 orderId = _createUsdc(100 * USDC);
+        _agree(orderId, 100 * USDC);
+        usdc.mint(payer, 10 * USDC);
+        DepositAuth memory auth = _permitAuth(10 * USDC);
+        vm.prank(payer);
+        vm.expectRevert(abi.encodeWithSelector(IEscrowEvents.InvalidStatus.selector, orderId, OrderStatus.Agreed));
+        escrow.topUp(orderId, uint128(10 * USDC), auth);
+    }
+
+    function test_topUpRevertsOnZero() public {
+        uint256 orderId = _createUsdc(100 * USDC);
+        DepositAuth memory auth = _permitAuth(0);
+        vm.prank(payer);
+        vm.expectRevert(IEscrowEvents.InvalidAmount.selector);
+        escrow.topUp(orderId, 0, auth);
     }
 
     function test_agreeRevertsOnSpecMismatch() public {

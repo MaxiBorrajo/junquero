@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   fill: { width: "100%", height: "100%" },
   big: { width: 220, height: 160 },
   grid: { width: 104, height: 104 },
-  row: { flexDirection: "row", alignItems: "center", gap: spacing.sm, borderRadius: radius.sm, padding: spacing.sm },
+  row: { width: 220, flexDirection: "row", alignItems: "center", gap: spacing.sm, borderRadius: radius.sm, padding: spacing.sm },
   rowMine: { backgroundColor: colors.glassSoft },
   rowTheirs: { backgroundColor: colors.background },
   rowThumb: { width: 40, height: 40, borderRadius: radius.sm },

@@ -27,3 +27,23 @@ export function formatChatTime(seconds: number, now: number = Math.floor(Date.no
   if (date.getTime() >= startOfToday - 6 * day) return date.toLocaleDateString(locale, { weekday: "short" });
   return date.toLocaleDateString(locale, { day: "numeric", month: "short" });
 }
+
+// Hora de un mensaje, "14:05".
+export function formatClock(seconds: number, locale = "es-AR"): string {
+  return new Date(seconds * 1000).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+const startOfDay = (seconds: number): number => {
+  const date = new Date(seconds * 1000);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+};
+
+// Día de un mensaje para el separador del chat: "Hoy", "Ayer" o "lun, 16 nov".
+export function formatDayLabel(seconds: number, now: number = Math.floor(Date.now() / 1000), locale = "es-AR"): string {
+  const diff = Math.round((startOfDay(now) - startOfDay(seconds)) / (24 * 3600 * 1000));
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "Ayer";
+  return new Date(seconds * 1000).toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+}
+
+export const sameDay = (a: number, b: number): boolean => startOfDay(a) === startOfDay(b);

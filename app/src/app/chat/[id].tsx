@@ -1,4 +1,5 @@
 import { File } from "expo-file-system";
+import { formatClock, formatDayLabel, sameDay } from "../../lib/format";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
 import { Card } from "../../components/Card";
@@ -166,11 +167,18 @@ export default function ChatScreen() {
             </View>
           }
           onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
+            <View style={styles.entry}>
+              {index === 0 || !sameDay(room.view[index - 1]!.createdAt, item.createdAt) ? (
+                <View style={styles.day}>
+                  <Text style={text.label}>{formatDayLabel(item.createdAt)}</Text>
+                </View>
+              ) : null}
             <View style={[styles.bubble, item.mine ? styles.mine : styles.theirs]}>
               {item.text === null ? <Text style={[text.body, item.mine && styles.mineText]}>{t.chat.unreadable}</Text> : null}
               {item.text ? <Text style={[text.body, item.mine && styles.mineText]}>{item.text}</Text> : null}
               <MessageFiles files={item.files} mine={item.mine} fetchBytes={room.fetchAttachment} onOpen={(file) => void openAttachment(file)} />
+              <Text style={[text.label, styles.time, item.mine && styles.mineText]}>{formatClock(item.createdAt)}</Text>
               {item.status === "sending" ? <Text style={[text.label, item.mine && styles.mineText]}>{item.files.length > 0 ? t.chat.attachSending : t.chat.sending}</Text> : null}
               {item.status === "failed" ? (
                 <View style={styles.failedRow}>
@@ -183,6 +191,7 @@ export default function ChatScreen() {
                   </Pressable>
                 </View>
               ) : null}
+            </View>
             </View>
           )}
         />
@@ -275,6 +284,9 @@ const styles = StyleSheet.create({
   protectedToggle: { ...text.label },
   protectedBody: { ...text.secondary, color: colors.ink },
   applicationCard: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, gap: 2, marginBottom: spacing.sm },
+  entry: { gap: spacing.sm },
+  day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
+  time: { alignSelf: "flex-end" },
   bubble: { maxWidth: "80%", borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.xs },
   mine: { alignSelf: "flex-end", backgroundColor: colors.brick },
   theirs: { alignSelf: "flex-start", backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line },

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import { formatClock, formatDayLabel, sameDay } from "../../lib/format";
 import { useMyAgreements, useMyApplications, useMyChangas, useReceivedApplications } from "../../data/useMine";
@@ -13,7 +14,7 @@ import { Avatar } from "../../components/Avatar";
 import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, type ChatFile } from "../../chat/envelope";
@@ -62,6 +63,15 @@ export default function ChatScreen() {
   const agreements = useMyAgreements().data ?? [];
   const events = useChatEvents(Number(id)).data ?? [];
   const timeline = buildTimeline(room.view, events);
+
+  // Con el chat abierto, lo que cambia el acuerdo o el trabajo (la otra persona acepta, rechaza, llega...) se ve en pocos segundos.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const timer = setInterval(() => {
+      for (const key of ["agreements", "chat-events", "order", "applications", "evidence"]) void queryClient.invalidateQueries({ queryKey: [key] });
+    }, 5_000);
+    return () => clearInterval(timer);
+  }, [queryClient]);
   const ownerAddress = room.access.role === "owner" ? me : String(counterpart);
   const applicantAddress = room.access.role === "owner" ? String(counterpart) : me;
   const proposal = agreements.find((item) => item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;

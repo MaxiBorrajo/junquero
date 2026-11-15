@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Share, StyleSheet, Text, View } from "react-native";
@@ -8,29 +8,29 @@ import { checkContribution, contributionLimits, encodeContribute, encodeSupportC
 import { OrderStatus } from "../../chain/orderAbi";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readContributionRule, readGroup, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { Banner } from "../../components/Banner";
+import { Card } from "../../components/Card";
+import { DetailActions, type DetailAction } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useOrder } from "../../data/useOrder";
 import { t } from "../../i18n";
 import { formatDate, shortAddress } from "../../lib/format";
 import { formatAmount, formatUsdc, toMicro } from "../../lib/money";
 import { relayDepsFor } from "../../lib/relayHelpers";
+import { useRunAction } from "../../lib/useRunAction";
 import { useSession } from "../../session/SessionProvider";
-import { isRejection, signTyped } from "../../wallet/sign";
-import { Icon } from "../../components/Icon";
+import { signTyped } from "../../wallet/sign";
 import { colors, radius, spacing, text } from "../../theme";
 
 export default function GroupScreen() {
   const { orderId, title } = useLocalSearchParams<{ orderId: string; title?: string }>();
   const id = Number(orderId);
   const { api, address } = useSession();
-  const queryClient = useQueryClient();
   const order = useOrder(id);
   const group = useQuery({ queryKey: ["group", id], refetchInterval: 15_000, queryFn: () => readGroup(id) });
   const rule = useQuery({ queryKey: ["contributionRule"], queryFn: readContributionRule, staleTime: 10 * 60_000 });
   const [amount, setAmount] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { run, busy, error } = useRunAction();
 
   if (!group.data || !rule.data || !order.data || !address) {
     return (
@@ -51,40 +51,28 @@ export default function GroupScreen() {
   const parsed = amount.trim() ? toMicro(amount.trim()) : 0n;
   const check = checkContribution(parsed, mine, info.target, info.totalContributed, limits);
   const hasProposal = info.proposedPayee !== "0x0000000000000000000000000000000000000000";
-
-  const run = async (action: () => Promise<void>, success: string, failure: string) => {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      await action();
-      setMessage(success);
-      setAmount("");
-      await queryClient.invalidateQueries({ queryKey: ["group", id] });
-      await queryClient.invalidateQueries({ queryKey: ["order", id] });
-    } catch (caught) {
-      const text = String((caught as Error)?.message ?? "");
-      setError(isRejection(caught) ? t.order.signCancelled : text.startsWith("balance:") ? t.group.insufficient.replace("{amount}", formatAmount(text.split(":")[1] ?? "0")) : failure);
-    } finally {
-      setBusy(false);
-    }
+  const refresh = [["group", id], ["order", id]] as const;
+  const mapError = (caught: unknown) => {
+    const message = String((caught as Error)?.message ?? "");
+    return message.startsWith("balance:") ? t.group.insufficient.replace("{amount}", formatAmount(message.split(":")[1] ?? "0")) : null;
   };
 
   const contribute = () =>
-    run(async () => {
-      if (!check.ok) {
-        if (check.reason === "range") throw new Error("range");
-        throw new Error(check.reason);
-      }
-      const account = address as `0x${string}`;
-      const balance = await readTokenBalance(account);
-      if (balance < parsed) throw new Error(`balance:${parsed - balance}`);
-      const deadline = BigInt(now + PERMIT_VALIDITY_SECONDS);
-      const signature = await signTyped(permitTypedData(deployment, account, parsed, await readTokenNonce(account), deadline));
-      await sendViaRelay(relayDepsFor(api, address), encodeContribute(BigInt(id), parsed, { method: 0, nonce: 0n, deadline, signature }));
-    }, t.group.done, t.group.failed);
+    run(
+      async () => {
+        if (!check.ok) throw new Error(check.reason);
+        const account = address as `0x${string}`;
+        const balance = await readTokenBalance(account);
+        if (balance < parsed) throw new Error(`balance:${parsed - balance}`);
+        const deadline = BigInt(now + PERMIT_VALIDITY_SECONDS);
+        const signature = await signTyped(permitTypedData(deployment, account, parsed, await readTokenNonce(account), deadline));
+        return sendViaRelay(relayDepsFor(api, address), encodeContribute(BigInt(id), parsed, { method: 0, nonce: 0n, deadline, signature }));
+      },
+      { success: t.group.contributed, successIcon: "wallet", failure: t.group.failed, mapError, invalidate: refresh, onSuccess: () => setAmount("") },
+    );
 
-  const send = (data: `0x${string}`, success: string) => run(async () => void (await sendViaRelay(relayDepsFor(api, address), data)), success, t.group.failed);
+  const send = (data: `0x${string}`, success: string, icon?: string) =>
+    run(() => sendViaRelay(relayDepsFor(api, address), data), { success, successIcon: icon, failure: t.group.failed, invalidate: refresh });
 
   const hint = !amount.trim()
     ? null
@@ -96,67 +84,58 @@ export default function GroupScreen() {
           ? t.group.exceeds.replace("{remaining}", formatAmount((check.remaining ?? 0n).toString()))
           : null;
 
+  const actions: DetailAction[] = [
+    { key: "share", label: t.group.share, icon: "share", onPress: () => void Share.share({ message: `${title ?? ""} · junquero://group/${id}` }) },
+    ...(mine > 0n && (funding || open) ? [{ key: "withdraw", label: t.group.withdraw, icon: "logout" as const, danger: true, onPress: () => void send(encodeWithdrawContribution(BigInt(id)), t.group.withdrawn, "check") }] : []),
+    ...(funding && now > info.fundingDeadline ? [{ key: "refund", label: t.group.refund, icon: "refresh" as const, danger: true, onPress: () => void send(encodeRefundFunding(BigInt(id)), t.group.refunded, "check") }] : []),
+  ];
+
   return (
-    <Screen>
+    <Screen footer={funding ? <Button label={t.group.contribute} icon="wallet" onPress={contribute} loading={busy} disabled={!check.ok} /> : null}>
       <Title>{title ?? t.group.title}</Title>
       <Body>{funding ? t.group.funding : open ? t.group.funded : ""}</Body>
-      <View style={styles.box}>
+      <Card>
         <Text style={text.label}>{t.group.raised}</Text>
         <Text style={text.amount}>{formatUsdc(info.totalContributed.toString())}</Text>
         <View style={styles.bar}>
           <View style={[styles.fill, { width: `${Math.min(100, fundingProgress(info.totalContributed, info.target))}%` }]} />
         </View>
         <Secondary>{`${t.group.goal}: ${formatUsdc(info.target.toString())} · ${t.group.deadline}: ${formatDate(info.fundingDeadline)}`}</Secondary>
-      </View>
+      </Card>
 
       <Text style={text.subtitle}>{t.group.contributors}</Text>
       {info.contributors.map((item) => (
-        <View key={item.address} style={{ gap: 4 }}>
+        <View key={item.address} style={{ gap: spacing.xs }}>
           <View style={styles.row}>
             <Text style={text.body}>{item.address.toLowerCase() === me ? t.group.mine : shortAddress(item.address)}</Text>
             <Text style={text.body}>{`${formatUsdc(item.amount.toString())} · ${percentOf(item.amount, info.target)}% ${t.group.percent}`}</Text>
           </View>
           {mine > 0n && item.address.toLowerCase() !== me && open ? (
-            <Button label={t.group.supportCoordinator} icon="users" variant="ghost" onPress={() => send(encodeSupportCoordinator(BigInt(id), item.address), t.group.supportDone)} disabled={busy} />
+            <Button label={t.group.supportCoordinator} icon="users" variant="ghost" onPress={() => void send(encodeSupportCoordinator(BigInt(id), item.address), t.group.supportDone, "users")} disabled={busy} />
           ) : null}
         </View>
       ))}
 
-      {funding && order.data.payer.toLowerCase() === me && mine === 0n ? (
-        <View style={styles.invite}>
-          <Icon name="wallet" size={20} color={colors.brick} />
-          <Text style={[text.body, { flex: 1 }]}>{t.group.inviteCreator}</Text>
-        </View>
-      ) : null}
-      {funding ? (
-        <>
-          <Field label={t.group.amountLabel} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={hint} />
-          <Button label={t.group.contribute} icon="wallet" onPress={contribute} loading={busy} disabled={!check.ok} />
-        </>
-      ) : null}
-      {mine > 0n && (funding || open) ? <Button label={t.group.withdraw} icon="logout" variant="ghost" onPress={() => send(encodeWithdrawContribution(BigInt(id)), t.group.done)} disabled={busy} /> : null}
-      {funding && now > info.fundingDeadline ? <Button label={t.group.refund} icon="refresh" variant="secondary" onPress={() => send(encodeRefundFunding(BigInt(id)), t.group.done)} disabled={busy} /> : null}
+      {funding && order.data.payer.toLowerCase() === me && mine === 0n ? <Banner icon="wallet">{t.group.inviteCreator}</Banner> : null}
+      {funding ? <Field label={t.group.amountLabel} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={hint} /> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
       {open && hasProposal ? (
-        <View style={styles.box}>
+        <Card>
           <Body>{t.group.proposed}</Body>
           {vetoOpen(info.proposedAt, rule.data.vetoWindow, now) && mine > 0n ? (
             <>
               <Secondary>{t.group.vetoNote}</Secondary>
-              <Button label={t.group.veto} icon="block" variant="secondary" onPress={() => send(encodeVetoProvider(BigInt(id)), t.group.vetoDone)} disabled={busy} />
+              <DetailActions actions={[{ key: "veto", label: t.group.veto, icon: "block", danger: true, onPress: () => void send(encodeVetoProvider(BigInt(id)), t.group.vetoDone, "block") }]} />
             </>
           ) : null}
-        </View>
+        </Card>
       ) : null}
-      <Button label={t.group.share} icon="share" variant="ghost" onPress={() => void Share.share({ message: `${title ?? ""} · junquero://group/${id}` })} />
-      {message ? <Secondary>{message}</Secondary> : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      <DetailActions actions={actions} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  invite: { flexDirection: "row", alignItems: "center", gap: spacing.sm + 4, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md },
-  box: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.line },
   bar: { height: 10, borderRadius: radius.pill, backgroundColor: colors.line, overflow: "hidden" },
   fill: { height: 10, backgroundColor: colors.brick },
   row: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },

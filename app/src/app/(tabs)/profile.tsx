@@ -11,6 +11,7 @@ import { Logo } from "../../components/Logo";
 import { Body, Button, Screen, Secondary, Title } from "../../components/ui";
 import { API_URL } from "../../config";
 import { t } from "../../i18n";
+import { useToast } from "../../components/Toast";
 import { formatUsdc } from "../../lib/money";
 import { useActivity } from "../../data/useActivity";
 import { useLastSeen, useNotifications, countUnread } from "../../data/useNotifications";
@@ -29,7 +30,7 @@ const SELFIE_BADGE = {
 export default function Profile() {
   const { profile, address, api, signOut, refresh: refreshSession } = useSession();
   const { disconnect } = useAppKit();
-  const [copied, setCopied] = useState(false);
+  const toast = useToast();
   const activity = useActivity();
   const notifications = useNotifications();
   const lastSeen = useLastSeen();
@@ -63,7 +64,7 @@ export default function Profile() {
 
   const copy = async () => {
     await Clipboard.setStringAsync(address);
-    setCopied(true);
+    toast({ text: t.me.copied, icon: "copy" });
   };
 
   const selfie = profile?.selfieStatus ?? "none";
@@ -105,7 +106,7 @@ export default function Profile() {
       <View style={styles.box}>
         <Text style={text.label}>{t.me.wallet}</Text>
         <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>
-        <Button label={copied ? t.me.copied : t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
+        <Button label={t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
       </View>
       {selfie === "rejected" || selfie === "none" ? <Button label={t.me.retakeSelfie} variant="secondary" icon="camera" onPress={() => router.push("/selfie")} /> : null}
       <Button label={unread > 0 ? `${t.notifications.title} (${unread})` : t.notifications.title} variant="secondary" icon="bell" onPress={() => router.push("/notifications")} />

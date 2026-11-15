@@ -8,6 +8,7 @@ import { AppState, Linking, StyleSheet, Switch, Text, View } from "react-native"
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../components/ui";
 import { API_URL } from "../config";
 import { t } from "../i18n";
+import { useToast } from "../components/Toast";
 import { pushEnabledByUser, setPushEnabledByUser } from "../push/preference";
 import { registerForPush, unregisterPush } from "../push/register";
 import { useSession } from "../session/SessionProvider";
@@ -29,7 +30,7 @@ export default function Settings() {
   const [push, setPush] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const toast = useToast();
 
   const load = useCallback(() => {
     readPushState().then(setPush).catch(() => setPush("unavailable"));
@@ -64,7 +65,7 @@ export default function Settings() {
   const copy = async () => {
     if (!address) return;
     await Clipboard.setStringAsync(address);
-    setCopied(true);
+    toast({ text: t.me.copied, icon: "copy" });
   };
 
   const pushLabel = push === "on" ? t.settings.notificationsOn : push === "off" ? t.settings.notificationsOff : push === "blocked" ? t.settings.notificationsBlocked : t.settings.notificationsUnavailable;
@@ -77,7 +78,7 @@ export default function Settings() {
         <View style={styles.box}>
           <Text style={text.label}>{t.settings.account}</Text>
           <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>
-          <Button label={copied ? t.me.copied : t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
+          <Button label={t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
           <Button label={t.me.edit} variant="secondary" icon="edit" onPress={() => router.push("/profile-setup")} />
           <Button label={t.me.retakeSelfie} variant="secondary" icon="camera" onPress={() => router.push("/selfie")} />
         </View>

@@ -1,3 +1,4 @@
+import { useRunAction } from "../lib/useRunAction";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -27,9 +28,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   const queryClient = useQueryClient();
   const board = useQuery({ queryKey: ["milestones", orderId], refetchInterval: 15_000, queryFn: () => readMilestones(orderId) });
   const evidence = useEvidence(orderId);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { run: runAction, busy, error } = useRunAction();
   const [rating, setRating] = useState(5);
   const [qr, setQr] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -49,36 +48,25 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   const mine = items.filter((item) => item.uploader.toLowerCase() === address.toLowerCase());
   const deps = relayDepsFor(api, address);
 
-  const run = async (work: () => Promise<void>, success: string) => {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      await work();
-      setMessage(success);
-      await queryClient.invalidateQueries({ queryKey: ["milestones", orderId] });
-      await queryClient.invalidateQueries({ queryKey: ["order", orderId] });
-    } catch (caught) {
-      setError(isRejection(caught) ? t.order.signCancelled : t.milestonesBoard.failed);
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Los datos del tablero se refrescan solos cuando la red confirma la acción.
+  const refresh = [["milestones", orderId], ["order", orderId]] as const;
+  const run = (work: () => Promise<string | void>, success: string, icon?: string) =>
+    runAction(work, { success, successIcon: icon, failure: t.milestonesBoard.failed, invalidate: refresh });
 
-  const send = (data: `0x${string}`) => async () => void (await sendViaRelay(deps, data));
+  const send = (data: `0x${string}`) => () => sendViaRelay(deps, data);
 
   const approve = () =>
     run(async () => {
       if (!current) return;
       await approveRemotely({ api, deployment, orderId, payee: payee as `0x${string}`, index: state.next, amount: current.amount, rating, evidenceHash: current.evidenceHash, now: Math.floor(Date.now() / 1000), sign: signTyped });
       await queryClient.invalidateQueries({ queryKey: ["release", orderId] });
-    }, t.order.approved);
+    }, t.order.approved, "check");
 
   const claim = () =>
     run(async () => {
       if (!remote.data) return;
-      await sendViaRelay(deps, releaseCall(orderId, remote.data));
-    }, t.milestonesBoard.done);
+      return sendViaRelay(deps, releaseCall(orderId, remote.data));
+    }, t.milestonesBoard.paid, "wallet");
 
   const showQr = () =>
     run(async () => {
@@ -87,7 +75,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
       const data = { orderId: BigInt(orderId), index: state.next, amount: current.amount, rating, evidenceHash: current.evidenceHash, expiry };
       const signature = await signTyped(milestoneReleaseTypedData(deployment, data));
       setQr(encodeMilestoneQr(data, payee as `0x${string}`, signature));
-    }, t.milestonesBoard.done);
+    }, t.milestonesBoard.qrReady, "scan");
 
   return (
     <View style={styles.box}>
@@ -110,7 +98,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
           <EvidenceUploader orderId={orderId} counterpart={counterpart} />
           <Button
             label={t.milestonesBoard.deliver} icon="send"
-            onPress={() => run(send(encodeDeliverMilestone(BigInt(orderId), state.next, evidenceBundleHash(mine.map((item) => item.hash)))), t.milestonesBoard.done)}
+            onPress={() => run(send(encodeDeliverMilestone(BigInt(orderId), state.next, evidenceBundleHash(mine.map((item) => item.hash)))), t.milestonesBoard.delivered, "send")}
             loading={busy}
             disabled={mine.length === 0}
           />
@@ -125,7 +113,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
               <Chip key={step} label={`${step / 100}%`} selected={progress === step} onPress={() => setProgress(step)} />
             ))}
           </Row>
-          <Button label={t.progress.report} icon="edit" variant="secondary" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done)} loading={busy} disabled={mine.length === 0} />
+          <Button label={t.progress.report} icon="edit" variant="secondary" onPress={() => run(send(encodeReportProgress(BigInt(orderId), progress, evidenceBundleHash(mine.map((item) => item.hash)))), t.progress.done, "check")} loading={busy} disabled={mine.length === 0} />
         </>
       ) : null}
       {action === "wait-review" ? (
@@ -166,22 +154,21 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
         confirmEnd ? (
           <>
             <Secondary>{t.milestonesBoard.terminateNote}</Secondary>
-            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="secondary" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.done)} loading={busy} />
+            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="secondary" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.terminated, "check")} loading={busy} />
           </>
         ) : (
           <Button label={t.milestonesBoard.terminate} icon="close" variant="ghost" onPress={() => setConfirmEnd(true)} />
         )
       ) : null}
       {role === "payer" && deadline > 0 && Math.floor(Date.now() / 1000) > deadline && current?.status === MilestoneStatus.Pending ? (
-        <Button label={`${t.milestonesBoard.declareAbandoned} (${formatDate(deadline)})`} icon="info" variant="ghost" onPress={() => run(send(encodeDeclareAbandoned(BigInt(orderId))), t.milestonesBoard.done)} disabled={busy} />
+        <Button label={`${t.milestonesBoard.declareAbandoned} (${formatDate(deadline)})`} icon="info" variant="ghost" onPress={() => run(send(encodeDeclareAbandoned(BigInt(orderId))), t.milestonesBoard.abandonedDeclared, "check")} disabled={busy} />
       ) : null}
       {role === "payee" && state.next < state.count ? (
         <>
           <Secondary>{t.milestonesBoard.abandonNote}</Secondary>
-          <Button label={t.milestonesBoard.abandon} icon="logout" variant="ghost" onPress={() => run(send(encodeAbandon(BigInt(orderId))), t.milestonesBoard.done)} disabled={busy} />
+          <Button label={t.milestonesBoard.abandon} icon="logout" variant="ghost" onPress={() => run(send(encodeAbandon(BigInt(orderId))), t.milestonesBoard.abandoned, "check")} disabled={busy} />
         </>
       ) : null}
-      {message ? <Secondary>{message}</Secondary> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );

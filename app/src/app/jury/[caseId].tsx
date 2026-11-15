@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -15,24 +15,21 @@ import { secureSecretStorage } from "../../jury/secureStorage";
 import { t } from "../../i18n";
 import { formatDate } from "../../lib/format";
 import { relayDepsFor } from "../../lib/relayHelpers";
+import { useRunAction } from "../../lib/useRunAction";
 import { useSession } from "../../session/SessionProvider";
-import { isRejection } from "../../wallet/sign";
 import { text } from "../../theme";
 
 export default function JurorCase() {
   const { caseId } = useLocalSearchParams<{ caseId: string }>();
   const id = Number(caseId);
   const { api, address } = useSession();
-  const queryClient = useQueryClient();
   const state = useCaseState(id);
   const orderId = state.data?.snapshot.orderId ?? 0;
   const evidence = useEvidence(orderId);
   const juror = address as `0x${string}`;
   const mine = useQuery({ queryKey: ["jurorCase", id, address], enabled: Boolean(address), refetchInterval: 15_000, queryFn: () => readJurorCase(id, juror) });
   const [choice, setChoice] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { run, busy, error } = useRunAction();
 
   if (!state.data || !mine.data || !address) {
     return (
@@ -48,36 +45,28 @@ export default function JurorCase() {
   const view = phaseView(snapshot, now);
   const action = jurorAction(view, mine.data, true);
 
-  const run = async (work: () => Promise<void>, success: string) => {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      await work();
-      setMessage(success);
-      await mine.refetch();
-      await queryClient.invalidateQueries({ queryKey: ["case", id] });
-    } catch (caught) {
-      setError(isRejection(caught) ? t.order.signCancelled : t.jury.stepFailed);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const refresh = [["jurorCase", id], ["case", id]] as const;
 
   const commit = () =>
-    run(async () => {
-      if (choice === null) throw new Error("choice");
-      const salt = randomHex32((n) => crypto.getRandomValues(new Uint8Array(n)));
-      await saveVote(secureSecretStorage, juror, id, { vote: choice, salt });
-      await sendViaRelay(relayDepsFor(api, address), encodeCommitVote(BigInt(id), voteCommitment(BigInt(id), juror, choice, salt)), 1_500_000n, deployment.arbitration);
-    }, t.jury.voteSaved);
+    run(
+      async () => {
+        if (choice === null) throw new Error("choice");
+        const salt = randomHex32((n) => crypto.getRandomValues(new Uint8Array(n)));
+        await saveVote(secureSecretStorage, juror, id, { vote: choice, salt });
+        return sendViaRelay(relayDepsFor(api, address), encodeCommitVote(BigInt(id), voteCommitment(BigInt(id), juror, choice, salt)), 1_500_000n, deployment.arbitration);
+      },
+      { success: t.jury.voteSaved, successIcon: "lock", failure: t.jury.stepFailed, invalidate: refresh },
+    );
 
   const reveal = () =>
-    run(async () => {
-      const saved = await loadVote(secureSecretStorage, juror, id);
-      if (!saved) throw new Error("secret");
-      await sendViaRelay(relayDepsFor(api, address), encodeRevealVote(BigInt(id), saved.vote, saved.salt), 1_500_000n, deployment.arbitration);
-    }, t.jury.voteRevealed);
+    run(
+      async () => {
+        const saved = await loadVote(secureSecretStorage, juror, id);
+        if (!saved) throw new Error("secret");
+        return sendViaRelay(relayDepsFor(api, address), encodeRevealVote(BigInt(id), saved.vote, saved.salt), 1_500_000n, deployment.arbitration);
+      },
+      { success: t.jury.voteRevealed, successIcon: "check", failure: t.jury.stepFailed, invalidate: refresh },
+    );
 
   if (!mine.data.selected) {
     return (
@@ -112,7 +101,6 @@ export default function JurorCase() {
       {action === "reveal-vote" ? <Button label={t.jury.revealVote} icon="check" onPress={reveal} loading={busy} /> : null}
       {view === "vote-commit" && action === "wait" && mine.data.voteCommit !== `0x${"0".repeat(64)}` ? <Secondary>{t.jury.waitReveal}</Secondary> : null}
       {action === "done" ? <Secondary>{t.jury.voteRevealed}</Secondary> : null}
-      {message ? <Secondary>{message}</Secondary> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>
   );

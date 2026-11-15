@@ -15,6 +15,7 @@ import { deployment } from "../../chain/deployment";
 import { PersonMenu } from "../../components/PersonMenu";
 import { BackButton, Button, ErrorText, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
+import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
@@ -31,7 +32,7 @@ export default function ReceivedApplications() {
   const agreements = useMyAgreements();
   const changa = (mine.data ?? []).find((item) => item.id === id) ?? null;
   const [busy, setBusy] = useState<number | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const [failed, setFailed] = useState(false);
 
   const confirmTopUp = (price: bigint, published: bigint) =>
@@ -73,17 +74,16 @@ export default function ReceivedApplications() {
     const higher = !plan && published !== null && price > published;
     if (higher && !(await confirmTopUp(price, published))) return;
     setBusy(application.id);
-    setMessage(null);
     setFailed(false);
     try {
       if (higher) {
         const outcome = await topUp(target, price, published);
         if (outcome === "balance") {
-          setMessage(t.received.topUpBalance.replace("{extra}", formatUsdc((price - published).toString())));
+          toast({ text: t.received.topUpBalance.replace("{extra}", formatUsdc((price - published).toString())), tone: "error" });
           return;
         }
         if (outcome === "waiting") {
-          setMessage(t.received.topUpWaiting);
+          toast({ text: t.received.topUpWaiting, tone: "info" });
           return;
         }
       }
@@ -92,9 +92,9 @@ export default function ReceivedApplications() {
       const signature = await signTyped(agreementTypedData(deployment, terms));
       await api.send("POST", `/me/orders/${target.orderId}/agreement`, { payee: application.applicant, price: price.toString(), expiry, signature });
       await queryClient.invalidateQueries({ queryKey: ["agreements"] });
-      setMessage(t.received.proposalSent);
+      toast({ text: t.received.proposalSent, icon: "send" });
     } catch (error) {
-      if (isRejection(error)) setMessage(t.received.cancelled);
+      if (isRejection(error)) toast({ text: t.received.cancelled, tone: "info" });
       else setFailed(true);
     } finally {
       setBusy(null);
@@ -104,13 +104,12 @@ export default function ReceivedApplications() {
   const proposeProvider = async (application: ReceivedApplication, target: Changa) => {
     if (target.orderId === null) return;
     setBusy(application.id);
-    setMessage(null);
     setFailed(false);
     try {
       await sendViaRelay(relayDepsFor(api, address as string), encodeProposeProvider(BigInt(target.orderId), application.applicant as `0x${string}`));
-      setMessage(t.group.proposeDone);
+      toast({ text: t.group.proposeDone, icon: "users" });
     } catch (error) {
-      if (isRejection(error)) setMessage(t.received.cancelled);
+      if (isRejection(error)) toast({ text: t.received.cancelled, tone: "info" });
       else setFailed(true);
     } finally {
       setBusy(null);
@@ -143,7 +142,6 @@ export default function ReceivedApplications() {
                 <Button label={t.received.cancelProposal} icon="close" variant="ghost" onPress={cancelProposal} />
               </View>
             ) : null}
-            {message ? <Secondary>{message}</Secondary> : null}
             {failed ? <ErrorText>{t.received.chooseFailed}</ErrorText> : null}
           </View>
         }

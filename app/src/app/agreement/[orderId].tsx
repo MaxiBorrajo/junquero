@@ -7,6 +7,7 @@ import { deployment } from "../../chain/deployment";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
 import { useChangaBySpec } from "../../data/useChangas";
 import { useMyAgreements } from "../../data/useMine";
+import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { formatDate } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
@@ -23,16 +24,7 @@ export default function AgreementScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const [done, setDone] = useState(false);
-
-  if (done) {
-    return (
-      <Screen footer={<Button label={t.common.continue} icon="chevron" onPress={() => router.replace("/my-changas")} />}>
-        <Title>{t.agreement.title}</Title>
-        <Body>{t.agreement.done}</Body>
-      </Screen>
-    );
-  }
+  const toast = useToast();
 
   if (!agreement || !address || agreement.status !== "pending" || agreement.payee !== address) {
     return (
@@ -59,7 +51,8 @@ export default function AgreementScreen() {
       const signature = await signTyped(agreementTypedData(deployment, terms));
       await api.send("POST", `/me/orders/${agreement.orderId}/agreement/accept`, { signature });
       await queryClient.invalidateQueries({ queryKey: ["agreements"] });
-      setDone(true);
+      toast({ text: t.agreement.done, icon: "check" });
+      router.replace("/my-changas");
     } catch (error) {
       if (isRejection(error)) setMessage(t.agreement.cancelled);
       else if (error instanceof ApiError && error.status === 409) setMessage(t.agreement.expired);
@@ -93,7 +86,7 @@ export default function AgreementScreen() {
       <Body>{`${t.agreement.price}: ${formatUsdc(agreement.price)}`}</Body>
       <Secondary>{`${t.agreement.expires}: ${formatDate(agreement.expiry)}`}</Secondary>
       <Secondary>{t.agreement.summary}</Secondary>
-      {message ? <Secondary>{message}</Secondary> : null}
+      {message ? <ErrorText>{message}</ErrorText> : null}
       {failed ? <ErrorText>{t.agreement.failed}</ErrorText> : null}
     </Screen>
   );

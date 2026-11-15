@@ -1,12 +1,14 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text } from "react-native";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData, splitSignature } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
 import { appealCost, canAppeal, canRespond, encodeAppealWithPermit, encodeRespond, partyRole, phaseView, reasonHash } from "../../chain/jury";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readJurorFee, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { Card } from "../../components/Card";
+import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useChatKey } from "../../chat/ChatKeyProvider";
 import { useCaseState } from "../../data/useCases";
@@ -17,23 +19,21 @@ import { t } from "../../i18n";
 import { formatDate } from "../../lib/format";
 import { formatAmount, formatUsdc } from "../../lib/money";
 import { relayDepsFor } from "../../lib/relayHelpers";
+import { useRunAction } from "../../lib/useRunAction";
 import { useSession } from "../../session/SessionProvider";
-import { isRejection, signTyped } from "../../wallet/sign";
-import { colors, radius, spacing, text } from "../../theme";
+import { signTyped } from "../../wallet/sign";
+import { text } from "../../theme";
 
 export default function CaseScreen() {
   const { caseId } = useLocalSearchParams<{ caseId: string }>();
   const id = Number(caseId);
   const { api, address } = useSession();
   const { ensure } = useChatKey();
-  const queryClient = useQueryClient();
   const state = useCaseState(id);
   const orderId = state.data?.snapshot.orderId ?? 0;
   const evidence = useEvidence(orderId);
   const [response, setResponse] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { run: runAction, busy, error } = useRunAction();
 
   const fee = useQuery({ queryKey: ["jurorFee"], queryFn: readJurorFee, staleTime: 5 * 60_000 });
 
@@ -54,35 +54,23 @@ export default function CaseScreen() {
   const counterpart = snapshot.payer.toLowerCase() === address.toLowerCase() ? snapshot.payee : snapshot.payer;
   const items = evidence.data ?? [];
 
-  const run = async (action: () => Promise<void>, failure: string, success?: string) => {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      await action();
-      if (success) setMessage(success);
-      await queryClient.invalidateQueries({ queryKey: ["case", id] });
-      await queryClient.invalidateQueries({ queryKey: ["evidence", orderId] });
-    } catch (caught) {
-      setError(isRejection(caught) ? t.order.signCancelled : failure);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const refresh = [["case", id], ["evidence", orderId]] as const;
+  const run = (action: () => Promise<string | void>, failure: string, success: string, icon: string) =>
+    runAction(action, { success, successIcon: icon, failure, invalidate: refresh });
 
   const respond = () =>
     run(async () => {
       const text = response.trim();
       await uploadStatement(api, address, counterpart, await ensure(), orderId, text);
-      await sendViaRelay(relayDepsFor(api, address), encodeRespond(BigInt(id), reasonHash(text)), 1_500_000n, deployment.arbitration);
-    }, t.dispute.failed, t.caseScreen.respondDone);
+      return sendViaRelay(relayDepsFor(api, address), encodeRespond(BigInt(id), reasonHash(text)), 1_500_000n, deployment.arbitration);
+    }, t.dispute.failed, t.caseScreen.respondDone, "send");
 
   const share = () =>
     run(async () => {
       const mine = await ensure();
       const sent = await shareWithJurors({ api, address, mine, orderId, items, jurors: jurors.map((j) => j.toLowerCase()) });
       if (sent === 0) throw new Error("nothing");
-    }, t.caseScreen.shareFailed, t.caseScreen.shared);
+    }, t.caseScreen.shareFailed, t.caseScreen.shared, "file");
 
   const appeal = () =>
     run(async () => {
@@ -93,8 +81,8 @@ export default function CaseScreen() {
       const deadline = BigInt(now + PERMIT_VALIDITY_SECONDS);
       const signature = await signTyped(permitTypedData(deployment, account, cost, await readTokenNonce(account), deadline, deployment.arbitration));
       const { v, r, s } = splitSignature(signature);
-      await sendViaRelay(relayDepsFor(api, address), encodeAppealWithPermit(BigInt(id), deadline, v, r, s), 1_500_000n, deployment.arbitration);
-    }, t.dispute.failed, t.caseScreen.appealDone);
+      return sendViaRelay(relayDepsFor(api, address), encodeAppealWithPermit(BigInt(id), deadline, v, r, s), 1_500_000n, deployment.arbitration);
+    }, t.dispute.failed, t.caseScreen.appealDone, "scale");
 
   const phaseText =
     view === "waiting-response" ? t.caseScreen.phase.response : view.startsWith("seed") ? t.caseScreen.phase.seed : view.startsWith("vote") ? t.caseScreen.phase.vote : view.startsWith("verdict") ? t.caseScreen.phase.decided : view === "emergency" ? t.caseScreen.phase.emergency : t.caseScreen.phase.resolved;
@@ -103,11 +91,11 @@ export default function CaseScreen() {
     <Screen>
       <Title>{t.caseScreen.title}</Title>
       <Body>{phaseText}</Body>
-      <View style={styles.box}>
+      <Card gap="xs">
         <Text style={text.label}>{t.order.amount}</Text>
         <Text style={text.subtitle}>{formatUsdc(snapshot.fee.toString())}</Text>
         <Secondary>{`${snapshot.jurors} ${t.caseScreen.jurors}`}</Secondary>
-      </View>
+      </Card>
 
       {view === "waiting-response" ? (
         <Secondary>{`${t.caseScreen.responseDeadline}: ${formatDate(snapshot.commitEnd)}`}</Secondary>
@@ -121,7 +109,7 @@ export default function CaseScreen() {
       {view === "waiting-response" && role === "claimant" ? <Secondary>{t.caseScreen.responseNoReply}</Secondary> : null}
 
       {isParty && (view.startsWith("vote") || view === "verdict-appealable" || view === "verdict-final") && jurors.length > 0 ? (
-        <Button label={t.caseScreen.shareEvidence} icon="file" variant="secondary" onPress={share} loading={busy} />
+        <DetailActions actions={[{ key: "share", label: t.caseScreen.shareEvidence, icon: "file", onPress: () => void share() }]} />
       ) : null}
 
       {view.startsWith("verdict") || view === "resolved" ? (
@@ -141,12 +129,7 @@ export default function CaseScreen() {
           <EvidenceGallery orderId={orderId} items={items} />
         </>
       ) : null}
-      {message ? <Secondary>{message}</Secondary> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
-});

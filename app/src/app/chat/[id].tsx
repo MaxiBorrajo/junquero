@@ -7,6 +7,7 @@ import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
 import { useChatEvents, type ChatEvent, type ChatEventKind } from "../../data/useChatEvents";
 import { buildTimeline, eventText, isMineEvent } from "../../lib/chatTimeline";
+import { markFresh } from "../../chain/serverReads";
 import { StepCard } from "../../components/StepCard";
 import { AgreementCard } from "../../components/AgreementCard";
 import { useSession } from "../../session/SessionProvider";
@@ -74,6 +75,7 @@ export default function ChatScreen() {
   const queryClient = useQueryClient();
   // Cuando el servidor avisa que algo cambió (o al volver a conectar), se actualiza solo lo que muestra este chat.
   const refreshFromServer = useCallback(() => {
+    markFresh();
     for (const key of [["agreements"], ["chat-events", Number(id)], ["order"], ["applications"], ["evidence"]]) void queryClient.invalidateQueries({ queryKey: key });
   }, [queryClient, id]);
   const room = useChatRoom(Number(id), String(counterpart), refreshFromServer);

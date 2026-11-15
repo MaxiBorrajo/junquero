@@ -9,7 +9,7 @@ import type { Changa } from "../api/types";
 import { deployment } from "../chain/deployment";
 import { MilestoneStatus, PROGRESS_STEPS, encodeReportProgress, encodeAbandon, encodeDeclareAbandoned, encodeDeliverMilestone, encodeMilestoneQr, encodeTerminateEarly, milestoneReleaseTypedData } from "../chain/milestones";
 import { RELEASE_VALIDITY_SECONDS, sendViaRelay } from "../chain/orderActions";
-import { readMilestones } from "../chain/reader";
+import { fetchMilestones } from "../chain/serverReads";
 import { useEvidence, EvidenceGallery, EvidenceUploader } from "../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../evidence/crypto";
 import { t } from "../i18n";
@@ -30,7 +30,7 @@ import { Stars } from "./Stars";
 export function MilestoneBoard({ orderId, role, counterpart, changa, payee, deadline }: { orderId: number; role: "payer" | "payee" | "viewer"; counterpart: string; changa: Changa | null; payee: string; deadline: number }) {
   const { api, address } = useSession();
   const queryClient = useQueryClient();
-  const board = useQuery({ queryKey: ["milestones", orderId], refetchInterval: useFocusedInterval(30_000), queryFn: () => readMilestones(orderId) });
+  const board = useQuery({ queryKey: ["milestones", orderId], refetchInterval: useFocusedInterval(30_000), queryFn: () => fetchMilestones(api, orderId) });
   const evidence = useEvidence(orderId);
   const { run: runAction, busy, error } = useRunAction();
   const [rating, setRating] = useState(5);

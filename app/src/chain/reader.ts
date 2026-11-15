@@ -29,8 +29,6 @@ export async function readFeeRule(): Promise<FeeRule> {
   return { bps: BigInt(bps), floor: tokenConfig.feeFloor, cap: tokenConfig.feeCap };
 }
 
-import { orderAbi } from "./orderAbi";
-
 export interface OrderState {
   payer: Address;
   payee: Address;
@@ -50,59 +48,8 @@ export interface OrderState {
   specHash: `0x${string}`;
 }
 
-export async function readOrder(orderId: number): Promise<OrderState> {
-  const order = await readContract(config(), { address: deployment.escrow, abi: orderAbi, functionName: "getOrder", args: [BigInt(orderId)] });
-  return {
-    payer: order.payer,
-    payee: order.payee,
-    status: order.status,
-    price: order.price,
-    deposited: order.deposited,
-    evidenceHash: order.evidenceHash,
-    startsAt: order.startsAt,
-    deadline: order.deadline,
-    deliveredAt: order.deliveredAt,
-    checkedInAt: order.checkedInAt,
-    arrivalConfirmed: order.arrivalConfirmed,
-    hasMilestones: order.hasMilestones,
-    isGroup: order.isGroup,
-    modality: order.modality,
-    sizeClass: order.sizeClass,
-    specHash: order.specHash,
-  };
-}
-
-
 import { arbitrationAbi } from "./arbitrationAbi";
-import type { CaseSnapshot, JurorSnapshot } from "./jury";
-
-export async function readCase(caseId: number): Promise<CaseSnapshot> {
-  const c = await readContract(config(), { address: deployment.arbitration, abi: arbitrationAbi, functionName: "getCase", args: [BigInt(caseId)] });
-  return {
-    orderId: Number(c.orderId),
-    payer: c.payer,
-    payee: c.payee,
-    claimant: c.claimant,
-    token: c.token,
-    fee: c.fee,
-    jurors: c.jurors,
-    phase: c.phase,
-    round: c.round,
-    revealedVotes: c.revealedVotes,
-    payeeVotes: c.payeeVotes,
-    payerVotes: c.payerVotes,
-    commitEnd: c.commitEnd,
-    revealEnd: c.revealEnd,
-    appealed: c.appealed,
-    verdictPayee: c.verdictPayee,
-    appealEnd: c.appealEnd,
-    appellant: c.appellant,
-    appealFee: c.appealFee,
-  };
-}
-
-export const readJurors = (caseId: number): Promise<readonly Address[]> =>
-  readContract(config(), { address: deployment.arbitration, abi: arbitrationAbi, functionName: "jurorsOf", args: [BigInt(caseId)] });
+import type { JurorSnapshot } from "./jury";
 
 export async function readJurorCase(caseId: number, juror: Address): Promise<JurorSnapshot> {
   const c = await readContract(config(), { address: deployment.arbitration, abi: arbitrationAbi, functionName: "jurorCase", args: [BigInt(caseId), juror] });
@@ -134,48 +81,11 @@ export const readCommitters = (caseId: number, round: number): Promise<readonly 
 export const readRevealers = (caseId: number, round: number): Promise<readonly Address[]> =>
   readContract(config(), { address: deployment.arbitration, abi: arbitrationAbi, functionName: "revealersOf", args: [BigInt(caseId), round] });
 
-const config_ = () => wagmiAdapter.wagmiConfig;
-
 import { groupAbi } from "./group";
-
-export async function readGroup(orderId: number) {
-  const [info, contributors] = await Promise.all([
-    readContract(config(), { address: deployment.escrow, abi: groupAbi, functionName: "getGroup", args: [BigInt(orderId)] }),
-    readContract(config(), { address: deployment.escrow, abi: groupAbi, functionName: "contributorsOf", args: [BigInt(orderId)] }),
-  ]);
-  const amounts = await Promise.all(contributors.map((account) => readContract(config(), { address: deployment.escrow, abi: groupAbi, functionName: "contributionOf", args: [BigInt(orderId), account] })));
-  return {
-    target: info.target,
-    totalContributed: info.totalContributed,
-    fundingDeadline: info.fundingDeadline,
-    proposedPayee: info.proposedPayee,
-    proposedAt: info.proposedAt,
-    vetoMoney: info.vetoMoney,
-    vetoCount: info.vetoCount,
-    objectionMoney: info.objectionMoney,
-    objectionCount: info.objectionCount,
-    contributors: contributors.map((account, index) => ({ address: account, amount: amounts[index]! })),
-  };
-}
 
 export async function readContributionRule(): Promise<{ minBps: bigint; maxBps: bigint; vetoWindow: number }> {
   const [minBps, maxBps, vetoWindow] = await Promise.all([readParam("CONTRIBUTION_MIN_BPS"), readParam("CONTRIBUTION_MAX_BPS"), readParam("GROUP_VETO_WINDOW")]);
   return { minBps, maxBps, vetoWindow: Number(vetoWindow) };
-}
-
-import { milestoneAbi } from "./milestones";
-
-export async function readMilestones(orderId: number) {
-  const [list, plan] = await Promise.all([
-    readContract(config(), { address: deployment.escrow, abi: milestoneAbi, functionName: "getMilestones", args: [BigInt(orderId)] }),
-    readContract(config(), { address: deployment.escrow, abi: milestoneAbi, functionName: "getPlan", args: [BigInt(orderId)] }),
-  ]);
-  return {
-    milestones: list.map((item) => ({ amount: item.amount, status: item.status, deliveredAt: item.deliveredAt, evidenceHash: item.evidenceHash })),
-    next: plan.next,
-    count: plan.count,
-    paidTotal: plan.paidTotal,
-  };
 }
 
 export const readContributionOf = (orderId: number, account: Address): Promise<bigint> =>

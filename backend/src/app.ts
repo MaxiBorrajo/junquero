@@ -41,6 +41,7 @@ import { casesFor } from "./cases";
 import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
+import { chainReadsFor, type ChainReads } from "./chainReads";
 import { summaryFor } from "./summary";
 import { notifyChat } from "./chatNotify";
 import { listChatEvents, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "./chatEvents";
@@ -76,7 +77,10 @@ export const readCache = new TtlCache<unknown>(READ_CACHE_MS, READ_CACHE_ENTRIES
 // Datos que cambian poco y se piden mucho (el historial de un perfil): un minuto de caché.
 const SLOW_CACHE_MS = 60_000;
 const BBOX_GRID = 0.05;
+// La cadena cambia con cada acción: una ventana corta alcanza para que varias personas compartan la misma lectura.
+const CHAIN_CACHE_MS = 5_000;
 export const slowCache = new TtlCache<unknown>(SLOW_CACHE_MS, READ_CACHE_ENTRIES);
+export const chainCache = new TtlCache<unknown>(CHAIN_CACHE_MS, READ_CACHE_ENTRIES);
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 const limitBy = (pick: (env: Env) => Env["READ_LIMITER"]) =>
@@ -773,6 +777,32 @@ app.post("/admin/reports/:id", async (c) => {
   await logAction(c.env.DB, c.get("address"), body.action === "hide" ? "report_hide" : "report_dismissed", `${report.kind}:${report.target}`, parsed.reason, nowSeconds()).run();
   return c.json({ ok: true });
 });
+
+// Estado de la cadena para la app: el servidor lo lee una vez cada pocos segundos y lo comparten todos los que miran lo mismo.
+const chainRead = (key: (c: Context<AppEnv>) => string | undefined, read: (reads: ChainReads, id: number) => Promise<unknown>) =>
+  async (c: Context<AppEnv>) => {
+    const raw = key(c);
+    const id = raw === undefined ? null : parseChangaId(raw);
+    if (id === null) return c.json({ error: "invalid id" }, 400);
+    const produce = () => read(chainReadsFor(c.env.RPC_URL), id);
+    // Justo después de una acción confirmada la app pide `fresh=1` para no ver el estado de antes de la acción.
+    if (c.req.query("fresh") === "1") {
+      const value = await produce();
+      chainCache.set(`chain:${c.req.path}`, value, Date.now());
+      return c.json(value);
+    }
+    const cacheKey = `chain:${c.req.path}`;
+    const hit = chainCache.get(cacheKey, Date.now());
+    if (hit !== undefined) return c.json(hit);
+    const value = await produce();
+    chainCache.set(cacheKey, value, Date.now());
+    return c.json(value);
+  };
+
+app.get("/me/chain/orders/:id", chainRead((c) => c.req.param("id"), (reads, id) => reads.order(id)));
+app.get("/me/chain/orders/:id/milestones", chainRead((c) => c.req.param("id"), (reads, id) => reads.milestones(id)));
+app.get("/me/chain/orders/:id/group", chainRead((c) => c.req.param("id"), (reads, id) => reads.group(id)));
+app.get("/me/chain/cases/:id", chainRead((c) => c.req.param("id"), (reads, id) => reads.caseOf(id)));
 
 app.get("/me/summary", async (c) => {
   const seen = Number(c.req.query("seenNotification") ?? 0);

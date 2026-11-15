@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useFocusedInterval } from "../lib/useFocusedInterval";
-import { readCase, readJurors } from "../chain/reader";
+import { fetchCase } from "../chain/serverReads";
 import { useSession } from "../session/SessionProvider";
 
 export interface CaseRef {
@@ -25,12 +25,10 @@ export function useMyCases() {
 }
 
 export function useCaseState(caseId: number) {
+  const { api } = useSession();
   return useQuery({
     queryKey: ["case", caseId],
     refetchInterval: useFocusedInterval(30_000),
-    queryFn: async () => {
-      const [snapshot, jurors] = await Promise.all([readCase(caseId), readJurors(caseId)]);
-      return { snapshot, jurors };
-    },
+    queryFn: () => fetchCase(api, caseId),
   });
 }

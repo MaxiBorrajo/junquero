@@ -8,7 +8,8 @@ import { deployment } from "../../chain/deployment";
 import { CasePhase } from "../../chain/arbitrationAbi";
 import { encodeCommitSeed, encodeRevealSeed, encodeStakeWithPermit, encodeUnstake, encodeWithdrawReward, phaseView, randomHex32, seedCommitment, stakeNeeded } from "../../chain/jury";
 import { sendViaRelay } from "../../chain/orderActions";
-import { readCase, readCommitters, readIsEligible, readJurorAccount, readParam, readReward, readRevealers, readTokenBalance, readTokenNonce } from "../../chain/reader";
+import { fetchCase } from "../../chain/serverReads";
+import { readCommitters, readIsEligible, readJurorAccount, readParam, readReward, readRevealers, readTokenBalance, readTokenNonce } from "../../chain/reader";
 import { Card } from "../../components/Card";
 import { DetailActions, type DetailAction } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
@@ -117,7 +118,7 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
     queryKey: ["seed", item.caseId, juror],
     refetchInterval: useFocusedInterval(60_000),
     queryFn: async () => {
-      const snapshot = await readCase(item.caseId);
+      const { snapshot } = await fetchCase(api, item.caseId);
       if (snapshot.phase !== CasePhase.Seed) return null;
       const [eligible, committers, revealers, secret] = await Promise.all([
         readIsEligible(item.caseId, juror),

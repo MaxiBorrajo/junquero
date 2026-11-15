@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { waitForTx } from "../chain/waitForTx";
+import { markFresh } from "../chain/serverReads";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
 import { isRejection } from "../wallet/sign";
@@ -21,7 +22,10 @@ export function useRunAction() {
         const result = await runAction(
           {
             toast: (value) => toast(value as Parameters<typeof toast>[0]),
-            invalidate: async (keys) => void (await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey: [...queryKey] })))),
+            invalidate: async (keys) => {
+              markFresh();
+              await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey: [...queryKey] })));
+            },
             confirm: (hash) => waitForTx(hash as `0x${string}`),
             isRejection,
             messages: { pending: t.common.txPending, slow: t.common.txSlow, cancelled: t.order.signCancelled, failed: t.common.genericError },

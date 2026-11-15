@@ -228,17 +228,21 @@ export default function ChatScreen() {
                 </View>
               ) : null}
             {row.type === "event" ? (
-              <View style={styles.eventWrap}>
-                <View style={styles.event}>
-                  <View style={[styles.eventBadge, { backgroundColor: EVENT_COLOR[(row.event as ChatEvent).kind] }]}>
-                    <Icon name={EVENT_ICON[(row.event as ChatEvent).kind]} size={14} color={colors.white} />
+              (() => {
+                const event = row.event as ChatEvent;
+                const mineEvent = me !== null && event.actor.toLowerCase() === me.toLowerCase();
+                return (
+                  <View style={[styles.bubble, mineEvent ? styles.mine : styles.theirs]}>
+                    <View style={styles.eventRow}>
+                      <View style={[styles.eventBadge, { backgroundColor: mineEvent ? colors.white : EVENT_COLOR[event.kind] }]}>
+                        <Icon name={EVENT_ICON[event.kind]} size={14} color={mineEvent ? EVENT_COLOR[event.kind] : colors.white} />
+                      </View>
+                      <Text style={[text.body, styles.eventText, mineEvent && styles.mineText]}>{eventText(event, me, counterpartName ?? t.chat.unknownUser, t.chat.events)}</Text>
+                    </View>
+                    <Text style={[text.label, styles.time, mineEvent && styles.mineText]}>{formatClock(event.createdAt)}</Text>
                   </View>
-                  <View style={{ flexShrink: 1 }}>
-                    <Text style={text.secondary}>{eventText(row.event, me, counterpartName ?? t.chat.unknownUser, t.chat.events)}</Text>
-                    <Text style={text.label}>{formatClock(row.event.createdAt)}</Text>
-                  </View>
-                </View>
-              </View>
+                );
+              })()
             ) : (() => { const item = row.message; return (
             <View style={[styles.bubble, item.mine ? styles.mine : styles.theirs]}>
               {item.text === null ? <Text style={[text.body, item.mine && styles.mineText]}>{t.chat.unreadable}</Text> : null}
@@ -353,8 +357,8 @@ const styles = StyleSheet.create({
   applicationCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.sm + 4, marginBottom: spacing.xs },
   entry: { gap: spacing.sm },
   proposal: { marginTop: spacing.sm },
-  eventWrap: { alignItems: "center", paddingHorizontal: spacing.sm },
-  event: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, maxWidth: "92%" },
+  eventRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  eventText: { flexShrink: 1 },
   eventBadge: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   day: { alignSelf: "center", backgroundColor: colors.sand, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   time: { alignSelf: "flex-end" },

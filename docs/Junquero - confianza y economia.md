@@ -35,10 +35,14 @@ Queda un hueco que hay que cerrar: si cancelar es gratis hasta acordar, dos pers
 
 | Momento | Costo de cancelar | Adónde va |
 | --- | --- | --- |
-| Sin prestador reservado | Gratis |  |
-| Con prestador reservado, dentro del período de gracia | Gratis |  |
-| Con prestador reservado, pasado el período de gracia | Compensación que crece de forma lineal hasta un máximo (porcentaje del monto bloqueado, con tope por moneda) | Prestador reservado |
-| Después de acordar | 10% del monto bloqueado | Prestador y tesoro |
+| Nadie se postuló | Gratis |  |
+| Hubo al menos una postulación (aunque se haya retirado), sin acuerdo | 2% del monto bloqueado, con un mínimo por moneda (0,50 USDC) y un tope (10 USDC); el porcentaje es un parámetro que se vota | Tesoro |
+| Acordada, con 24 horas o más de aviso antes del comienzo | El mismo 2% con mínimo y tope | Tesoro |
+| Acordada, con menos de 24 horas de aviso o ya comenzada | 10% del monto bloqueado | Prestador (80%) y tesoro (20%) |
+| Acordada, sin fecha de inicio | 2% durante las primeras 24 horas desde el acuerdo y 10% después | Tesoro; luego prestador y tesoro |
+| Cancela el prestador | Sin costo, baja su reputación |  |
+
+La marca de "hubo una postulación" la pone el servidor (con el relayer) en el contrato cuando llega la primera, y emite un evento para poder auditarla. En una changa grupal el cobro sale de la parte del coordinador, hasta el tope de lo que aportó; si no aportó, se reparte en proporción. Ya no hay cupos de cancelación gratis ni rampa de compensación para el prestador reservado: lo que se pierde por postularse y cancelar lo cobra la plataforma. Desde el 15/11 también hay un monto mínimo de 5 USDC por changa, fijado por moneda en el contrato.
 
 El porcentaje funciona acá porque el monto está bloqueado en el contrato y no se puede declarar de menos. Quien se va por fuera termina pagando mucho más que la comisión que evitaba.
 

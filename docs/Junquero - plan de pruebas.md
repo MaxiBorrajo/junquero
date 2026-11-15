@@ -6,7 +6,7 @@ Para probar a mano, con la app, el servidor y el panel, antes de la entrega del 
 
 **Los textos de los botones pueden variar un poco.** Lo que importa es la acción y el resultado.
 
-**Actualizado el 15/11/2026.** Se agregaron pruebas para lo que cambió desde la versión anterior (las marcas ya hechas no se tocaron): contraofertas más altas con suma de la diferencia en garantía (3.8 y 3.9), selección de varios adjuntos con vista previa (2.8), buscador de lugares (2.7), pedidos de evidencia (2.9), verificación que se actualiza sola (1.6), estado "Cancelando" (7.7), billetera desconectada (15.10) e indexado rápido (15.11). El contrato se volvió a desplegar el 14/11 con la misma moneda de prueba; ver la nota de 0.2.
+**Actualizado el 15/11/2026.** Todos los botones de la app llevan ícono (probar al pasar por cada pantalla que sean coherentes). Se agregaron pruebas para lo que cambió desde la versión anterior (las marcas ya hechas no se tocaron): contraofertas más altas con suma de la diferencia en garantía (3.8 y 3.9), selección de varios adjuntos con vista previa (2.8), buscador de lugares (2.7), pedidos de evidencia (2.9), verificación que se actualiza sola (1.6), estado "Cancelando" (7.7), billetera desconectada (15.10) e indexado rápido (15.11). El contrato se volvió a desplegar el 14/11 con la misma moneda de prueba; ver la nota de 0.2.
 
 ## 0. Preparación
 
@@ -103,7 +103,7 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 ## 2. Publicar y explorar
 
 **2.1 Publicar changa individual presencial** · Rol: Ana
-- [ x ] Pasos: Publicar → completar los cinco pasos (qué necesitás, dónde y cuándo, fotos, cuánto pagás, revisar) → firmar el permiso del depósito → publicar.
+- [ x ] Pasos: Publicar → completar los pasos (qué necesitás, dónde y cuándo, fotos, cuánto pagás, qué evidencia pedís, revisar) → firmar el permiso del depósito → publicar.
 - Esperado: el saldo de Ana baja por el monto más la comisión. La changa aparece en el mapa con un pin de precio. Pasa de "borrador" a abierta cuando el indexador ve el depósito.
 - Observaciones: _
 
@@ -120,11 +120,11 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: no tiene pin; aparece en la lista de remotas y con el filtro "A distancia".
 
 **2.5 Publicar con hitos** · Rol: Ana
-- [ x ] Pasos: monto alto (más de 500 USDC) o plazo largo → ver el aviso que sugiere hitos, elegir Sí y armar 2 o más hitos con monto, criterio y evidencia → publicar.
-- Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". Los montos de los hitos suman el total, de lo contrario no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
+- [ x ] Pasos: monto alto (más de 500 USDC) o plazo largo → en "Cómo se paga", ver el aviso que sugiere hitos, elegir Sí y armar 2 o más hitos con monto, criterio y evidencia que sumen el monto → publicar.
+- Esperado: sin importar el monto ni el plazo, "No" siempre se puede elegir; el aviso solo sugiere. En el detalle de la changa se ve "Pago por hitos" o "Pago único al finalizar". Los montos de los hitos tienen que sumar el monto elegido en "Cuánto pagás"; de lo contrario avisa cuánto falta o sobra y no deja avanzar. Los materiales se eligen entre "los compra quien publica" y "los pone quien trabaja"; no existe la opción de anticipo.
 
 **2.6 Cancelar una changa abierta** · Rol: Ana
-- [ x ] Pasos: cancelar una changa a la que nadie se postuló.
+- [ x ] Pasos: cancelar una changa a la que nadie se postuló (desde el detalle, "Cancelar trabajo").
 - Esperado: no tiene costo y el depósito vuelve a Ana.
 
 **2.7 Buscar un lugar en el mapa** · Rol: Ana y Beto
@@ -136,8 +136,12 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: cada botón muestra su propio ícono y su propio indicador de carga (agregar un documento no activa el de foto o video). Un archivo de más de 100 MB no se agrega y avisa cuántos se descartaron; los demás sí se suben. La imagen se abre en pantalla completa, el video se reproduce en su propia pantalla con controles y el documento se abre con la app del teléfono (si no hay ninguna, avisa). Al llegar a 10 adjuntos no deja agregar más.
 - Observaciones: _
 
+**2.11 Pasos del asistente de publicar** · Rol: Ana
+- [ ] Pasos: publicar una changa individual sin hitos, otra con hitos y una grupal, mirando el contador de pasos y la barra de avance.
+- Esperado: cada paso tiene una sola idea. Sin hitos son 7 pasos: qué necesitás, dónde y cuándo, fotos, cuánto pagás (solo el monto o la meta y, en las grupales, el aporte inicial), cómo se paga (todo al finalizar o por hitos, y en las grupales el plazo para juntar los aportes), qué evidencia pedís (con una explicación) y revisar. Con hitos no hay paso de evidencia (cada hito pide la suya) y el total pasa a 6 en cuanto se elige "Sí". En el paso de pago, los hitos tienen que sumar justo el monto: mientras no suman, un mensaje dice cuánto falta o cuánto sobra, y recién avisa en rojo al tocar Siguiente. En el paso de evidencia no deja avanzar sin al menos una prueba, y se pueden agregar hasta 5 y quitarlas con el tacho.
+
 **2.10 Monto mínimo** · Rol: Ana
-- [ ] Pasos: intentar publicar una changa de 4,99 USDC y otra de 5 USDC; repetir con una grupal y con una por hitos cuyo total sea menor.
+- [ x ] Pasos: intentar publicar una changa de 4,99 USDC y otra de 5 USDC; repetir con una grupal y con una por hitos cuyo total sea menor.
 - Esperado: por debajo de 5 USDC no deja avanzar y avisa "El monto mínimo es 5 USDC". El contrato también lo rechaza, aunque se intente publicar por afuera de la app.
 
 **2.9 Pedidos de evidencia al publicar** · Rol: Ana
@@ -421,8 +425,9 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 ## 9. Changa grupal (escenario E)
 
 **9.1 Publicar grupal** · Rol: Gabi
-- [ ] Pasos: Publicar → Grupal → meta total, aporte propio (entre 5% y 50% de la meta) y coordinador opcional.
-- Esperado: queda en "Juntando aportes". No es pública ni recibe postulaciones hasta llegar a la meta. Un aporte fuera de rango da un error con el rango.
+- [ ] Pasos: Publicar → Grupal → meta total, aporte inicial propio (opcional; entre 5% y 50% de la meta) y plazo → revisar → publicar.
+- Esperado: el campo de aporte inicial muestra el rango en USDC según la meta y avisa si el monto queda afuera. En la revisión aparece "Tu aporte inicial". Al publicar, la pantalla final dice "Esperando que el grupo quede confirmado…", luego "Sumando tu aporte…" (pide la firma del depósito) y "Listo, ya sumaste tu aporte inicial". Si falla, avisa y ofrece "Reintentar el aporte" (también se puede aportar después desde el grupo). Sin aporte inicial, el grupo se crea igual. Queda en "Juntando aportes". No es pública ni recibe postulaciones hasta llegar a la meta. Un aporte fuera de rango da un error con el rango.
+- Observaciones: _
 
 **9.2 Aportar** · Rol: Hugo e Ines
 - [ ] Pasos: abrir el enlace o la changa → "Aportar" → monto (mínimo 5%, tope 50%) → firmar el permiso.
@@ -455,6 +460,11 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 **9.9 Objeción** · Rol: Hugo e Ines
 - [ ] Pasos: Hugo objeta con motivo. Si no llega al 25% del dinero ni a dos personas, queda pendiente; Ines se suma.
 - Esperado: al llegar al 25% del dinero o a dos personas se congela el pago y se abre el reclamo con jurado (ver 8.3). Si el jurado la considera infundada, quien objetó paga el costo.
+
+**9.11 Compartir y cancelar desde el detalle del grupo** · Rol: Gabi
+- [ ] Pasos: abrir el detalle de la changa grupal (desde Mis trabajos) mientras se juntan aportes. Tocar "Compartir". Después cancelar.
+- Esperado: el detalle muestra "Ver aportes" como botón principal y una tarjeta con "Compartir" (abre el menú del teléfono con el título y el enlace del grupo, sin tener que entrar a los aportes) y, para quien creó el grupo, "Cancelar trabajo". Cancelar abre una pantalla aparte (título, resumen del trabajo y de la plata, y "Qué pasa si cancelás") con "Sí, cancelar el trabajo" y "No, volver". Esa pantalla aclara que los aportes vuelven a cada aportante y que, si alguien se postuló, el cobro sale de la parte del coordinador. Al cancelar, todos los aportantes recuperan su plata (menos el cobro del coordinador si hubo postulaciones) y el grupo figura "Cancelando" y luego cancelado.
+- Observaciones: _
 
 **9.10 Cambiar el coordinador** · Rol: aportantes
 - 🛠 **POR DESARROLLAR:** el contrato lo tiene (propuesta y aprobación por mayoría de dinero, con ventana de veto) pero la pantalla está a medias. Cuando se termine, probar: un aportante propone un coordinador nuevo → los demás aprueban con más del 50% del dinero → pasa a ser quien firma el QR; con veto dentro de la ventana no cambia; con un reclamo abierto no se puede proponer.
@@ -603,14 +613,14 @@ Completar al terminar cada sesión de pruebas.
 | Bloque | Pruebas | OK | Fallan | Pendientes |
 | --- | --- | --- | --- | --- |
 | 1. Registro y perfil | 6 | | | |
-| 2. Publicar y explorar | 10 | | | |
+| 2. Publicar y explorar | 11 | | | |
 | 3. Postulación y acuerdo | 9 | | | |
 | 4. Chat y notificaciones | 14 | | | |
 | 5. Hacer la changa y cobrar | 10 | | | |
 | 6. Hitos | 6 | | | |
 | 7. Cancelaciones | 11 | | | |
 | 8. Reclamo y jurado | 11 | | | |
-| 9. Grupal | 10 | | | |
+| 9. Grupal | 11 | | | |
 | 10. Perfil y ajustes | 5 | | | |
 | 11. Panel | 8 | | | |
 | 15. Transversales | 11 | | | |

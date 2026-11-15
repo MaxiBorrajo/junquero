@@ -2,7 +2,6 @@
 // y llevan un JSON; los que no, son texto plano (así los mensajes viejos se siguen leyendo).
 export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
 export const ATTACHMENTS_PER_MESSAGE = 5;
-export const ATTACHMENT_MIME = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 const PREFIX = "\u0001";
 const HASH = /^[0-9a-f]{64}$/;
@@ -33,7 +32,7 @@ function validFile(value: unknown): value is ChatFile {
   return (
     typeof file.hash === "string" && HASH.test(file.hash) &&
     typeof file.name === "string" && file.name.length > 0 && file.name.length <= 160 &&
-    typeof file.mime === "string" && ATTACHMENT_MIME.has(file.mime) &&
+    typeof file.mime === "string" && file.mime.length > 0 && file.mime.length <= 100 &&
     typeof file.size === "number" && Number.isSafeInteger(file.size) && file.size > 0 && file.size <= ATTACHMENT_MAX_BYTES &&
     typeof file.key === "string" && file.key.length <= 64 && BASE64.test(file.key) &&
     typeof file.nonce === "string" && file.nonce.length <= 64 && BASE64.test(file.nonce)

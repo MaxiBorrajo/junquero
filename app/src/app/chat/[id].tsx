@@ -15,7 +15,7 @@ import { BackButton, Body, Button, ErrorText, Secondary } from "../../components
 import { t } from "../../i18n";
 import { detectContact, type ContactKind } from "../../lib/contactGuard";
 import { writeTempFile } from "../../lib/openDocument";
-import { pickPdfs, pickPhotos, takePhoto, type PickedFile } from "../../lib/pick";
+import { pickDocuments, pickPhotos, takePhoto, type PickedFile } from "../../lib/pick";
 import { colors, fonts, radius, spacing, text } from "../../theme";
 
 // La tarjeta de pago protegido se recuerda plegada mientras dura la sesión.
@@ -207,7 +207,7 @@ export default function ChatScreen() {
           choices={[
             { key: "camera", label: t.chat.attachPhoto, icon: "camera", onPress: () => void takePhoto().then(addPicks) },
             { key: "gallery", label: t.chat.attachGallery, icon: "image", onPress: () => void pickPhotos(ATTACHMENTS_PER_MESSAGE - picks.length).then(addPicks) },
-            { key: "pdf", label: t.chat.attachPdf, icon: "file", onPress: () => void pickPdfs().then(addPicks) },
+            { key: "file", label: t.chat.attachPdf, icon: "file", onPress: () => void pickDocuments().then(addPicks) },
           ]}
         />
         {room.writable && room.access.waitingForOwner ? (

@@ -377,7 +377,7 @@ export const esAR = {
     attach: "Adjuntar",
     attachPhoto: "Sacar una foto",
     attachGallery: "Elegir fotos",
-    attachPdf: "Elegir un PDF",
+    attachPdf: "Elegir un archivo",
     attachLimit: "Hasta {max} archivos por mensaje, de hasta 10 MB. Solo fotos y PDF.",
     attachTooBig: "Un archivo pesa más de 10 MB y no se agregó.",
     attachFull: "Ya agregaste el máximo de {max} archivos.",

@@ -7,7 +7,7 @@ import type { ServerMessage } from "./state";
 export const PREVIEW_LENGTH = 70;
 
 // Los textos de los adjuntos en la lista (se arman acá para no depender de la pantalla).
-export const PREVIEW_LABELS = { photo: "Foto", photos: "fotos", pdf: "PDF", files: "archivos" };
+export const PREVIEW_LABELS = { photo: "Foto", photos: "fotos", pdf: "PDF", file: "Archivo", files: "archivos" };
 
 export function previewText(text: string): string {
   const flat = text.replace(/\s+/g, " ").trim();
@@ -34,8 +34,8 @@ export async function loadPreview(api: Api, storage: Pick<KeyStorage, "getSecret
 }
 
 // Lo que se ve en la lista cuando el último mensaje no tiene texto, solo adjuntos.
-export function attachmentLabel(files: ChatFile[], labels: { photo: string; photos: string; pdf: string; files: string }): string {
-  if (files.length === 1) return files[0].mime === "application/pdf" ? labels.pdf : labels.photo;
+export function attachmentLabel(files: ChatFile[], labels: { photo: string; photos: string; pdf: string; file: string; files: string }): string {
+  if (files.length === 1) return files[0].mime.startsWith("image/") ? labels.photo : files[0].mime === "application/pdf" ? labels.pdf : labels.file;
   if (files.every((file) => file.mime.startsWith("image/"))) return `${files.length} ${labels.photos}`;
   return `${files.length} ${labels.files}`;
 }

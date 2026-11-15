@@ -61,7 +61,7 @@ describe("message envelope", () => {
   it("drops invalid attachments and caps the amount", () => {
     const many = Array.from({ length: 8 }, (_, i) => file({ name: `f${i}.jpg` }));
     expect(decodeEnvelope(encodeEnvelope("", many))?.files).toHaveLength(ATTACHMENTS_PER_MESSAGE);
-    const bad = [file({ hash: "zz" }), file({ mime: "application/x-msdownload" }), file({ size: 11 * 1024 * 1024 }), file({ name: "" }), file({ key: "no válida!" }), file()];
+    const bad = [file({ hash: "zz" }), file({ mime: "" }), file({ size: 11 * 1024 * 1024 }), file({ name: "" }), file({ key: "no válida!" }), file()];
     expect(decodeEnvelope(encodeEnvelope("", bad))?.files).toHaveLength(1);
   });
 

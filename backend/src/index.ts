@@ -19,6 +19,7 @@ import { createPublicClient, http, type Hex } from "viem";
 import { sepolia } from "viem/chains";
 import { createMarkChain } from "./markChain";
 import { runMarks } from "./marks";
+import { relayerLock } from "./relayerLock";
 import { createTaskChain } from "./taskChain";
 import { runTasks, watchedHandler } from "./tasks";
 
@@ -74,8 +75,8 @@ async function runRobot(env: Env, nowSeconds: number): Promise<void> {
     sentGraceSeconds: SENT_GRACE_SECONDS,
     unreadableRetrySeconds: UNREADABLE_RETRY_SECONDS,
   };
-  await runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY), options, nowSeconds);
-  await runMarks(env.DB, createMarkChain(env.RPC_URL, env.RELAYER_KEY as Hex), nowSeconds);
+  await runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY, relayerLock(env)), options, nowSeconds);
+  await runMarks(env.DB, createMarkChain(env.RPC_URL, env.RELAYER_KEY as Hex, relayerLock(env)), nowSeconds);
 }
 
 async function chainHook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -88,6 +89,7 @@ async function chainHook(request: Request, env: Env, ctx: ExecutionContext): Pro
 }
 
 export { ChatRoom } from "./chatRoom";
+export { RelayerGate } from "./relayerGate";
 
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext) {

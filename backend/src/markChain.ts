@@ -2,11 +2,12 @@ import { createPublicClient, createWalletClient, http, type Abi, type Address, t
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { indexedContracts } from "./contracts";
+import { noLock, type Lock } from "./relayerLock";
 import type { MarkChain } from "./marks";
 
 const escrow = indexedContracts.find((contract) => contract.name === "escrow")!;
 
-export function createMarkChain(rpcUrl: string, privateKey: Hex): MarkChain {
+export function createMarkChain(rpcUrl: string, privateKey: Hex, lock: Lock = noLock): MarkChain {
   const account = privateKeyToAccount(privateKey);
   const transport = http(rpcUrl);
   const client = createPublicClient({ chain: sepolia, transport });
@@ -27,7 +28,7 @@ export function createMarkChain(rpcUrl: string, privateKey: Hex): MarkChain {
       } catch {
         return { sent: false };
       }
-      return { sent: true, txHash: await wallet.writeContract(call) };
+      return { sent: true, txHash: await lock(() => wallet.writeContract(call)) };
     },
   };
 }

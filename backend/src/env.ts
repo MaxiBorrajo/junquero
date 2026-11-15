@@ -4,6 +4,7 @@ export interface Env {
   DB: D1Database;
   FILES: R2Bucket;
   CHAT: DurableObjectNamespace;
+  RELAYER_GATE?: DurableObjectNamespace;
   RPC_URL: string;
   RELAYER_KEY: `0x${string}`;
   AUTH_SECRET: string;

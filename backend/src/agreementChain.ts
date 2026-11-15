@@ -2,12 +2,13 @@ import { createPublicClient, createWalletClient, http, type Abi, type Address, t
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { indexedContracts } from "./contracts";
+import { noLock, type Lock } from "./relayerLock";
 import type { Agreement, AgreementChain } from "./agreements";
 import type { MilestoneTermsData } from "./terms";
 
 const escrow = indexedContracts.find((contract) => contract.name === "escrow")!;
 
-export function createAgreementChain(rpcUrl: string, privateKey: Hex): AgreementChain {
+export function createAgreementChain(rpcUrl: string, privateKey: Hex, lock: Lock = noLock): AgreementChain {
   const account = privateKeyToAccount(privateKey);
   const transport = http(rpcUrl);
   const client = createPublicClient({ chain: sepolia, transport });
@@ -30,7 +31,7 @@ export function createAgreementChain(rpcUrl: string, privateKey: Hex): Agreement
         return { ok: false, reason: name === "ContractFunctionExecutionError" ? "revert" : "unavailable" };
       }
       try {
-        return { ok: true, txHash: await wallet.writeContract({ ...call, gas: (gas * 12n) / 10n }) };
+        return { ok: true, txHash: await lock(() => wallet.writeContract({ ...call, gas: (gas * 12n) / 10n })) };
       } catch {
         return { ok: false, reason: "unavailable" };
       }

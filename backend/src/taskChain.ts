@@ -2,6 +2,7 @@ import { ContractFunctionRevertedError, createPublicClient, createWalletClient, 
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { indexedContracts } from "./contracts";
+import { noLock, type Lock } from "./relayerLock";
 import type { AttemptResult, CaseState, OrderState, TaskChain, TaskKind } from "./tasks";
 
 const escrow = indexedContracts.find((contract) => contract.name === "escrow")!;
@@ -31,7 +32,7 @@ export function retryAtFrom(error: unknown): number | null {
 
 const target = (kind: TaskKind) => (kind === "order" ? escrow : arbitration);
 
-export function createTaskChain(rpcUrl: string, privateKey: Hex): TaskChain {
+export function createTaskChain(rpcUrl: string, privateKey: Hex, lock: Lock = noLock): TaskChain {
   const account = privateKeyToAccount(privateKey);
   const transport = http(rpcUrl);
   const client = createPublicClient({ chain: sepolia, transport });
@@ -83,7 +84,7 @@ export function createTaskChain(rpcUrl: string, privateKey: Hex): TaskChain {
       } catch (error) {
         return { sent: false, retryAt: retryAtFrom(error) } satisfies AttemptResult;
       }
-      return { sent: true, txHash: await wallet.writeContract(call) } satisfies AttemptResult;
+      return { sent: true, txHash: await lock(() => wallet.writeContract(call)) } satisfies AttemptResult;
     },
   };
 }

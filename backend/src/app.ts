@@ -42,6 +42,7 @@ import { cancelRelease, parseRelease, readRelease, submitRelease } from "./relea
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
 import { chainReadsFor, type ChainReads } from "./chainReads";
+import { relayerLock } from "./relayerLock";
 import { summaryFor } from "./summary";
 import { notifyChat } from "./chatNotify";
 import { listChatEvents, recordAgreementEvent, recordApplicationEvent, recordOrderEvent } from "./chatEvents";
@@ -179,7 +180,7 @@ app.post("/relay", limitBy((env) => env.RELAY_LIMITER), async (c) => {
   const body = await readJson(c);
   if (body === undefined) return c.json({ error: "invalid json" }, 400);
   if (!c.env.RELAYER_KEY) return c.json({ error: "relayer not configured" }, 503);
-  const chain = createRelayChain(c.env.RPC_URL, c.env.RELAYER_KEY);
+  const chain = createRelayChain(c.env.RPC_URL, c.env.RELAYER_KEY, relayerLock(c.env));
   const result = await relay(c.env.DB, chain, relayPolicy, body, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status as 400 | 403 | 422 | 429 | 503);
   return c.json({ txHash: result.txHash });
@@ -638,7 +639,7 @@ app.put("/me/applications/:changaId", async (c) => {
     await enqueueMark(c.env.DB, changaId).run();
     if (c.env.RELAYER_KEY) {
       try {
-        c.executionCtx.waitUntil(runMarks(c.env.DB, createMarkChain(c.env.RPC_URL, c.env.RELAYER_KEY as Hex), nowSeconds()).catch((error) => console.error("mark failed", error)));
+        c.executionCtx.waitUntil(runMarks(c.env.DB, createMarkChain(c.env.RPC_URL, c.env.RELAYER_KEY as Hex, relayerLock(c.env)), nowSeconds()).catch((error) => console.error("mark failed", error)));
       } catch {
         // sin contexto de ejecución (pruebas): lo retoma el reloj
       }
@@ -822,7 +823,7 @@ app.post("/me/orders/:orderId/agreement/accept", async (c) => {
   if (!c.env.RELAYER_KEY) return c.json({ error: "relayer not configured" }, 503);
   const body = (await readJson(c)) as { signature?: unknown } | undefined;
   if (!body || typeof body.signature !== "string" || !isHex(body.signature)) return c.json({ error: "invalid signature" }, 400);
-  const result = await acceptAgreement(c.env.DB, createAgreementChain(c.env.RPC_URL, c.env.RELAYER_KEY), orderId, c.get("address"), body.signature, nowSeconds());
+  const result = await acceptAgreement(c.env.DB, createAgreementChain(c.env.RPC_URL, c.env.RELAYER_KEY, relayerLock(c.env)), orderId, c.get("address"), body.signature, nowSeconds());
   if (!result.ok) return c.json({ error: result.error }, result.status);
   await record(c, recordAgreementEvent(c.env.DB, "accepted", orderId, c.get("address"), c.get("address"), nowSeconds()));
   return c.json({ txHash: result.txHash });

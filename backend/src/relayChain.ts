@@ -2,6 +2,7 @@ import { ContractFunctionRevertedError, createPublicClient, createWalletClient, 
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { indexedContracts } from "./contracts";
+import { noLock, type Lock } from "./relayerLock";
 import type { EstimateResult, ForwardRequest, RelayChain, RelayTarget } from "./relay";
 
 const forwarder = indexedContracts.find((contract) => contract.name === "forwarder")!;
@@ -38,7 +39,7 @@ export function classifyEstimateError(error: unknown): EstimateResult | null {
   return { ok: false, reason: name && INVALID_REQUEST_ERRORS.has(name) ? "invalid_request" : "revert" };
 }
 
-export function createRelayChain(rpcUrl: string, privateKey: Hex): RelayChain {
+export function createRelayChain(rpcUrl: string, privateKey: Hex, lock: Lock = noLock): RelayChain {
   const account = privateKeyToAccount(privateKey);
   const transport = http(rpcUrl);
   const publicClient = createPublicClient({ chain: sepolia, transport });
@@ -61,7 +62,7 @@ export function createRelayChain(rpcUrl: string, privateKey: Hex): RelayChain {
         throw error;
       }
     },
-    send: (request, gas) => wallet.writeContract({ ...base, functionName: "execute", args: [tuple(request)], gas }),
+    send: (request, gas) => lock(() => wallet.writeContract({ ...base, functionName: "execute", args: [tuple(request)], gas })),
   };
 }
 

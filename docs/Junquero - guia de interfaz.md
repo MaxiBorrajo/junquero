@@ -42,7 +42,7 @@ La pregunta es: ¿qué le pasó a la persona?
 | Un estado o invitación que sigue vigente (invitación a aportar, selfie en revisión) | `Banner` |
 
 - **Una confirmación nunca es texto fijo en la pantalla.** Se muestra con el toast (`useToast()`), que sobrevive a un cambio de pantalla.
-- El toast dura **7 segundos** (9 los errores), se puede cerrar tocándolo y lleva ícono: check verde (éxito), información azul (aviso), alerta roja (error). El color nunca es el único aviso.
+- El toast es una tarjeta blanca con borde `line` y texto tinta, como el resto de la app (nunca oscuro). Dura **7 segundos** (9 los errores), se puede cerrar tocándolo y lleva ícono: check verde (éxito), información azul (aviso), alerta roja (error). El color nunca es el único aviso.
 - **Una acción sobre la cadena confirma recién cuando la red la confirmó.** Mientras tanto se muestra "Enviado, esperando confirmación…". Se actualiza la pantalla y recién ahí aparece el toast de éxito. Así nunca se dice "Listo" con datos viejos.
 - Los textos de error dicen qué pasó y qué sigue, y si no se movió plata lo aclaran ("No pudimos enviar el aporte. No se movió plata. Probá de nuevo.").
 

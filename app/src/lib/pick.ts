@@ -22,6 +22,24 @@ export async function pickMedia(limit: number): Promise<PickedFile[]> {
   return result.canceled ? [] : fromAssets(result.assets);
 }
 
+// Adjuntos del chat: solo fotos y PDF.
+export async function takePhoto(): Promise<PickedFile[]> {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  if (!permission.granted) return [];
+  const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7 });
+  return result.canceled ? [] : fromAssets(result.assets);
+}
+
+export async function pickPhotos(limit: number): Promise<PickedFile[]> {
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, selectionLimit: Math.max(limit, 1), quality: 0.7 });
+  return result.canceled ? [] : fromAssets(result.assets);
+}
+
+export async function pickPdfs(): Promise<PickedFile[]> {
+  const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", multiple: true, copyToCacheDirectory: true });
+  return result.canceled ? [] : result.assets.map((asset) => ({ uri: asset.uri, name: asset.name, mime: "application/pdf" }));
+}
+
 export async function pickDocuments(): Promise<PickedFile[]> {
   const result = await DocumentPicker.getDocumentAsync({ multiple: true, copyToCacheDirectory: true });
   return result.canceled ? [] : result.assets.map((asset) => ({ uri: asset.uri, name: asset.name, mime: asset.mimeType ?? "application/octet-stream" }));

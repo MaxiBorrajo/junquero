@@ -1,3 +1,5 @@
+import { decodeEnvelope, type ChatFile } from "./envelope";
+
 export interface ServerMessage {
   seq: number;
   sender: string;
@@ -12,7 +14,9 @@ export interface ChatMessageView {
   seq: number | null;
   clientId: string;
   mine: boolean;
+  // Solo la parte de texto; null si no se pudo descifrar.
   text: string | null;
+  files: ChatFile[];
   createdAt: number;
   status: "sent" | "sending" | "failed";
 }
@@ -29,12 +33,14 @@ export function applyServer(state: ChatState, messages: ServerMessage[], me: str
   const pending = new Map(state.pending);
   for (const message of messages) {
     if (server.has(message.seq)) continue;
+    const envelope = decodeEnvelope(decrypt(message));
     server.set(message.seq, {
       key: `s${message.seq}`,
       seq: message.seq,
       clientId: message.clientId,
       mine: message.sender.toLowerCase() === me.toLowerCase(),
-      text: decrypt(message),
+      text: envelope ? envelope.text : null,
+      files: envelope ? envelope.files : [],
       createdAt: message.createdAt,
       status: "sent",
     });
@@ -43,9 +49,9 @@ export function applyServer(state: ChatState, messages: ServerMessage[], me: str
   return { server, pending };
 }
 
-export function addPending(state: ChatState, clientId: string, text: string, createdAt: number): ChatState {
+export function addPending(state: ChatState, clientId: string, text: string, createdAt: number, files: ChatFile[] = []): ChatState {
   const pending = new Map(state.pending);
-  pending.set(clientId, { key: `p${clientId}`, seq: null, clientId, mine: true, text, createdAt, status: "sending" });
+  pending.set(clientId, { key: `p${clientId}`, seq: null, clientId, mine: true, text, files, createdAt, status: "sending" });
   return { ...state, pending };
 }
 

@@ -5,8 +5,9 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 import { WagmiProvider } from "wagmi";
+import { ToastProvider } from "../components/Toast";
 import { colors } from "../theme";
 import { PushHandler } from "../push/PushHandler";
 import { ChatKeyProvider } from "../chat/ChatKeyProvider";
@@ -14,6 +15,9 @@ import { SessionProvider, useSession } from "../session/SessionProvider";
 import { appKit, wagmiAdapter } from "../wallet/appkit";
 
 SplashScreen.preventAutoHideAsync();
+
+// Un corte de red momentáneo al bajar las fuentes del mapa no es un error de la app: en desarrollo no abre el cartel rojo.
+LogBox.ignoreLogs(["Failed to load glyph range"]);
 
 function Shell() {
   const { status } = useSession();
@@ -26,10 +30,10 @@ function Shell() {
 
   if (!ready) return null;
   return (
-    <>
+    <ToastProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
-    </>
+    </ToastProvider>
   );
 }
 

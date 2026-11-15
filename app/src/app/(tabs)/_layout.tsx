@@ -2,6 +2,8 @@ import type { ColorValue } from "react-native";
 import { Tabs } from "expo-router";
 import { Icon, type IconName } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
+import { useChats } from "../../data/useChats";
+import { countUnreadChats } from "../../lib/unread";
 import { t } from "../../i18n";
 import { colors, fonts } from "../../theme";
 
@@ -11,6 +13,8 @@ const tab = (title: string, icon: IconName) => ({
 });
 
 export default function TabsLayout() {
+  const chats = useChats();
+  const unreadChats = countUnreadChats(chats.data);
   return (
     <Tabs
       screenOptions={{
@@ -23,7 +27,10 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="map" options={tab(t.tabs.map, "map")} />
       <Tabs.Screen name="my-changas" options={tab(t.tabs.myChangas, "briefcase")} />
-      <Tabs.Screen name="messages" options={tab(t.tabs.messages, "message")} />
+      <Tabs.Screen
+        name="messages"
+        options={{ ...tab(t.tabs.messages, "message"), tabBarBadge: unreadChats > 0 ? unreadChats : undefined, tabBarBadgeStyle: { backgroundColor: colors.brick, color: colors.white, fontFamily: fonts.bold } }}
+      />
       <Tabs.Screen name="profile" options={{ title: t.tabs.profile, tabBarIcon: ({ focused }) => <Logo size={30} outline={!focused} color={focused ? colors.brick : colors.muted} /> }} />
     </Tabs>
   );

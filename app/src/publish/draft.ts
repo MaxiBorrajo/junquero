@@ -2,7 +2,7 @@ import type { Attachment, Milestone, Spec } from "../api/types";
 import { approximateCenter, type LatLng } from "../lib/geo";
 import { toMicro } from "../lib/money";
 
-export const MIN_AMOUNT_MICRO = 1_000_000n;
+export const MIN_AMOUNT_MICRO = 5_000_000n;
 export const MIN_LEAD_SECONDS = 3600;
 export const APPROX_RADIUS_M = 300;
 export const TITLE_MIN = 3;

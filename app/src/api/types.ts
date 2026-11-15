@@ -71,7 +71,7 @@ export interface Changa {
   createdAt: number;
 }
 
-export type ApplicationStatus = "active" | "withdrawn" | "chosen" | "closed";
+export type ApplicationStatus = "active" | "withdrawn" | "chosen" | "closed" | "dismissed";
 
 export interface Application {
   id: number;
@@ -114,11 +114,18 @@ export interface ChatSummary {
   changaId: number;
   title: string;
   counterpart: string;
+  counterpartName: string | null;
+  role: "owner" | "applicant";
   writable: boolean;
+  waitingForOwner: boolean;
   lastSeq: number;
   lastSender: string | null;
   lastAt: number | null;
+  // El último mensaje, todavía cifrado; el celular lo descifra. Vacío si era muy largo.
+  lastNonce: string | null;
+  lastBody: string | null;
   unread: boolean;
+  unreadCount: number;
 }
 
 export interface PublicProfile {

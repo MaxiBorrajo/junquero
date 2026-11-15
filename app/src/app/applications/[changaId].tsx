@@ -12,6 +12,7 @@ import { relayDepsFor } from "../../lib/relayHelpers";
 import { AGREEMENT_VALIDITY_SECONDS, ZERO_HASH, agreementTypedData, proposalPrice } from "../../chain/agreement";
 import { milestoneTerms, milestoneTermsHash } from "../../chain/terms";
 import { deployment } from "../../chain/deployment";
+import { PersonMenu } from "../../components/PersonMenu";
 import { BackButton, Button, ErrorText, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
 import { t } from "../../i18n";
@@ -149,7 +150,10 @@ export default function ReceivedApplications() {
         ListEmptyComponent={<Secondary>{t.received.empty}</Secondary>}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={text.subtitle} onPress={() => router.push({ pathname: "/profile-public", params: { address: item.applicant } })}>{item.profile?.name ?? item.applicant.slice(0, 8)}</Text>
+            <View style={styles.cardHeader}>
+              <Text style={[text.subtitle, { flex: 1 }]} onPress={() => router.push({ pathname: "/profile-public", params: { address: item.applicant } })}>{item.profile?.name ?? item.applicant.slice(0, 8)}</Text>
+              <PersonMenu role="owner" applicationId={item.id} changaId={id} counterpart={item.applicant} active={item.status === "active"} />
+            </View>
             <Secondary>{item.profile?.verified ? t.received.verified : t.received.unverified}</Secondary>
             <Text style={text.body}>{`${t.received.offer}: ${item.amount ? formatUsdc(item.amount) : changa ? `${formatUsdc(changa.amount)}` : t.received.publishedAmount}`}</Text>
             {item.message ? <Text style={text.body}>{item.message}</Text> : null}
@@ -175,5 +179,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.md, gap: spacing.md },
   card: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs, borderWidth: 1, borderColor: colors.line },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   banner: { backgroundColor: colors.sand, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
 });

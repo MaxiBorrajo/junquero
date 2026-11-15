@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Alert, Platform, Text, ToastAndroid, View } from "react-native";
+import { Text, View } from "react-native";
 import { useChangaBySpec } from "../../data/useChangas";
 import { formatUsdc, toMicro } from "../../lib/money";
 import { milestoneTotal, suggestMilestones } from "../../chain/terms";
@@ -11,6 +11,8 @@ import { ApiError } from "../../api/client";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { parseCounterOffer } from "../../lib/offer";
+import { useChatKey } from "../../chat/ChatKeyProvider";
+import { useToast } from "../../components/Toast";
 import { useSession } from "../../session/SessionProvider";
 
 const MESSAGE_MAX = 500;
@@ -19,6 +21,8 @@ export default function Apply() {
   const { changaId, max, plan, spec } = useLocalSearchParams<{ changaId: string; max?: string; plan?: string; spec?: string }>();
   const { api } = useSession();
   const queryClient = useQueryClient();
+  const toast = useToast();
+  const { ensure: ensureChatKey } = useChatKey();
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -45,8 +49,9 @@ export default function Apply() {
       const planBody = change && original.length > 0 ? { plan: { milestones: editable.map((item) => ({ name: item.name.trim(), amount: toMicro(item.amount.trim()).toString(), criteria: item.criteria.trim(), evidence: item.evidence.trim() })) } } : {};
       await api.send("PUT", `/me/applications/${changaId}`, { message: message.trim(), ...(offer.value ? { amount: offer.value } : {}), ...planBody });
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
-      if (Platform.OS === "android") ToastAndroid.show(t.apply.sent, ToastAndroid.LONG);
-      else Alert.alert(t.apply.sent);
+      // El chat se activa al postularse, así quien publica ya puede escribirle. Si cancela la firma, se activa después.
+      await ensureChatKey().catch(() => {});
+      toast({ text: t.apply.sent, tone: "success", icon: "send" });
       router.replace("/my-changas");
     } catch (failure) {
       setError(failure instanceof ApiError && failure.status === 409 ? t.apply.conflict : t.common.genericError);
@@ -61,6 +66,7 @@ export default function Apply() {
       <Body>{t.apply.explanation}</Body>
       {plan !== "1" && changa.data && suggestMilestones(max && /^\d+$/.test(max) ? BigInt(max) : null, (changa.data.spec.deadline ? changa.data.spec.deadline - Math.floor(Date.now() / 1000) : 0)) ? <Secondary>{t.apply.singlePaymentLong}</Secondary> : null}
       {plan === "1" ? null : <Field label={t.apply.amount} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={t.apply.amountPlaceholder} error={amountError} hint={extra !== null ? t.apply.amountHigher.replace("{extra}", formatUsdc(extra.toString())) : t.apply.amountHint} />}
+      <Secondary>{t.apply.chatNote}</Secondary>
       <Field label={t.apply.message} value={message} onChangeText={setMessage} multiline maxLength={MESSAGE_MAX} hint={`${message.length}/${MESSAGE_MAX}`} />
       {plan === "1" && original.length > 0 ? (
         <>

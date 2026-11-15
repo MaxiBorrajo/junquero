@@ -15,3 +15,15 @@ export function formatDistance(meters: number): string {
 }
 
 export const shortAddress = (address: string): string => `${address.slice(0, 6)}…${address.slice(-4)}`;
+
+// Hora si fue hoy, "ayer" o la fecha corta si fue antes. `now` en segundos.
+export function formatChatTime(seconds: number, now: number = Math.floor(Date.now() / 1000), locale = "es-AR"): string {
+  const date = new Date(seconds * 1000);
+  const today = new Date(now * 1000);
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const day = 24 * 3600 * 1000;
+  if (date.getTime() >= startOfToday) return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  if (date.getTime() >= startOfToday - day) return "Ayer";
+  if (date.getTime() >= startOfToday - 6 * day) return date.toLocaleDateString(locale, { weekday: "short" });
+  return date.toLocaleDateString(locale, { day: "numeric", month: "short" });
+}

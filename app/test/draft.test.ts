@@ -41,6 +41,8 @@ describe("borrador", () => {
     expect(parseAmount("abc")).toBeNull();
     expect(parseAmount("1.1234567")).toBeNull();
     expect(validatePrice(base({ amount: "0,5" })).amount).toBe("amountMin");
+    expect(validatePrice(base({ amount: "4,99" })).amount).toBe("amountMin");
+    expect(validatePrice(base({ amount: "5" })).amount).toBeUndefined();
     expect(validatePrice(base({ amount: "" })).amount).toBe("amount");
     expect(validatePrice(base({ evidence: ["a", "b", "c", "d", "e", "f"] })).evidence).toBeDefined();
     expect(validatePrice(base({ evidence: ["x".repeat(121)] })).evidence).toBeDefined();

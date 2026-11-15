@@ -6,7 +6,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgreementRecord, Changa, MyApplication } from "../../api/types";
 import { StatusChip } from "../../components/StatusChip";
 import { StatusStrip, type StripData } from "../../components/StatusStrip";
-import { Banner } from "../../components/Banner";
 import { ChangaCard } from "../../components/ChangaCard";
 import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
@@ -120,8 +119,7 @@ function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }
         : undefined;
   return (
     <View style={styles.item}>
-      <ChangaCard changa={changa} status={status} action={action} onPress={changa.status === "draft" ? () => undefined : open} />
-      {waiting ? <Banner icon="clock">{t.mine.waitingAgreement}</Banner> : null}
+      <ChangaCard changa={changa} status={status} action={action} strip={waiting ? { tone: "info", icon: "clock", title: t.mine.waitingTitle, body: t.mine.waitingAgreement } : undefined} onPress={changa.status === "draft" ? () => undefined : open} />
     </View>
   );
 }

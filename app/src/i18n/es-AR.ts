@@ -278,7 +278,8 @@ export const esAR = {
     needAccount: "Ingresá con tu billetera para ver tus trabajos.",
     enter: "Ingresar",
     pendingAgreement: "Te eligieron. Confirmá el acuerdo.",
-    waitingAgreement: "Propuesta enviada. Esperando que la persona acepte; no se mueve plata hasta entonces.",
+    waitingTitle: "Propuesta enviada",
+    waitingAgreement: "Esperando que la persona acepte. No se mueve plata hasta entonces.",
     applicationState: {
       waitingTitle: "Enviada",
       chosenTitle: "Te eligieron",

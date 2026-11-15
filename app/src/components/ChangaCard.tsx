@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "./Card";
 import { StatusChip } from "./StatusChip";
+import { StatusStrip, type StripData } from "./StatusStrip";
 import { Icon } from "./Icon";
 import type { Changa } from "../api/types";
 import { t } from "../i18n";
@@ -11,7 +12,7 @@ import { colors, spacing, text } from "../theme";
 
 const WARN_STATUSES = new Set(["disputed", "cancelled", "cancelling"]);
 
-export function ChangaCard({ changa, distanceM, onPress, status, action, unavailable = false }: { changa: Changa; distanceM?: number; onPress: () => void; status?: string; action?: { label: string; onPress: () => void }; unavailable?: boolean }) {
+export function ChangaCard({ changa, distanceM, onPress, status, action, unavailable = false, strip }: { changa: Changa; distanceM?: number; onPress: () => void; status?: string; action?: { label: string; onPress: () => void }; unavailable?: boolean; strip?: StripData }) {
   const { spec } = changa;
   const where = [t.publish.categories[spec.category], spec.modality === "remote" ? t.map.remoteTag : t.map.onsiteTag, distanceM !== undefined ? `${t.map.away} ${formatDistance(distanceM)}` : null].filter(Boolean).join(" · ");
   const when = spec.startsAt ?? spec.deadline ?? null;
@@ -39,6 +40,7 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
           ) : null}
         </View>
       ) : null}
+      {strip ? <StatusStrip data={strip} /> : null}
     </Card>
   );
 }

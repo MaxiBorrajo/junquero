@@ -3,7 +3,7 @@ import { Card } from "../../components/Card";
 import { Banner } from "../../components/Banner";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Changa, ReceivedApplication } from "../../api/types";
 import { encodeProposeProvider } from "../../chain/group";
@@ -16,14 +16,15 @@ import { milestoneTerms, milestoneTermsHash } from "../../chain/terms";
 import { deployment } from "../../chain/deployment";
 import { DetailActions } from "../../components/DetailActions";
 import { PersonMenu } from "../../components/PersonMenu";
-import { BackButton, Button, ErrorText, Secondary, Title } from "../../components/ui";
+import { Icon } from "../../components/Icon";
+import { BackButton, ErrorText, Secondary, Title } from "../../components/ui";
 import { useMyAgreements, useMyChangas, useReceivedApplications } from "../../data/useMine";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { formatUsdc } from "../../lib/money";
 import { useSession } from "../../session/SessionProvider";
 import { isRejection, signTyped } from "../../wallet/sign";
-import { colors, spacing, text } from "../../theme";
+import { colors, fonts, radius, spacing, text } from "../../theme";
 
 export default function ReceivedApplications() {
   const { changaId } = useLocalSearchParams<{ changaId: string }>();
@@ -146,32 +147,58 @@ export default function ReceivedApplications() {
           </View>
         }
         ListEmptyComponent={<Secondary>{t.received.empty}</Secondary>}
-        renderItem={({ item }) => (
-          <Card gap="xs">
-            <View style={styles.cardHeader}>
-              <Text style={[text.subtitle, { flex: 1 }]} onPress={() => router.push({ pathname: "/profile-public", params: { address: item.applicant } })}>{item.profile?.name ?? item.applicant.slice(0, 8)}</Text>
-              <PersonMenu role="owner" applicationId={item.id} changaId={id} counterpart={item.applicant} active={item.status === "active"} />
+        renderItem={({ item }) => {
+          const name = item.profile?.name ?? item.applicant.slice(0, 8);
+          const offer = item.amount ? formatUsdc(item.amount) : changa ? formatUsdc(changa.amount) : t.received.publishedAmount;
+          const verified = item.profile?.verified ? t.received.verified : t.received.unverified;
+          const open = changa !== null && changa.status === "open";
+          const talk = () => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } });
+          const choosePress = () => changa && void choose(item, changa);
+          const menu = <PersonMenu role="owner" applicationId={item.id} changaId={id} counterpart={item.applicant} active={item.status === "active"} />;
+          const plan = item.plan ? (
+            <View style={{ gap: 2 }}>
+              <Text style={text.label}>{t.planChange.proposes}</Text>
+              {item.plan.milestones.map((m, i) => (
+                <Secondary key={i}>{`${i + 1}. ${m.name} · ${formatUsdc(m.amount)} · ${m.criteria}`}</Secondary>
+              ))}
             </View>
-            <Secondary>{item.profile?.verified ? t.received.verified : t.received.unverified}</Secondary>
-            <Text style={text.body}>{`${t.received.offer}: ${item.amount ? formatUsdc(item.amount) : changa ? `${formatUsdc(changa.amount)}` : t.received.publishedAmount}`}</Text>
-            {item.message ? <Text style={text.body}>{item.message}</Text> : null}
-            {item.plan ? (
-              <View style={{ gap: 2 }}>
-                <Text style={text.label}>{t.planChange.proposes}</Text>
-                {item.plan.milestones.map((m, i) => (
-                  <Secondary key={i}>{`${i + 1}. ${m.name} · ${formatUsdc(m.amount)} · ${m.criteria}`}</Secondary>
-                ))}
+          ) : null;
+          const propose = changa && open && changa.spec.group && busy === null ? <DetailActions actions={[{ key: "propose", label: t.group.propose, icon: "users", onPress: () => void proposeProvider(item, changa) }]} /> : null;
+          const avatar = (
+            <View style={styles.avatar}>
+              <Text style={[text.subtitle, { color: colors.brick }]}>{name.trim().charAt(0).toUpperCase() || "?"}</Text>
+            </View>
+          );
+          const message = item.message ? <Text style={text.body}>{item.message}</Text> : null;
+          return (
+            <Card gap="md">
+              <View style={styles.cardHeader}>
+                {avatar}
+                <View style={{ flex: 1 }}>
+                  <Text style={text.subtitle}>{name}</Text>
+                  <Text style={text.secondary}>{verified}</Text>
+                </View>
+                <Text style={[text.subtitle, { color: colors.brick }]}>{offer}</Text>
+                {menu}
               </View>
-            ) : null}
-            <DetailActions
-              actions={[
-                { key: "talk", label: t.received.talk, icon: "message", onPress: () => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } }) },
-                ...(changa && changa.status === "open" && changa.spec.group && busy === null ? [{ key: "propose", label: t.group.propose, icon: "users" as const, onPress: () => void proposeProvider(item, changa) }] : []),
-              ]}
-            />
-            {changa && changa.status === "open" ? <Button label={t.received.choose} icon="check" onPress={() => choose(item, changa)} loading={busy === item.id} disabled={busy !== null} /> : null}
-          </Card>
-        )}
+              {message}
+              {plan}
+              {propose}
+              <View style={styles.actions}>
+                <Pressable accessibilityRole="button" onPress={talk} style={[styles.small, styles.smallOutline]}>
+                  <Icon name="message" size={16} color={colors.brick} />
+                  <Text style={[styles.smallLabel, { color: colors.brick }]}>{t.received.talk}</Text>
+                </Pressable>
+                {open ? (
+                  <Pressable accessibilityRole="button" disabled={busy !== null} onPress={choosePress} style={[styles.small, styles.smallSolid, busy !== null && { opacity: 0.5 }]}>
+                    <Icon name="check" size={16} color={colors.white} />
+                    <Text style={[styles.smallLabel, { color: colors.white }]}>{t.received.choose}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </Card>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -181,4 +208,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.md, gap: spacing.md },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center" },
+  actions: { flexDirection: "row", gap: spacing.sm },
+  small: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs, height: 40, borderRadius: radius.pill },
+  smallOutline: { borderWidth: 1.5, borderColor: colors.brick },
+  smallSolid: { backgroundColor: colors.brick },
+  smallLabel: { ...text.secondary, fontFamily: fonts.semibold },
 });

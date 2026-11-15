@@ -4,9 +4,10 @@ import { readCache } from "../src/app";
 import { buildChatKeyMessage } from "../src/auth";
 import { applicationsHandler } from "../src/applications";
 import { createChangasHandler } from "../src/changas";
-import { ChatStore, MAX_BODY_CHARS, MAX_PER_MINUTE } from "../src/chatStore";
+import { LAST_BODY_MAX_CHARS } from "../src/chatAccess";
+import { ChatStore, MAX_BODY_CHARS, MAX_PER_HOUR, MAX_PER_MINUTE, MAX_PER_CONVERSATION } from "../src/chatStore";
 import { processEvents } from "../src/eventStream";
-import { authed, createdEvent, futureSpec, owner, plainEvent, setup, stranger, TOKEN, tokenFor } from "./helpers";
+import { authed, createdEvent, futureSpec, owner, plainEvent, setup, sha256, stranger, TOKEN, tokenFor } from "./helpers";
 
 beforeEach(() => readCache.clear());
 
@@ -26,6 +27,9 @@ async function conversation(ctx: ReturnType<typeof setup>) {
   const applicationId = ((await applied.json()) as any).application.id as number;
   return { publisher: publisher.body.token, worker: worker.body.token, applicationId };
 }
+
+// Quien publicó abre la conversación: hasta entonces quien se postuló no puede escribir.
+const open = (ctx: ReturnType<typeof setup>, publisher: string, id: number) => send(ctx, publisher, id, body("owner-open-0"));
 
 const send = (ctx: ReturnType<typeof setup>, token: string, id: number, payload: unknown) =>
   ctx.call(`/me/chats/${id}/messages`, authed(token, "POST", payload));
@@ -65,13 +69,13 @@ describe("messages", () => {
   it("lets both participants exchange messages and read them in order", async () => {
     const ctx = setup();
     const { publisher, worker, applicationId } = await conversation(ctx);
-    expect((await send(ctx, worker, applicationId, body("client-0001", "aG9sYQ=="))).status).toBe(201);
     expect((await send(ctx, publisher, applicationId, body("client-0002", "cXVl"))).status).toBe(201);
+    expect((await send(ctx, worker, applicationId, body("client-0001", "aG9sYQ=="))).status).toBe(201);
 
     const all = await history(ctx, publisher, applicationId);
     expect(all.messages.map((m: any) => [m.seq, m.sender])).toEqual([
-      [1, stranger.address.toLowerCase()],
-      [2, owner.address.toLowerCase()],
+      [1, owner.address.toLowerCase()],
+      [2, stranger.address.toLowerCase()],
     ]);
     expect(all.writable).toBe(true);
     expect((await history(ctx, worker, applicationId, "?after=1")).messages).toHaveLength(1);
@@ -80,13 +84,14 @@ describe("messages", () => {
 
   it("makes retries idempotent by client id", async () => {
     const ctx = setup();
-    const { worker, applicationId } = await conversation(ctx);
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    await open(ctx, publisher, applicationId);
     expect((await send(ctx, worker, applicationId, body("client-0001"))).status).toBe(201);
     const again = await send(ctx, worker, applicationId, body("client-0001"));
     expect(again.status).toBe(200);
     expect(((await again.json()) as any).duplicate).toBe(true);
-    expect((await history(ctx, worker, applicationId)).messages).toHaveLength(1);
-    expect(ctx.chat.broadcasts).toHaveLength(1);
+    expect((await history(ctx, worker, applicationId)).messages).toHaveLength(2);
+    expect(ctx.chat.broadcasts).toHaveLength(2);
   });
 
   it("keeps outsiders out", async () => {
@@ -102,7 +107,8 @@ describe("messages", () => {
 
   it("validates message content", async () => {
     const ctx = setup();
-    const { worker, applicationId } = await conversation(ctx);
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    await open(ctx, publisher, applicationId);
     for (const payload of [
       { ...body("client-0001"), nonce: "short" },
       { ...body("client-0001"), body: "" },
@@ -118,7 +124,8 @@ describe("messages", () => {
 
   it("limits how fast one person can send", async () => {
     const ctx = setup();
-    const { worker, applicationId } = await conversation(ctx);
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    await open(ctx, publisher, applicationId);
     for (let i = 0; i < MAX_PER_MINUTE; i++) expect((await send(ctx, worker, applicationId, body(`client-${1000 + i}`))).status).toBe(201);
     expect((await send(ctx, worker, applicationId, body("client-9999"))).status).toBe(429);
   });
@@ -135,6 +142,7 @@ describe("messages", () => {
 
     const open = setup();
     const next = await conversation(open);
+    await send(open, next.publisher, next.applicationId, body("owner-open-0"));
     plainEvent(open.raw, "OrderAgreed", 1, 500, { payee: stranger.address });
     await processEvents(open.db, handlers, 100);
     expect((await send(open, next.worker, next.applicationId, body("client-0003"))).status).toBe(201);
@@ -144,10 +152,101 @@ describe("messages", () => {
   });
 });
 
+describe("who can write first", () => {
+  it("keeps the applicant silent until the owner replies, but lets them read", async () => {
+    const ctx = setup();
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    const blocked = await send(ctx, worker, applicationId, body("client-0001"));
+    expect(blocked.status).toBe(403);
+    expect(((await blocked.json()) as any).error).toMatch(/owner/);
+
+    const before = await history(ctx, worker, applicationId);
+    expect(before).toMatchObject({ role: "applicant", waitingForOwner: true, writable: true, applicationMessage: "hola" });
+    const ownerView = await history(ctx, publisher, applicationId);
+    expect(ownerView).toMatchObject({ role: "owner", waitingForOwner: false, applicationMessage: "hola" });
+
+    expect((await open(ctx, publisher, applicationId)).status).toBe(201);
+    expect((await send(ctx, worker, applicationId, body("client-0001"))).status).toBe(201);
+    expect((await history(ctx, worker, applicationId)).waitingForOwner).toBe(false);
+  });
+
+  it("lists the waiting state and allows contacts only after the agreement", async () => {
+    const ctx = setup();
+    const { worker, publisher, applicationId } = await conversation(ctx);
+    expect(((await (await ctx.call("/me/chats", authed(worker, "GET"))).json()) as any).chats[0]).toMatchObject({ role: "applicant", waitingForOwner: true });
+    expect((await history(ctx, worker, applicationId)).contactsAllowed).toBe(false);
+    plainEvent(ctx.raw, "OrderAgreed", 1, 500, { payee: stranger.address });
+    await processEvents(ctx.db, handlers, 100);
+    expect((await history(ctx, publisher, applicationId)).contactsAllowed).toBe(true);
+  });
+});
+
+describe("chat attachments", () => {
+  const cipher = new Uint8Array(Array.from({ length: 64 }, (_, i) => (i * 7) % 251));
+  const putFile = (ctx: ReturnType<typeof setup>, token: string, id: number, bytes: Uint8Array, mime = "application/octet-stream", hash = sha256(bytes)) =>
+    ctx.call(`/me/chats/${id}/files`, {
+      method: "PUT",
+      body: bytes,
+      headers: { authorization: `Bearer ${token}`, "content-type": mime, "content-length": String(bytes.length), "x-content-sha256": hash },
+    });
+
+  it("stores opaque bytes from a participant and serves them only to the two of them", async () => {
+    const ctx = setup();
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    await open(ctx, publisher, applicationId);
+    const stored = await putFile(ctx, worker, applicationId, cipher);
+    expect(stored.status).toBe(201);
+    expect(((await stored.json()) as any).hash).toBe(sha256(cipher));
+
+    for (const token of [worker, publisher]) {
+      const served = await ctx.call(`/me/chats/${applicationId}/files/${sha256(cipher)}`, authed(token, "GET"));
+      expect(served.status).toBe(200);
+      expect(served.headers.get("cache-control")).toBe("private, no-store");
+      expect(new Uint8Array(await served.arrayBuffer())).toEqual(cipher);
+    }
+    const outsider = await tokenFor(ctx.call, privateKeyToAccount(generatePrivateKey()));
+    expect((await ctx.call(`/me/chats/${applicationId}/files/${sha256(cipher)}`, authed(outsider.body.token, "GET"))).status).toBe(403);
+    expect((await ctx.call(`/me/chats/${applicationId}/files/${"0".repeat(64)}`, authed(worker, "GET"))).status).toBe(404);
+    expect((await ctx.call(`/me/chats/${applicationId}/files/nope`, authed(worker, "GET"))).status).toBe(400);
+  });
+
+  it("does not let the applicant upload before the owner replies, nor anyone once the chat is closed", async () => {
+    const ctx = setup();
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    expect((await putFile(ctx, worker, applicationId, cipher)).status).toBe(403);
+    await open(ctx, publisher, applicationId);
+    expect((await putFile(ctx, worker, applicationId, cipher)).status).toBe(201);
+    await ctx.call("/me/blocks", authed(publisher, "POST", { address: stranger.address }));
+    expect((await putFile(ctx, publisher, applicationId, new Uint8Array([1, 2, 3, 4]))).status).toBe(403);
+  });
+
+  it("rejects the wrong type, a wrong hash and files over the limit", async () => {
+    const ctx = setup();
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    await open(ctx, publisher, applicationId);
+    expect((await putFile(ctx, worker, applicationId, cipher, "image/png")).status).toBe(415);
+    expect((await putFile(ctx, worker, applicationId, cipher, "application/octet-stream", "ab".repeat(32))).status).toBe(400);
+    const big = await ctx.call(`/me/chats/${applicationId}/files`, {
+      method: "PUT",
+      body: cipher,
+      headers: { authorization: `Bearer ${worker}`, "content-type": "application/octet-stream", "content-length": String(10 * 1024 * 1024 + 65), "x-content-sha256": sha256(cipher) },
+    });
+    expect(big.status).toBe(413);
+  });
+
+  it("returns the changa hash so the chat can link to the job", async () => {
+    const ctx = setup();
+    const { worker, applicationId } = await conversation(ctx);
+    const info = await history(ctx, worker, applicationId);
+    expect(info.specHash).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+});
+
 describe("chat list and read state", () => {
   it("lists chats with unread flags that clear when read", async () => {
     const ctx = setup();
     const { publisher, worker, applicationId } = await conversation(ctx);
+    await open(ctx, publisher, applicationId);
     await send(ctx, worker, applicationId, body("client-0001"));
 
     const forPublisher = ((await (await ctx.call("/me/chats", authed(publisher, "GET"))).json()) as any).chats;
@@ -156,17 +255,47 @@ describe("chat list and read state", () => {
       applicationId,
       title: "Cambiar una canilla",
       counterpart: stranger.address.toLowerCase(),
+      role: "owner",
       writable: true,
-      lastSeq: 1,
+      waitingForOwner: false,
+      lastSeq: 2,
       unread: true,
     });
     const forWorker = ((await (await ctx.call("/me/chats", authed(worker, "GET"))).json()) as any).chats;
     expect(forWorker[0].unread).toBe(false);
 
-    expect((await ctx.call(`/me/chats/${applicationId}/read`, authed(publisher, "POST", { seq: 1 }))).status).toBe(200);
+    expect((await ctx.call(`/me/chats/${applicationId}/read`, authed(publisher, "POST", { seq: 2 }))).status).toBe(200);
     const after = ((await (await ctx.call("/me/chats", authed(publisher, "GET"))).json()) as any).chats;
     expect(after[0].unread).toBe(false);
     expect((await ctx.call(`/me/chats/${applicationId}/read`, authed(publisher, "POST", { seq: -1 }))).status).toBe(400);
+  });
+
+  it("returns the last message still encrypted, the other person's name and how many messages are unread", async () => {
+    const ctx = setup();
+    const { publisher, worker, applicationId } = await conversation(ctx);
+    const profile = { name: "Beto", work: { lat: -34.6, lng: -58.38, radiusM: 3000 } };
+    await ctx.call("/me/profile", authed(worker, "PUT", profile));
+    await open(ctx, publisher, applicationId);
+    await send(ctx, worker, applicationId, body("client-0001", "cXVl"));
+    await send(ctx, worker, applicationId, body("client-0002", "b3Rybw=="));
+
+    const forPublisher = ((await (await ctx.call("/me/chats", authed(publisher, "GET"))).json()) as any).chats[0];
+    expect(forPublisher).toMatchObject({ counterpartName: "Beto", lastSeq: 3, lastNonce: nonce, lastBody: "b3Rybw==", unreadCount: 2, unread: true });
+    const forWorker = ((await (await ctx.call("/me/chats", authed(worker, "GET"))).json()) as any).chats[0];
+    expect(forWorker).toMatchObject({ lastBody: "b3Rybw==", unreadCount: 0, unread: false });
+
+    await ctx.call(`/me/chats/${applicationId}/read`, authed(publisher, "POST", { seq: 3 }));
+    expect(((await (await ctx.call("/me/chats", authed(publisher, "GET"))).json()) as any).chats[0].unreadCount).toBe(0);
+  });
+
+  it("does not keep a long last message in the list", async () => {
+    const ctx = setup();
+    const { publisher, applicationId } = await conversation(ctx);
+    await send(ctx, publisher, applicationId, body("client-0001", "A".repeat(LAST_BODY_MAX_CHARS + 1)));
+    const chat = ((await (await ctx.call("/me/chats", authed(publisher, "GET"))).json()) as any).chats[0];
+    expect(chat.lastSeq).toBe(1);
+    expect(chat.lastBody).toBeNull();
+    expect(chat.lastNonce).toBeNull();
   });
 
   it("does not list chats of unrelated people", async () => {
@@ -222,5 +351,36 @@ describe("ChatStore", () => {
     expect(second.history(0, 10).map((m) => m.body)).toEqual(["YQ==", "Yg=="]);
     expect(second.history(1, 10)).toHaveLength(1);
     expect(second.history(0, 0)).toHaveLength(1);
+  });
+
+  async function freshStore() {
+    const { DatabaseSync } = await import("node:sqlite");
+    const db = new DatabaseSync(":memory:");
+    return new ChatStore({
+      exec(query: string, ...bindings: (string | number | null)[]) {
+        const statement = db.prepare(query);
+        if (/^\s*SELECT/i.test(query)) return { toArray: () => statement.all(...bindings) };
+        statement.run(...bindings);
+        return { toArray: () => [] };
+      },
+    });
+  }
+
+  it("limits one sender per hour even when each minute is within its limit", async () => {
+    const store = await freshStore();
+    // un mensaje cada 20 segundos queda por debajo del límite por minuto pero llega al de la hora
+    for (let i = 0; i < MAX_PER_HOUR; i++) expect(store.append("0xa", { nonce, body: "YQ==", clientId: `client-${10000 + i}` }, 1000 + i * 17).ok).toBe(true);
+    const blocked = store.append("0xa", { nonce, body: "YQ==", clientId: "client-99999" }, 1000 + MAX_PER_HOUR * 17);
+    expect(blocked).toMatchObject({ ok: false, status: 429 });
+  });
+
+  it("closes a conversation that reaches the total cap", async () => {
+    const store = await freshStore();
+    for (let i = 0; i < MAX_PER_CONVERSATION; i++) {
+      const sender = i % 2 === 0 ? "0xa" : "0xb";
+      expect(store.append(sender, { nonce, body: "YQ==", clientId: `client-${10000 + i}` }, 1000 + Math.floor(i / 2) * 3600 + 1).ok).toBe(true);
+    }
+    const blocked = store.append("0xa", { nonce, body: "YQ==", clientId: "client-99999" }, 10_000_000);
+    expect(blocked).toMatchObject({ ok: false, status: 429, error: "conversation is full" });
   });
 });

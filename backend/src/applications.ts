@@ -1,3 +1,4 @@
+import { isBlockedBetween } from "./blocks";
 import { isAddress } from "viem";
 import type { EventHandler, StreamEvent } from "./eventStream";
 import { parseMilestones, type Milestone, type Spec } from "./spec";
@@ -124,10 +125,13 @@ export async function submitApplication(
     if (profile?.selfie_status !== "approved") return { ok: false, status: 403, error: "selfie verification required" };
   }
 
+  if (await isBlockedBetween(db, changa.owner, applicant)) return { ok: false, status: 403, error: "you cannot apply to this changa" };
+
   const existing = await db
     .prepare("SELECT id, status FROM applications WHERE changa_id = ? AND applicant = ?")
     .bind(changaId, applicant)
     .first<{ id: number; status: string }>();
+  if (existing?.status === "dismissed") return { ok: false, status: 403, error: "your application was dismissed" };
   const reactivating = !existing || existing.status !== "active";
 
   if (reactivating) {

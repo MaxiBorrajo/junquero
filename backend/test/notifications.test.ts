@@ -170,11 +170,12 @@ describe("what triggers a notification", () => {
 
   it("notifies the other participant of a chat message when they have no live connection", async () => {
     const ctx = setup();
-    const { worker, changaId } = await agreedOrder(ctx);
+    const { publisher, worker, changaId } = await agreedOrder(ctx);
     const applicationId = (ctx.raw.prepare("SELECT id FROM applications WHERE changa_id = ?").get(changaId) as { id: number }).id;
+    await ctx.call(`/me/chats/${applicationId}/messages`, authed(publisher, "POST", { nonce: "A".repeat(32), body: "aG9sYQ==", clientId: "client-0000" }));
     await ctx.call(`/me/chats/${applicationId}/messages`, authed(worker, "POST", { nonce: "A".repeat(32), body: "aG9sYQ==", clientId: "client-0001" }));
     await ctx.call(`/me/chats/${applicationId}/messages`, authed(worker, "POST", { nonce: "A".repeat(32), body: "aG9sYQ==", clientId: "client-0002" }));
-    const chats = rows(ctx).filter((r) => r.kind === "chat");
+    const chats = rows(ctx).filter((r) => r.kind === "chat" && r.address === owner.address.toLowerCase());
     expect(chats).toEqual([{ address: owner.address.toLowerCase(), kind: "chat", ref: String(applicationId), due_at: 0, sent_at: null }]);
   });
 

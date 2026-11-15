@@ -12,8 +12,10 @@ import { purgeOrphanFiles } from "./files";
 import { hasNoLogs, verifySignature, withSyncLock } from "./hook";
 import { isPurgeMinute, purgeOldLogs } from "./maintenance";
 import { deliverDue, notificationsHandler, purgeSentNotifications } from "./notifications";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, type Hex } from "viem";
 import { sepolia } from "viem/chains";
+import { createMarkChain } from "./markChain";
+import { runMarks } from "./marks";
 import { createTaskChain } from "./taskChain";
 import { runTasks, watchedHandler } from "./tasks";
 
@@ -59,6 +61,7 @@ async function runRobot(env: Env, nowSeconds: number): Promise<void> {
     unreadableRetrySeconds: UNREADABLE_RETRY_SECONDS,
   };
   await runTasks(env.DB, createTaskChain(env.RPC_URL, env.RELAYER_KEY), options, nowSeconds);
+  await runMarks(env.DB, createMarkChain(env.RPC_URL, env.RELAYER_KEY as Hex), nowSeconds);
 }
 
 async function chainHook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {

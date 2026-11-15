@@ -11,8 +11,11 @@ import {
   withdrawApplication,
 } from "./applications";
 import { buildChatKeyMessage, issueToken, parseLogin, TICKET_TTL_SECONDS, verifyLogin, verifyToken } from "./auth";
+import { createMarkChain } from "./markChain";
+import { enqueueMark, runMarks } from "./marks";
+import { blockUser, dismissApplication, listBlocks, unblockUser } from "./blocks";
 import { listChats, markRead, resolveChatAccess } from "./chatAccess";
-import { isHex, recoverMessageAddress } from "viem";
+import { isHex, recoverMessageAddress, type Hex } from "viem";
 import { queueNotification, registerToken, removeToken } from "./notifications";
 import { isExpoToken } from "./push";
 import { getPublished, listByOwner, listOpen, presentChanga, saveDraft, type ListFilters } from "./changas";
@@ -476,7 +479,8 @@ app.get("/me/chats/:id/messages", async (c) => {
   const params = new URLSearchParams({ after: c.req.query("after") ?? "0", limit: c.req.query("limit") ?? String(CHAT_PAGE) });
   const room = await callRoom(c, chat.applicationId, `/history?${params}`);
   const data = (await room.json()) as object;
-  return c.json({ ...data, writable: chat.access.writable }, room.status as 200 | 400);
+  const { writable, role, waitingForOwner, contactsAllowed, applicationMessage, changaId, specHash } = chat.access;
+  return c.json({ ...data, writable, role, waitingForOwner, contactsAllowed, applicationMessage, changaId, specHash }, room.status as 200 | 400);
 });
 
 app.post("/me/chats/:id/messages", async (c) => {
@@ -486,6 +490,32 @@ app.post("/me/chats/:id/messages", async (c) => {
   if (body === undefined) return c.json({ error: "invalid json" }, 400);
   const room = await callRoom(c, chat.applicationId, "/send", { method: "POST", body: JSON.stringify(body) });
   return c.json((await room.json()) as object, room.status as 200 | 201 | 400 | 403 | 429);
+});
+
+// Adjuntos del chat: los bytes llegan ya cifrados desde el celular; el servidor solo guarda un objeto opaco.
+app.put("/me/chats/:id/files", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  if (!chat.access.canSend) return c.json({ error: "chat is not writable" }, 403);
+  const upload = parseUpload(c.req.raw.headers, "chat");
+  if (!upload.ok) return c.json({ error: upload.error }, upload.status);
+  const outcome = await storeFile(c.env.DB, c.env.FILES, c.get("address"), "chat", upload.value, c.req.raw.body, nowSeconds(), true);
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  return c.json({ hash: upload.value.hash }, outcome.created ? 201 : 200);
+});
+
+app.get("/me/chats/:id/files/:hash", async (c) => {
+  const chat = await chatFor(c, c.req.param("id"));
+  if ("response" in chat) return chat.response;
+  const hash = c.req.param("hash").toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hash)) return c.json({ error: "invalid file" }, 400);
+  const row = await c.env.DB
+    .prepare("SELECT owner FROM files WHERE hash = ? AND kind = 'chat' AND owner IN (?, ?) LIMIT 1")
+    .bind(hash, chat.access.owner, chat.access.applicant)
+    .first<{ owner: string }>();
+  const file = row ? await readFile(c.env.DB, c.env.FILES, row.owner, hash, "chat") : null;
+  if (!file) return c.json({ error: "not found" }, 404);
+  return new Response(file.object.body, { headers: fileHeaders(file.mime, file.size, false) });
 });
 
 app.post("/me/chats/:id/read", async (c) => {
@@ -549,6 +579,15 @@ app.put("/me/applications/:changaId", async (c) => {
   if (outcome.created) {
     const changa = await c.env.DB.prepare("SELECT owner FROM changas WHERE id = ?").bind(changaId).first<{ owner: string }>();
     if (changa) await queueNotification(c.env.DB, changa.owner, "application_new", String(changaId)).run();
+    // El contrato tiene que saber que hubo una postulación: cancelar la changa deja de ser gratis.
+    await enqueueMark(c.env.DB, changaId).run();
+    if (c.env.RELAYER_KEY) {
+      try {
+        c.executionCtx.waitUntil(runMarks(c.env.DB, createMarkChain(c.env.RPC_URL, c.env.RELAYER_KEY as Hex), nowSeconds()).catch((error) => console.error("mark failed", error)));
+      } catch {
+        // sin contexto de ejecución (pruebas): lo retoma el reloj
+      }
+    }
   }
   return c.json({ application: presentApplication(outcome.row) }, outcome.created ? 201 : 200);
 });
@@ -558,6 +597,34 @@ app.delete("/me/applications/:changaId", async (c) => {
   if (changaId === null) return c.json({ error: "invalid changa id" }, 400);
   const withdrawn = await withdrawApplication(c.env.DB, changaId, c.get("address"), nowSeconds());
   return withdrawn ? c.json({ ok: true }) : c.json({ error: "no active application" }, 404);
+});
+
+app.post("/me/applications/:id/dismiss", async (c) => {
+  const id = parseChangaId(c.req.param("id"));
+  if (id === null) return c.json({ error: "invalid application id" }, 400);
+  const body = (await readJson(c)) as { block?: unknown } | undefined;
+  if (body === undefined) return c.json({ error: "invalid json" }, 400);
+  const result = await dismissApplication(c.env.DB, c.get("address"), id, nowSeconds());
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  if (body.block === true) {
+    const blocked = await blockUser(c.env.DB, c.get("address"), result.applicant, nowSeconds());
+    if (!blocked.ok) return c.json({ error: blocked.error }, blocked.status);
+  }
+  return c.json({ ok: true, blocked: body.block === true });
+});
+
+app.get("/me/blocks", async (c) => c.json({ blocks: await listBlocks(c.env.DB, c.get("address")) }));
+
+app.post("/me/blocks", async (c) => {
+  const body = (await readJson(c)) as { address?: unknown } | undefined;
+  if (body === undefined || typeof body.address !== "string") return c.json({ error: "address is required" }, 400);
+  const result = await blockUser(c.env.DB, c.get("address"), body.address, nowSeconds());
+  return result.ok ? c.json({ ok: true }) : c.json({ error: result.error }, result.status);
+});
+
+app.delete("/me/blocks/:address", async (c) => {
+  const removed = await unblockUser(c.env.DB, c.get("address"), c.req.param("address"));
+  return removed ? c.json({ ok: true }) : c.json({ error: "not blocked" }, 404);
 });
 
 app.get("/me/applications", async (c) => c.json({ applications: await listMine(c.env.DB, c.get("address"), OWN_CHANGAS_LIMIT) }));

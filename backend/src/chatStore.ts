@@ -17,6 +17,8 @@ export interface ChatMessage {
 
 export const MAX_BODY_CHARS = 8192;
 export const MAX_PER_MINUTE = 20;
+export const MAX_PER_HOUR = 200;
+export const MAX_PER_CONVERSATION = 2000;
 export const HISTORY_DEFAULT = 50;
 export const HISTORY_MAX = 200;
 const BASE64 = /^[A-Za-z0-9+/_-]+={0,2}$/;
@@ -81,6 +83,12 @@ export class ChatStore {
       .exec("SELECT COUNT(*) AS total FROM messages WHERE sender = ? AND created_at > ?", sender, nowSeconds - 60)
       .toArray() as { total: number }[];
     if (recent[0].total >= MAX_PER_MINUTE) return { ok: false, status: 429, error: "too many messages" };
+    const lastHour = this.sql
+      .exec("SELECT COUNT(*) AS total FROM messages WHERE sender = ? AND created_at > ?", sender, nowSeconds - 3600)
+      .toArray() as { total: number }[];
+    if (lastHour[0].total >= MAX_PER_HOUR) return { ok: false, status: 429, error: "too many messages" };
+    const all = this.sql.exec("SELECT COUNT(*) AS total FROM messages").toArray() as { total: number }[];
+    if (all[0].total >= MAX_PER_CONVERSATION) return { ok: false, status: 429, error: "conversation is full" };
 
     this.sql.exec("INSERT INTO messages (sender, nonce, body, client_id, created_at) VALUES (?, ?, ?, ?, ?)", sender, nonce, body, clientId, nowSeconds);
     const stored = this.sql.exec("SELECT * FROM messages WHERE sender = ? AND client_id = ?", sender, clientId).toArray() as Row[];

@@ -1,0 +1,1 @@
+ALTER TABLE chat_meta ADD COLUMN owner_replied INTEGER NOT NULL DEFAULT 0;

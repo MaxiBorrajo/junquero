@@ -18,12 +18,13 @@ export class ChatRoomCore {
     const access = await resolveChatAccess(this.db, applicationId, address);
     if (!access.ok) return { status: access.status, body: { error: access.error } };
     if (!access.access.writable) return { status: 403, body: { error: "chat is read-only" } };
+    if (access.access.waitingForOwner) return { status: 403, body: { error: "waiting for the owner to reply" } };
 
     const result: AppendResult = this.store.append(address, input, nowSeconds);
     if (!result.ok) return { status: result.status, body: { error: result.error } };
     if (!result.duplicate) {
       this.broadcast(JSON.stringify({ t: "message", message: result.message }));
-      await recordMessage(this.db, applicationId, address, result.message.seq, nowSeconds);
+      await recordMessage(this.db, applicationId, address, result.message.seq, nowSeconds, access.access.role === "owner", { nonce: result.message.nonce, body: result.message.body });
       await this.onNewMessage(applicationId, address, access.access.counterpart);
     }
     return { status: result.duplicate ? 200 : 201, body: { message: result.message, duplicate: result.duplicate } };

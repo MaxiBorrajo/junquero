@@ -26,7 +26,6 @@ function Login() {
   const { signIn } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const enter = async () => {
     setBusy(true);
     setError(null);
@@ -48,15 +47,19 @@ function Login() {
 
   return (
     <div className="login-wrap">
-    <div className="login">
-      <img className="logo" src="/logo.svg" alt="" />
-      <h1>Junquero</h1>
-      <div>Panel de administración. Ingresá con la billetera autorizada y firmá el mensaje para confirmar que sos vos.</div>
-      {error ? <div className="error">{error}</div> : null}
-      <button className="btn" disabled={busy} onClick={enter}>
-        {busy ? "Esperando la billetera…" : "Ingresar con MetaMask"}
-      </button>
-    </div>
+      <div className="login">
+        <div className="login-head">
+          <img className="logo" src="/logo.svg" alt="" />
+          <h1>Junquero</h1>
+        </div>
+        <div className="login-body">
+          <div>Panel de administración. Ingresá con la billetera autorizada y firmá el mensaje para confirmar que sos vos.</div>
+          {error ? <div className="error">{error}</div> : null}
+          <button className="btn" disabled={busy} onClick={enter}>
+            {busy ? "Esperando la billetera…" : "Ingresar con MetaMask"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

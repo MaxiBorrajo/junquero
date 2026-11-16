@@ -135,16 +135,15 @@ export async function propose(db: D1Database, payer: string, orderId: number, in
     .first<{ amount: string | null; plan: string | null }>();
   if (!application) return { ok: false, status: 400, error: "payee has no active application" };
 
-  const expected = application.amount ?? changa.amount;
-  if (expected === null || input.price !== expected) return { ok: false, status: 400, error: "price must match the application" };
-  if (changa.amount !== null && BigInt(input.price) > BigInt(changa.amount)) return { ok: false, status: 400, error: "price exceeds the deposit" };
-
   const spec = JSON.parse(changa.spec) as Spec;
   const applied = application.plan ? (JSON.parse(application.plan) as { milestones: Spec["milestones"] }) : null;
   const terms = milestoneTerms(applied ? { milestones: applied.milestones } : spec, changa.spec_hash as Hex);
   const planTotal = applied ? (applied.milestones ?? []).reduce((sum, item) => sum + BigInt(item.amount), 0n) : milestoneTotal(spec);
-  if (terms && (input.price !== changa.amount || BigInt(input.price) !== planTotal)) {
-    return { ok: false, status: 400, error: "with milestones the price must be the published amount, equal to the sum of the milestones" };
+  const expected = application.amount ?? (terms ? planTotal.toString() : changa.amount);
+  if (expected === null || input.price !== expected) return { ok: false, status: 400, error: "price must match the application" };
+  if (changa.amount !== null && BigInt(input.price) > BigInt(changa.amount)) return { ok: false, status: 400, error: "price exceeds the deposit" };
+  if (terms && BigInt(input.price) !== planTotal) {
+    return { ok: false, status: 400, error: "with milestones the price must equal the sum of the milestones" };
   }
 
   const row: AgreementRow = {

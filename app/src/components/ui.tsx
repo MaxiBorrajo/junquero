@@ -39,7 +39,7 @@ export function Screen({ children, scroll = true, footer, back = true, onBack, r
   );
 }
 
-type Variant = "primary" | "ghost" | "outline";
+type Variant = "primary" | "secondary" | "ghost" | "outline";
 
 export function Button({
   label,
@@ -145,12 +145,14 @@ export const gap = (size: keyof typeof spacing): ViewStyle => ({ height: spacing
 
 const buttonStyles = StyleSheet.create({
   primary: { backgroundColor: colors.brick },
+  secondary: { backgroundColor: colors.sand },
   ghost: { backgroundColor: "transparent" },
   outline: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.brick },
 });
 
 const labelStyles = StyleSheet.create({
   primary: { color: colors.white },
+  secondary: { color: colors.ink },
   ghost: { color: colors.brick },
   outline: { color: colors.brick },
 });

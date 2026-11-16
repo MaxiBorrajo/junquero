@@ -32,7 +32,7 @@ export default function Apply() {
   const editable = draftPlan ?? original.map((item) => ({ name: item.name, amount: String(Number(item.amount) / 1_000_000), criteria: item.criteria, evidence: item.evidence }));
   const total = editable.reduce((sum, item) => sum + (/^\d+([.,]\d{1,6})?$/.test(item.amount.trim()) ? toMicro(item.amount.trim()) : 0n), 0n);
   const expected = original.length > 0 ? milestoneTotal(original) : 0n;
-  const planValid = !change || (total === expected && editable.every((item) => item.name.trim().length >= 2 && item.criteria.trim().length >= 3 && item.evidence.trim().length >= 3));
+  const planValid = !change || (total > 0n && editable.every((item) => item.name.trim().length >= 2 && item.criteria.trim().length >= 3 && item.evidence.trim().length >= 3));
   const [error, setError] = useState<string | null>(null);
 
   const offer = parseCounterOffer(amount);
@@ -80,13 +80,13 @@ export default function Apply() {
               <Secondary>{t.planChange.note}</Secondary>
               {editable.map((item, index) => (
                 <Card key={index}>
-                  <Field label={t.publish.milestoneName} value={item.name} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, name: value } : m)))} maxLength={60} />
+                  <Field label={t.publish.milestoneName} value={item.name} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, name: value } : m)))} maxLength={60} error={item.name.trim().length < 2 ? t.publish.milestoneNameError : null} />
                   <Field label={t.publish.milestoneAmount} value={item.amount} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, amount: value } : m)))} keyboardType="decimal-pad" />
-                  <Field label={t.publish.milestoneCriteria} value={item.criteria} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, criteria: value } : m)))} maxLength={200} multiline />
-                  <Field label={t.publish.milestoneEvidence} value={item.evidence} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, evidence: value } : m)))} maxLength={100} />
+                  <Field label={t.publish.milestoneCriteria} value={item.criteria} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, criteria: value } : m)))} maxLength={200} multiline error={item.criteria.trim().length < 3 ? t.publish.milestoneCriteriaError : null} />
+                  <Field label={t.publish.milestoneEvidence} value={item.evidence} onChangeText={(value) => setDraftPlan(editable.map((m, i) => (i === index ? { ...m, evidence: value } : m)))} maxLength={100} error={item.evidence.trim().length < 3 ? t.publish.milestoneEvidenceError : null} />
                 </Card>
               ))}
-              {total !== expected ? <ErrorText>{t.planChange.totalMismatch.replace("{total}", formatUsdc(expected.toString()).replace(" USDC", ""))}</ErrorText> : null}
+              {total !== expected && total > 0n ? <Secondary>{(total > expected ? t.planChange.totalHigher : t.planChange.totalLower).replace("{total}", formatUsdc(total.toString())).replace("{diff}", formatUsdc((total > expected ? total - expected : expected - total).toString()))}</Secondary> : null}
             </>
           ) : null}
         </>

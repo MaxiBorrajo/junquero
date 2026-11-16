@@ -148,6 +148,7 @@ Lo que Claude necesita de Maxi para lo que sigue:
 - Validación legal con un profesional (la app se declara intermediaria sin relación laboral).
 - Auditoría externa de los contratos antes de usar dinero real; lo hecho hasta ahora no la reemplaza.
 - Proveedor del mapa: MapLibre con MapTiler en plan gratuito, que es solo no comercial.
+- Futuro: migrar todo el mapa a Google Maps (mapa, búsqueda de lugares, pines y selección de zona). Hoy el botón "Abrir en el mapa" de la zona aproximada ya usa el mapa del teléfono y el nombre del barrio sale del geocodificador de Google en Android. Implica clave con facturación y revisar la privacidad de las zonas.
 - Contratar o configurar: ya están Cloudflare (Workers y D1; con tarjeta cargada y alerta de presupuesto de 10 USD) y Alchemy. Faltan R2 y Durable Objects (Cloudflare), Expo, Reown (WalletConnect), MapTiler y un servicio de correo para avisos críticos.
 
 ## 6. Limitaciones conocidas de los contratos

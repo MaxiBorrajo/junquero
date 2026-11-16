@@ -114,10 +114,10 @@ export async function submitApplication(
   if (input.plan) {
     const spec = JSON.parse(changa.spec) as Spec;
     const total = input.plan.milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n);
-    if (!spec.milestones || changa.amount === null || total !== BigInt(changa.amount)) {
-      return { ok: false, status: 400, error: "the proposed plan must add up to the published amount" };
-    }
-    if (input.amount !== null && BigInt(input.amount) !== BigInt(changa.amount)) return { ok: false, status: 400, error: "a plan cannot be combined with a different amount" };
+    if (!spec.milestones || changa.amount === null) return { ok: false, status: 400, error: "the changa has no milestone plan to adjust" };
+    if (input.amount !== null && BigInt(input.amount) !== total) return { ok: false, status: 400, error: "a plan cannot be combined with a different amount" };
+    // El monto de la postulación es la suma del plan; si es mayor a lo publicado, quien publica suma la diferencia al elegirla.
+    input = { ...input, amount: total.toString() };
   }
 
   if (requireVerified) {
@@ -242,3 +242,25 @@ export const applicationsHandler: EventHandler = (db: D1Database, events: Stream
   }
   return statements;
 };
+
+// Quien publica descarta solo la propuesta (plan o monto distinto): la persona sigue postulada, con las condiciones publicadas.
+export async function rejectOffer(
+  db: D1Database,
+  owner: string,
+  applicationId: number,
+  nowSeconds: number,
+): Promise<{ ok: true } | { ok: false; status: 403 | 404 | 409; error: string }> {
+  const row = await db
+    .prepare(
+      `SELECT a.status AS status, a.plan AS plan, a.amount AS amount, c.owner AS owner, c.status AS changa_status, c.amount AS changa_amount
+       FROM applications a JOIN changas c ON c.id = a.changa_id WHERE a.id = ?`,
+    )
+    .bind(applicationId)
+    .first<{ status: string; plan: string | null; amount: string | null; owner: string; changa_status: string; changa_amount: string | null }>();
+  if (!row) return { ok: false, status: 404, error: "application not found" };
+  if (row.owner !== owner) return { ok: false, status: 403, error: "only the owner can reject an offer" };
+  if (row.status !== "active" || row.changa_status !== "open") return { ok: false, status: 409, error: "the application is not active" };
+  if (row.plan === null && (row.amount === null || row.amount === row.changa_amount)) return { ok: false, status: 409, error: "the application has no offer" };
+  await db.prepare("UPDATE applications SET plan = NULL, amount = NULL, updated_at = ? WHERE id = ? AND status = 'active'").bind(nowSeconds, applicationId).run();
+  return { ok: true };
+}

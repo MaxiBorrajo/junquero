@@ -136,7 +136,7 @@ describe("applicant plan", () => {
     { name: "Pintar", amount: "70000000", criteria: "Dos manos", evidence: "Foto" },
   ];
 
-  it("accepts a proposal that adds up to the published amount and shows it to the owner", async () => {
+  it("accepts a proposal with the published total and shows it to the owner", async () => {
     const p = await published();
     const response = await p.ctx.call(`/me/applications/${p.id}`, authed(p.worker.body.token, "PUT", { message: "Ajusté los montos", plan: { milestones: adjusted } }));
     expect(response.status).toBe(201);
@@ -144,10 +144,34 @@ describe("applicant plan", () => {
     expect(list.applications[0].plan.milestones[0].amount).toBe("30000000");
   });
 
-  it("rejects totals that do not match, plans on changas without one and mixed prices", async () => {
+  it("accepts a plan with a lower or higher total and stores it as the application amount", async () => {
     const p = await published();
     const put = (body: unknown) => p.ctx.call(`/me/applications/${p.id}`, authed(p.worker.body.token, "PUT", body));
-    expect((await put({ message: "x", plan: { milestones: [adjusted[0], { ...adjusted[1], amount: "60000000" }] } })).status).toBe(400);
+    expect((await put({ message: "x", plan: { milestones: [adjusted[0], { ...adjusted[1], amount: "60000000" }] } })).status).toBe(201);
+    expect((p.ctx.raw.prepare("SELECT amount FROM applications").get() as { amount: string }).amount).toBe("90000000");
+    expect((await put({ message: "x", plan: { milestones: [adjusted[0], { ...adjusted[1], amount: "90000000" }] } })).status).toBe(200);
+    expect((p.ctx.raw.prepare("SELECT amount FROM applications").get() as { amount: string }).amount).toBe("120000000");
+  });
+
+  it("lets the owner reject only the offer and keeps the applicant applied", async () => {
+    const p = await published();
+    const put = (body: unknown) => p.ctx.call(`/me/applications/${p.id}`, authed(p.worker.body.token, "PUT", body));
+    expect((await put({ message: "x", plan: { milestones: adjusted } })).status).toBe(201);
+    const appId = (p.ctx.raw.prepare("SELECT id FROM applications").get() as { id: number }).id;
+    const reject = (token: string) => p.ctx.call(`/me/applications/${appId}/reject-offer`, authed(token, "POST", {}));
+    expect((await reject(p.worker.body.token)).status).toBe(403);
+    expect((await reject(p.payer.body.token)).status).toBe(200);
+    const row = p.ctx.raw.prepare("SELECT status, plan, amount FROM applications").get() as { status: string; plan: string | null; amount: string | null };
+    expect(row).toEqual({ status: "active", plan: null, amount: null });
+    expect((await reject(p.payer.body.token)).status).toBe(409);
+    const kinds = (p.ctx.raw.prepare("SELECT kind FROM chat_events ORDER BY id").all() as { kind: string }[]).map((item) => item.kind);
+    expect(kinds).toContain("offered");
+    expect(kinds).toContain("offer_rejected");
+  });
+
+  it("rejects plans on changas without one and a price that does not match the plan", async () => {
+    const p = await published();
+    const put = (body: unknown) => p.ctx.call(`/me/applications/${p.id}`, authed(p.worker.body.token, "PUT", body));
     expect((await put({ message: "x", amount: "90000000", plan: { milestones: adjusted } })).status).toBe(400);
     expect((await put({ message: "x", plan: { milestones: [adjusted[0]] } })).status).toBe(400);
     expect((await put({ message: "x", plan: { milestones: adjusted, other: 1 } })).status).toBe(400);

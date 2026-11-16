@@ -6,6 +6,7 @@ import {
   listMine,
   presentApplication,
   presentForOwner,
+  rejectOffer,
   submitApplication,
   validateApplication,
   withdrawApplication,
@@ -606,6 +607,9 @@ app.get("/chat/:id/ws", async (c) => {
   );
 });
 
+// OrderStatus.Open en el contrato.
+const ORDER_OPEN = 1;
+
 const parseChangaId = (value: string): number | null => {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
@@ -621,6 +625,16 @@ app.put("/me/applications/:changaId", async (c) => {
   const attached = parsed.value.attachments.map((item) => ({ ...item, hash: stripPrefix(item.hash) }));
   const missing = await requireOwnedPublicFiles(c.env.DB, c.get("address"), attached);
   if (missing) return c.json({ error: missing }, 400);
+  // La base puede tardar en enterarse de que la orden se canceló: antes de aceptar, se mira el estado real en la cadena.
+  const target = await c.env.DB.prepare("SELECT order_id FROM changas WHERE id = ? AND status = 'open'").bind(changaId).first<{ order_id: number | null }>();
+  if (target?.order_id != null) {
+    try {
+      const order = (await chainReadsFor(c.env.RPC_URL).order(target.order_id)) as { status?: number };
+      if (order.status !== undefined && order.status !== ORDER_OPEN) return c.json({ error: "changa is not open" }, 409);
+    } catch (error) {
+      console.error("order check failed", error);
+    }
+  }
   const outcome = await submitApplication(
     c.env.DB,
     changaId,
@@ -632,6 +646,11 @@ app.put("/me/applications/:changaId", async (c) => {
   if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
   await linkFiles(c.env.DB, c.get("address"), attached.map((item) => item.hash));
   if (outcome.reactivated) await record(c, recordApplicationEvent(c.env.DB, "applied", outcome.row.id, c.get("address"), nowSeconds()));
+  // Si la postulación trae un plan o un monto distinto al publicado, el chat lo cuenta como una propuesta.
+  const offered = await c.env.DB.prepare("SELECT amount FROM changas WHERE id = ?").bind(changaId).first<{ amount: string | null }>();
+  if (outcome.row.plan !== null || (outcome.row.amount !== null && outcome.row.amount !== offered?.amount)) {
+    await record(c, recordApplicationEvent(c.env.DB, "offered", outcome.row.id, c.get("address"), nowSeconds()));
+  }
   if (outcome.created) {
     const changa = await c.env.DB.prepare("SELECT owner FROM changas WHERE id = ?").bind(changaId).first<{ owner: string }>();
     if (changa) await queueNotification(c.env.DB, changa.owner, "application_new", String(changaId)).run();
@@ -679,6 +698,15 @@ app.post("/me/applications/:id/dismiss", async (c) => {
     if (!blocked.ok) return c.json({ error: blocked.error }, blocked.status);
   }
   return c.json({ ok: true, blocked: body.block === true });
+});
+
+app.post("/me/applications/:id/reject-offer", async (c) => {
+  const id = parseChangaId(c.req.param("id"));
+  if (id === null) return c.json({ error: "invalid application id" }, 400);
+  const result = await rejectOffer(c.env.DB, c.get("address"), id, nowSeconds());
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  await record(c, recordApplicationEvent(c.env.DB, "offer_rejected", id, c.get("address"), nowSeconds()));
+  return c.json({ ok: true });
 });
 
 app.get("/me/blocks", async (c) => c.json({ blocks: await listBlocks(c.env.DB, c.get("address")) }));
@@ -804,6 +832,29 @@ app.get("/me/chain/orders/:id", chainRead((c) => c.req.param("id"), (reads, id) 
 app.get("/me/chain/orders/:id/milestones", chainRead((c) => c.req.param("id"), (reads, id) => reads.milestones(id)));
 app.get("/me/chain/orders/:id/group", chainRead((c) => c.req.param("id"), (reads, id) => reads.group(id)));
 app.get("/me/chain/cases/:id", chainRead((c) => c.req.param("id"), (reads, id) => reads.caseOf(id)));
+
+// La app avisa que acaba de confirmarse algo en la cadena (por ejemplo una cancelación) para que el indexador no espere al reloj.
+// Hay una pasada como máximo cada pocos segundos para todo el servidor, y el candado de sincronización evita que se pisen.
+const SYNC_MIN_GAP_MS = 5_000;
+let syncRunner: ((env: Env) => Promise<void>) | null = null;
+let lastSyncAt = 0;
+export const setSyncRunner = (runner: ((env: Env) => Promise<void>) | null): void => {
+  syncRunner = runner;
+  lastSyncAt = 0;
+};
+
+app.post("/me/sync", (c) => {
+  const now = Date.now();
+  if (!syncRunner || now - lastSyncAt < SYNC_MIN_GAP_MS) return c.json({ started: false }, 202);
+  lastSyncAt = now;
+  const run = syncRunner(c.env).catch((error) => console.error("requested sync failed", error));
+  try {
+    c.executionCtx.waitUntil(run);
+  } catch {
+    // sin contexto de ejecución (pruebas): la promesa sigue sola
+  }
+  return c.json({ started: true }, 202);
+});
 
 app.get("/me/summary", async (c) => {
   const seen = Number(c.req.query("seenNotification") ?? 0);

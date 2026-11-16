@@ -10,7 +10,7 @@ import { sendViaRelay } from "../../chain/orderActions";
 import { readJurorCase } from "../../chain/reader";
 import { Body, Button, Chip, ErrorText, Labeled, Row, Screen, Secondary, Title } from "../../components/ui";
 import { useCaseState } from "../../data/useCases";
-import { EvidenceGallery, useEvidence } from "../../evidence/EvidenceSection";
+import { EvidenceThumbnails, useEvidence } from "../../evidence/EvidenceSection";
 import { loadVote, saveVote } from "../../jury/secrets";
 import { secureSecretStorage } from "../../jury/secureStorage";
 import { t } from "../../i18n";
@@ -86,7 +86,7 @@ export default function JurorCase() {
       {view === "vote-reveal" ? <Secondary>{`${t.jury.windowReveal}: ${formatDate(snapshot.revealEnd)}`}</Secondary> : null}
 
       <Text style={text.subtitle}>{t.jury.statements}</Text>
-      {(evidence.data ?? []).length === 0 ? <Secondary>{t.jury.noEvidence}</Secondary> : <EvidenceGallery orderId={orderId} items={evidence.data ?? []} />}
+      {(evidence.data ?? []).length === 0 ? <Secondary>{t.jury.noEvidence}</Secondary> : <EvidenceThumbnails orderId={orderId} items={evidence.data ?? []} />}
 
       {action === "commit-vote" ? (
         <>

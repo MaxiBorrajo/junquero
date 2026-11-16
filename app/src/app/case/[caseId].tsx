@@ -12,7 +12,7 @@ import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useChatKey } from "../../chat/ChatKeyProvider";
 import { useCaseState } from "../../data/useCases";
-import { EvidenceGallery, useEvidence } from "../../evidence/EvidenceSection";
+import { EvidenceThumbnails, useEvidence } from "../../evidence/EvidenceSection";
 import { shareWithJurors } from "../../evidence/share";
 import { uploadStatement } from "../../evidence/statement";
 import { t } from "../../i18n";
@@ -126,7 +126,7 @@ export default function CaseScreen() {
       {isParty && items.length > 0 ? (
         <>
           <Text style={text.subtitle}>{t.caseScreen.evidence}</Text>
-          <EvidenceGallery orderId={orderId} items={items} />
+          <EvidenceThumbnails orderId={orderId} items={items} />
         </>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}

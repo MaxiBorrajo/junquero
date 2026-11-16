@@ -6,7 +6,7 @@ Para probar a mano, con la app, el servidor y el panel, antes de la entrega del 
 
 **Los textos de los botones pueden variar un poco.** Lo que importa es la acción y el resultado.
 
-**Actualizado el 15/11/2026.** Todos los botones de la app llevan ícono (probar al pasar por cada pantalla que sean coherentes). Se agregaron pruebas para lo que cambió desde la versión anterior (las marcas ya hechas no se tocaron): contraofertas más altas con suma de la diferencia en garantía (3.8 y 3.9), selección de varios adjuntos con vista previa (2.8), buscador de lugares (2.7), pedidos de evidencia (2.9), verificación que se actualiza sola (1.6), estado "Cancelando" (7.7), billetera desconectada (15.10) e indexado rápido (15.11). El contrato se volvió a desplegar el 14/11 con la misma moneda de prueba; ver la nota de 0.2.
+**Actualizado el 15/11/2026.** Todos los botones de la app llevan ícono (probar al pasar por cada pantalla que sean coherentes). Se agregaron pruebas para lo que cambió desde la versión anterior (las marcas ya hechas no se tocaron): contraofertas más altas con suma de la diferencia en garantía (3.8 y 3.9) y planes de hitos con total distinto al publicado (3.7, 3.10 a 3.12), selección de varios adjuntos con vista previa (2.8), buscador de lugares (2.7), pedidos de evidencia (2.9), verificación que se actualiza sola (1.6), estado "Cancelando" (7.7), billetera desconectada (15.10) e indexado rápido (15.11). El contrato se volvió a desplegar el 14/11 con la misma moneda de prueba; ver la nota de 0.2.
 
 ## 0. Preparación
 
@@ -161,26 +161,28 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: se ve la reputación y la actividad de Beto; Beto recibe el aviso "Te eligieron".
 
 **3.3 Cancelar después de una postulación** · Rol: Ana y Beto
-- [ ] Pasos: Beto se postula y después se baja de la postulación. Ana cancela la changa. Repetir con una changa de 10 USDC y con una de 5.000 USDC. Repetir con una changa a la que nadie se postuló.
+- [ x ] Pasos: Beto se postula y después se baja de la postulación. Ana cancela la changa. Repetir con una changa de 10 USDC y con una de 5.000 USDC. Repetir con una changa a la que nadie se postuló.
 - Esperado: sin postulaciones, cancelar es gratis. Con una postulación, aunque se haya retirado, cancelar cuesta el 2% del monto con un mínimo de 0,50 USDC y un máximo de 10 USDC, que va al tesoro (no a Beto). En la de 10 USDC cobra 0,50 (el mínimo); en la de 5.000 cobra 10 (el tope). El aviso de la confirmación y el del último paso de publicar dicen lo mismo. Si el servidor no logró avisar al contrato de la postulación, se reintenta; verificar en `hadApplicants` de la orden.
 - Observaciones: _
 
 **3.4 Acuerdo con dos firmas** · Rol: Ana y Beto
-- [ ] Pasos: ambos abren el acuerdo → ven el resumen → cada uno firma.
-- Esperado: queda "Acordada". El pago sigue en garantía. Aparece la dirección exacta (si es presencial) y el chat.
+- [ x ] Pasos: ambos abren el acuerdo → ven el resumen → cada uno firma.
+- Esperado: queda "Acordada". El pago sigue en garantía. Se ve el chat y, si es presencial, el aviso de que la ubicación es aproximada y que la dirección exacta se pasa por el chat (la app no guarda direcciones exactas).
 - Observaciones: _
 
 **3.5 Acuerdo que vence** · Rol: Ana y Beto
-- [ ] Pasos: firma solo una de las partes y se deja pasar el plazo.
+- [ x ] Pasos: firma solo una de las partes y se deja pasar el plazo.
 - Esperado: el acuerdo vence y la changa vuelve a estar abierta. (Verificable en el e2e si el plazo es largo.)
 
 **3.6 Rechazar el acuerdo** · Rol: Beto
-- [ ] Pasos: rechazar en vez de firmar.
+- [ x ] Pasos: rechazar en vez de firmar.
 - Esperado: vuelve a estar abierta; la garantía se libera.
 
-**3.7 Ajustar el plan en la postulación (hitos)** · Rol: Beto
-- [ ] Pasos: en una changa con hitos, proponer cambios de montos o criterios al postularse.
-- Esperado: Ana ve la comparación con el plan original. Lo que queda firmado es lo acordado, y no se edita después. Con un plan de hitos no se puede ofrecer un monto distinto al total.
+**3.7 Ajustar el plan en la postulación (hitos), mismo total** · Rol: Beto y Ana
+- [ ] Pasos: en una changa con hitos, Beto se postula proponiendo cambios de nombres, criterios o reparto entre hitos, sin cambiar el total. Probar dos veces, una por cada camino.
+- Esperado al postularse: Beto ve en su chat "Mandaste una propuesta de cambio" y en el detalle de la changa "Tu plan propuesto". Ana ve en el chat y en las postulaciones "Beto te propone cambios", con el plan propuesto junto al original. No hay diferencia de monto, así que no hay aviso de suma ni de devolución.
+- **Camino A, Ana acepta:** toca "Aceptar" y confirma que está eligiendo a Beto. Se manda el acuerdo con el plan de Beto, Beto lo firma y queda lo acordado. Ese plan no se puede editar después.
+- **Camino B, Ana rechaza:** toca "Rechazar" y confirma. Beto sigue postulado con el plan original (su propuesta desaparece) y en su chat figura "rechazó tu propuesta". Ana todavía puede elegirlo con el plan original, y Beto puede mandar otra propuesta.
 
 **3.8 Contraoferta más alta: Ana suma la diferencia** · Rol: Ana y Beto
 - [ ] Pasos: Ana publica una changa de 100 USDC → Beto se postula con 150 (ve el aviso de cuánto es de más) → Ana abre las postulaciones y toca "Elegir" → aparece la confirmación con el precio pedido, el publicado y la diferencia → "Sumar y elegir" → firma el permiso → se manda la propuesta → Beto la abre y firma el acuerdo.
@@ -190,6 +192,25 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 **3.9 Contraoferta más baja** · Rol: Ana y Beto
 - [ ] Pasos: con una changa de 100 USDC, Beto se postula con 80 → Ana lo elige → ambos firman.
 - Esperado: no hay confirmación de suma. Al acordar por 80 le vuelven 20 USDC a Ana y el pago en garantía queda en 80.
+- Observaciones: _
+
+**3.10 Plan de hitos con total menor** · Rol: Beto y Ana
+- [ ] Pasos: Ana publica una changa con hitos de 100 USDC (por ejemplo 50 y 50) → Beto se postula cambiando el plan a un total de 80 → el formulario avisa que son 20 menos y que la diferencia vuelve a quien publica → Ana ve el plan propuesto y la oferta de 80 → "Elegir" → ambos firman.
+- Esperado: no hay confirmación de suma. Se firma por 80, los hitos suman 80 y al acordar le vuelven 20 USDC a Ana. Los pagos de los hitos salen del nuevo plan.
+- Observaciones: _
+
+**3.11 Plan de hitos con total mayor** · Rol: Beto y Ana
+- [ ] Pasos: con la misma changa de 100 USDC, Beto se postula con un plan de 150 → el formulario avisa que son 50 más y que Ana tendrá que sumar esa diferencia → Ana toca "Elegir" → confirmación "Sumar y elegir" → firma el permiso → se manda la propuesta → ambos firman.
+- Esperado: Ana deposita solo la diferencia (50 USDC) y la changa pasa a mostrarse a 150. Se firma por 150 y los hitos suman 150. Si Ana cancela la confirmación o no le alcanza el saldo, no se mueve plata. Si otra persona se había postulado con el plan original, después de este `topUp` se la puede elegir igual por 100 y le vuelve a Ana la diferencia.
+- Observaciones: _
+
+**3.12 Plan inválido** · Rol: Beto
+- [ ] Pasos: en la postulación con plan, dejar un hito sin nombre, criterio o evidencia, o con monto 0, o un solo hito.
+- Esperado: no deja enviar. (El servidor también lo rechaza si se intenta por afuera de la app.)
+
+**3.13 Propuesta del postulante en el chat: aceptar o rechazar** · Rol: Beto y Ana
+- [ ] Pasos: Beto se postula con un plan de hitos distinto (o con otro monto) → en su chat ve el aviso "Mandaste una propuesta de cambio" con el total, y en el detalle de la changa ve "Tu plan propuesto" → Ana abre el chat y ve "Beto te propone cambios" con el plan, el total y la diferencia contra lo publicado → toca "Rechazar" y confirma.
+- Esperado: Beto sigue postulado, con las condiciones publicadas (su plan o monto propuesto desaparece), y en su chat figura "rechazó tu propuesta". Ana todavía puede elegirlo, y también ver su postulación en la lista. Después Beto puede mandar una propuesta nueva. Repetir pero tocando "Aceptar": aparece el aviso "Si la aceptás, estás eligiendo a Beto…"; al confirmar se manda el acuerdo (con la suma de la diferencia si el total es mayor, como en 3.11) y la tarjeta pasa a "Propuesta enviada". En la lista de postulaciones también se ve "Rechazar propuesta" en las que traen propuesta.
 - Observaciones: _
 
 ---
@@ -642,7 +663,7 @@ Completar al terminar cada sesión de pruebas.
 | --- | --- | --- | --- | --- |
 | 1. Registro y perfil | 6 | | | |
 | 2. Publicar y explorar | 11 | | | |
-| 3. Postulación y acuerdo | 9 | | | |
+| 3. Postulación y acuerdo | 13 | | | |
 | 4. Chat y notificaciones | 14 | | | |
 | 5. Hacer la changa y cobrar | 10 | | | |
 | 6. Hitos | 6 | | | |

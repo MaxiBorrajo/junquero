@@ -1,25 +1,19 @@
-import { Image } from "expo-image";
 import { PersonCard } from "../../components/PersonCard";
 import { Card } from "../../components/Card";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { ChangaInfo } from "../../components/ChangaInfo";
 import { DetailActions } from "../../components/DetailActions";
 import { OwnerTag } from "../../components/OwnerTag";
-import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
-import { Icon } from "../../components/Icon";
-import { useAttachmentViewer } from "../../components/useAttachmentViewer";
+import { ActivityIndicator, Share, Text, View } from "react-native";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
-import { API_URL } from "../../config";
 import { useChangaBySpec } from "../../data/useChangas";
 import { t } from "../../i18n";
 import { useMyApplications, useReceivedApplications } from "../../data/useMine";
 import { applyBlock, type ApplyBlock } from "../../lib/apply";
-import { formatDate, formatDuration } from "../../lib/format";
 import { formatUsdc } from "../../lib/money";
 import { effectiveStatus, useCancelling } from "../../data/cancelling";
+import { colors, text } from "../../theme";
 import { useSession } from "../../session/SessionProvider";
-import { colors, radius, spacing, text } from "../../theme";
-
-const fileUrl = (owner: string, hash: string): string => `${API_URL}/files/${owner}/${hash.replace(/^0x/, "")}`;
 
 const BLOCK_TEXT: Record<ApplyBlock, string | null> = {
   anonymous: t.detail.needAccount,
@@ -40,7 +34,6 @@ export default function ChangaDetail() {
   const received = useReceivedApplications(query.data?.id ?? 0, ownerView);
   const iAmChosen = (mine.data ?? []).some((item) => item.changa.specHash === (query.data?.specHash ?? "") && item.status === "chosen");
   const chosen = (received.data ?? []).find((item) => item.status === "chosen") ?? null;
-  const attachmentViewer = useAttachmentViewer();
 
   if (query.isLoading) {
     return (
@@ -59,7 +52,12 @@ export default function ChangaDetail() {
   }
 
   const { spec } = changa;
+  // Quien ya trabaja en esta changa (o la publicó y ya tiene acuerdo) ve todo en una sola pantalla: la del trabajo.
+  const inProgress = changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status);
+  const isPartyOfOrder = inProgress && (iAmChosen || changa.owner.toLowerCase() === (address ?? "").toLowerCase());
+  if (isPartyOfOrder) return <Redirect href={{ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } }} />;
   const applied = (mine.data ?? []).some((item) => item.changa.specHash === changa.specHash && (item.status === "active" || item.status === "chosen"));
+  const myPlan = (mine.data ?? []).find((item) => item.changa.specHash === changa.specHash && (item.status === "active" || item.status === "chosen"))?.plan ?? null;
   const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null, applied });
   const isOwner = block === "own";
   const isCancelling = effectiveStatus(changa, cancelling) === "cancelling";
@@ -91,68 +89,20 @@ export default function ChangaDetail() {
       </Card>
       {isOwner && chosen ? <PersonCard address={chosen.applicant} label={t.detail.whoWorks} /> : null}
       {!isOwner ? <PersonCard address={changa.owner} label={t.detail.publishedBy} note={iAmChosen ? t.detail.chosenYou : undefined} /> : null}
-      {spec.description ? <Body>{spec.description}</Body> : null}
-      <Section label={t.detail.where}>
-        <Body>{spec.modality === "remote" ? t.detail.remoteWhere : t.detail.approxZone}</Body>
-      </Section>
-      {spec.modality === "onsite" && spec.startsAt ? (
-        <Section label={t.detail.when}>
-          <Body>{formatDate(spec.startsAt)}</Body>
-        </Section>
-      ) : null}
-      {spec.modality === "remote" && spec.deadline ? (
-        <Section label={t.detail.deadline}>
-          <Body>{formatDate(spec.deadline)}</Body>
-        </Section>
-      ) : null}
-      {spec.durationMin ? (
-        <Section label={t.detail.duration}>
-          <Body>{formatDuration(spec.durationMin)}</Body>
-        </Section>
-      ) : null}
-      {spec.milestones && spec.milestones.length > 0 ? (
-        <Section label={t.milestonesBoard.title}>
-          {spec.materials ? <Secondary>{t.publish.materials[spec.materials]}</Secondary> : null}
-          {spec.milestones.map((item, index) => (
+      <ChangaInfo changa={changa} />
+      {!isOwner && myPlan ? (
+        <Card gap="xs">
+          <Text style={text.label}>{t.planChange.yours}</Text>
+          {myPlan.milestones.map((item, index) => (
             <View key={index} style={{ gap: 2, marginBottom: 8 }}>
               <Body>{`${index + 1}. ${item.name} · ${formatUsdc(item.amount)}`}</Body>
               <Secondary>{item.criteria}</Secondary>
               <Secondary>{item.evidence}</Secondary>
             </View>
           ))}
-        </Section>
+          <Secondary>{t.planChange.yoursTotal.replace("{total}", formatUsdc(myPlan.milestones.reduce((sum, item) => sum + BigInt(item.amount), 0n).toString()))}</Secondary>
+        </Card>
       ) : null}
-      {spec.evidence.length > 0 ? (
-        <Section label={t.detail.evidence}>
-          {spec.evidence.map((item) => (
-            <Body key={item}>{`• ${item}`}</Body>
-          ))}
-        </Section>
-      ) : null}
-      {spec.attachments.length > 0 ? (
-        <Section label={t.detail.attachments}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
-            {spec.attachments.map((file) => {
-              const uri = fileUrl(changa.owner, file.hash);
-              return (
-                <Pressable key={file.hash} accessibilityRole="button" onPress={() => attachmentViewer.open({ uri, mime: file.mime, name: file.name })} style={file.mime.startsWith("image/") ? undefined : [styles.thumb, styles.fileTile]}>
-                  {file.mime.startsWith("image/") ? (
-                    <Image source={{ uri }} style={styles.thumb} contentFit="cover" />
-                  ) : (
-                    <>
-                      <Icon name={file.mime.startsWith("video/") ? "play" : "file"} size={28} color={colors.brick} />
-                      <Text style={[text.secondary, styles.fileName]} numberOfLines={2}>
-                        {file.name}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </Section>
-      ) : null}
-      {attachmentViewer.viewer}
       {groupButton && changa.status === "open" ? groupButton : null}
       <DetailActions
         actions={[
@@ -172,22 +122,3 @@ export default function ChangaDetail() {
     </Screen>
   );
 }
-
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={text.label}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  section: { gap: spacing.xs },
-  chosenRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center" },
-  gallery: { gap: spacing.sm },
-  fileTile: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", gap: spacing.xs, padding: spacing.sm },
-  fileName: { textAlign: "center", color: colors.brick, fontSize: 12 },
-  thumb: { width: 120, height: 120, borderRadius: radius.md },
-});

@@ -20,6 +20,8 @@ import { useSession } from "../session/SessionProvider";
 import { wagmiAdapter } from "../wallet/appkit";
 import { isRejection } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
+import { AttachmentTile } from "../components/AttachmentTile";
+import { useAttachmentViewer, type Viewable } from "../components/useAttachmentViewer";
 import { decryptFile, decryptMeta, unwrapKey, type EvidenceMeta } from "./crypto";
 import { MAX_BATCH_ITEMS, uploadEvidenceBatch } from "./upload";
 
@@ -51,7 +53,7 @@ export function useEvidenceSend(orderId: number, counterpart: string) {
     }
   };
 
-  const send = async (picked: PickedFile[], requirement?: number) => {
+  const send = async (picked: PickedFile[], requirement?: number, milestone?: number) => {
     if (!address || picked.length === 0) return;
     setBusy(true);
     setError(null);
@@ -60,7 +62,7 @@ export function useEvidenceSend(orderId: number, counterpart: string) {
       const where = await place();
       const files = [];
       for (const item of picked.slice(0, MAX_BATCH_ITEMS)) {
-        files.push({ file: await readBytes(item.uri), meta: { capturedAt: Math.floor(Date.now() / 1000), name: item.name, mime: item.mime, ...where, ...(requirement === undefined ? {} : { requirement }) } as EvidenceMeta });
+        files.push({ file: await readBytes(item.uri), meta: { capturedAt: Math.floor(Date.now() / 1000), name: item.name, mime: item.mime, ...where, ...(requirement === undefined ? {} : { requirement }), ...(milestone === undefined ? {} : { milestone }) } as EvidenceMeta });
       }
       await uploadEvidenceBatch(
         { api, address, counterpart, mine, signMessage: (message) => signMessage(wagmiAdapter.wagmiConfig, { message }), hash: sha256Hex },
@@ -79,8 +81,9 @@ export function useEvidenceSend(orderId: number, counterpart: string) {
   return { send, busy, error };
 }
 
-export function EvidenceUploader({ orderId, counterpart }: { orderId: number; counterpart: string }) {
-  const { send, busy, error } = useEvidenceSend(orderId, counterpart);
+export function EvidenceUploader({ orderId, counterpart, milestone }: { orderId: number; counterpart: string; milestone?: number }) {
+  const { send: sendAny, busy, error } = useEvidenceSend(orderId, counterpart);
+  const send = (picked: PickedFile[]) => sendAny(picked, undefined, milestone);
   const [sheet, setSheet] = useState(false);
 
   return (
@@ -99,6 +102,32 @@ export function EvidenceUploader({ orderId, counterpart }: { orderId: number; co
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
+}
+
+// A qué hito pertenece cada prueba (va cifrada junto con el archivo). Las subidas antes de que existieran los hitos por prueba cuentan para el primero.
+export function useEvidenceByMilestone(items: EvidenceItem[]) {
+  const { api, address } = useSession();
+  const { ensure } = useChatKey();
+  const query = useQuery({
+    queryKey: ["evidence-milestones", items.map((item) => item.hash).join(",")],
+    enabled: items.length > 0 && Boolean(address),
+    staleTime: Infinity,
+    placeholderData: (previous) => previous,
+    queryFn: async () => {
+      const keys = await ensure();
+      const byHash: Record<string, number> = {};
+      for (const item of items) {
+        if (!item.wrappedKey) continue;
+        const senderKey = item.uploader.toLowerCase() === (address as string).toLowerCase() ? keys.publicKey : await fetchCounterpartKey(api, item.uploader);
+        if (!senderKey) continue;
+        const key = unwrapKey(item.wrappedKey, senderKey, keys);
+        const meta = key ? decryptMeta(item.meta, key) : null;
+        byHash[item.hash] = typeof meta?.milestone === "number" ? meta.milestone : 0;
+      }
+      return byHash;
+    },
+  });
+  return (index: number) => items.filter((item) => query.data?.[item.hash] === index);
 }
 
 // Qué pruebas pedidas ya tienen un archivo. Las subidas antes de que existieran las asociaciones cubren las primeras que falten.
@@ -181,31 +210,45 @@ export function EvidenceGallery({ orderId, items }: { orderId: number; items: Ev
   );
 }
 
-// Una prueba descifrada. Se baja y se descifra una sola vez por archivo (la caché se guarda por hash, no por la lista que
-// se vuelve a pedir), y la foto se muestra desde un archivo temporal en vez de un `data:` gigante en memoria.
-function EvidenceCard({ orderId, item }: { orderId: number; item: EvidenceItem }) {
+type EvidenceRead = { meta: EvidenceMeta | null; uri: string | null; body: string | null };
+
+// Baja y descifra una prueba. Por defecto solo las fotos y los textos se abren; con `force` cualquier archivo queda en un temporal para abrirlo.
+function useEvidenceReader(orderId: number) {
   const { api, address } = useSession();
   const { ensure } = useChatKey();
-  const file = useQuery({
+  return async (item: EvidenceItem, force = false): Promise<EvidenceRead> => {
+    const empty: EvidenceRead = { meta: null, uri: null, body: null };
+    const mine = await ensure();
+    const senderKey = item.uploader.toLowerCase() === (address as string).toLowerCase() ? mine.publicKey : await fetchCounterpartKey(api, item.uploader);
+    if (!senderKey) return empty;
+    const key = unwrapKey(item.wrappedKey as string, senderKey, mine);
+    if (!key) return empty;
+    const meta = decryptMeta(item.meta, key);
+    if (!meta || (!force && item.kind !== "photo" && !meta.mime.startsWith("text/"))) return { meta, uri: null, body: null };
+    const plain = decryptFile(await api.bytes(`/me/orders/${orderId}/evidence/${item.hash}`), key);
+    if (!plain) return { meta, uri: null, body: null };
+    if (meta.mime.startsWith("text/") && !force) return { meta, uri: null, body: new TextDecoder().decode(plain) };
+    return { meta, uri: writeTempFile(plain, meta.name), body: null };
+  };
+}
+
+// Una prueba descifrada. Se baja y se descifra una sola vez por archivo (la caché se guarda por hash, no por la lista que
+// se vuelve a pedir), y la foto se muestra desde un archivo temporal en vez de un `data:` gigante en memoria.
+function useEvidenceFile(orderId: number, item: EvidenceItem) {
+  const { address } = useSession();
+  const read = useEvidenceReader(orderId);
+  return useQuery({
     queryKey: ["evidence-file", orderId, item.hash],
     enabled: Boolean(item.wrappedKey && address),
     staleTime: Infinity,
     gcTime: 10 * 60_000,
     retry: 1,
-    queryFn: async (): Promise<{ meta: EvidenceMeta | null; uri: string | null; body: string | null }> => {
-      const mine = await ensure();
-      const senderKey = item.uploader.toLowerCase() === (address as string).toLowerCase() ? mine.publicKey : await fetchCounterpartKey(api, item.uploader);
-      if (!senderKey) return { meta: null, uri: null, body: null };
-      const key = unwrapKey(item.wrappedKey as string, senderKey, mine);
-      if (!key) return { meta: null, uri: null, body: null };
-      const meta = decryptMeta(item.meta, key);
-      if (!meta || (item.kind !== "photo" && !meta.mime.startsWith("text/"))) return { meta, uri: null, body: null };
-      const plain = decryptFile(await api.bytes(`/me/orders/${orderId}/evidence/${item.hash}`), key);
-      if (!plain) return { meta, uri: null, body: null };
-      if (meta.mime.startsWith("text/")) return { meta, uri: null, body: new TextDecoder().decode(plain) };
-      return { meta, uri: writeTempFile(plain, meta.name), body: null };
-    },
+    queryFn: () => read(item),
   });
+}
+
+function EvidenceCard({ orderId, item }: { orderId: number; item: EvidenceItem }) {
+  const file = useEvidenceFile(orderId, item);
   const { meta, uri, body } = file.data ?? { meta: null, uri: null, body: null };
 
   return (
@@ -216,8 +259,33 @@ function EvidenceCard({ orderId, item }: { orderId: number; item: EvidenceItem }
   );
 }
 
+// Las pruebas como miniaturas, igual que los demás adjuntos: al tocar una se abre grande (foto), con el reproductor (video) o con la app del teléfono (documento).
+export function EvidenceThumbnails({ orderId, items }: { orderId: number; items: EvidenceItem[] }) {
+  const viewer = useAttachmentViewer();
+  return (
+    <View style={styles.grid}>
+      {items.map((item) => (
+        <EvidenceTile key={item.hash} orderId={orderId} item={item} onOpen={viewer.open} />
+      ))}
+      {viewer.viewer}
+    </View>
+  );
+}
+
+function EvidenceTile({ orderId, item, onOpen }: { orderId: number; item: EvidenceItem; onOpen: (item: Viewable) => void }) {
+  const file = useEvidenceFile(orderId, item);
+  const read = useEvidenceReader(orderId);
+  const meta = file.data?.meta;
+  const open = async () => {
+    const data = file.data?.uri ? file.data : await read(item, true).catch(() => null);
+    if (data?.uri && data.meta) onOpen({ uri: data.uri, mime: data.meta.mime, name: data.meta.name });
+  };
+  return <AttachmentTile name={meta?.name ?? t.chat.unreadable} mime={meta?.mime ?? "application/octet-stream"} uri={file.data?.uri ?? undefined} onOpen={() => void open()} />;
+}
+
 const styles = StyleSheet.create({
   box: { gap: spacing.sm },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   card: { gap: spacing.xs },
   photo: { width: "100%", aspectRatio: 4 / 3, borderRadius: radius.md },
   placeholder: { backgroundColor: colors.map },

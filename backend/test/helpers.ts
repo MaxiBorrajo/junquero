@@ -1,5 +1,6 @@
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { app } from "../src/app";
+import { overrideChainReads, type ChainReads } from "../src/chainReads";
 import { buildLoginMessage } from "../src/auth";
 import type { Env } from "../src/env";
 import { createHash } from "node:crypto";
@@ -72,7 +73,12 @@ export const owner = privateKeyToAccount(generatePrivateKey());
 export const stranger = privateKeyToAccount(generatePrivateKey());
 export const TOKEN = "0x057Dc87344bB1f7B213433C959B23bAACc711EEA";
 
+// Estado de la orden en la cadena que ven las pruebas (1 = abierta). Cada prueba puede cambiarlo.
+export const chain = { orderStatus: 1 };
+
 export function setup(limiter = open) {
+  chain.orderStatus = 1;
+  overrideChainReads(() => ({ order: async () => ({ status: chain.orderStatus }) }) as unknown as ChainReads);
   const { db, raw } = createFakeD1();
   const env = {
     DB: db,

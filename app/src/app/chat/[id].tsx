@@ -3,6 +3,9 @@ import { File } from "expo-file-system";
 import { formatClock, formatDayLabel, sameDay } from "../../lib/format";
 import { useMyAgreements, useMyApplications, useMyChangas, useReceivedApplications } from "../../data/useMine";
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
+import { useRejectOffer } from "../../lib/useRejectOffer";
+import { offerTotal } from "../../lib/offer";
+import { OfferCard } from "../../components/OfferCard";
 import { MessageFiles } from "../../components/MessageFiles";
 import { AttachmentTile } from "../../components/AttachmentTile";
 import { useChatEvents, type ChatEvent, type ChatEventKind } from "../../data/useChatEvents";
@@ -16,7 +19,7 @@ import { usePublicProfile } from "../../data/useProfile";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ATTACHMENTS_PER_MESSAGE, ATTACHMENT_MAX_BYTES, type ChatFile } from "../../chat/envelope";
 import { useChatRoom } from "../../chat/useChatRoom";
@@ -55,7 +58,7 @@ function ProtectedCard() {
 
 const EVENT_ICON: Record<ChatEventKind, IconName> = {
   proposed: "send", accepted: "check", rejected: "close", cancelled: "close", expired: "clock",
-  applied: "send", withdrawn: "logout", dismissed: "close",
+  applied: "send", withdrawn: "logout", dismissed: "close", offered: "edit", offer_rejected: "close",
   agreed: "check", checkedin: "pin", delivered: "check", settled: "wallet",
   evidence: "camera", approved: "check", review_extended: "clock", changes_requested: "edit",
   topped_up: "wallet", order_cancelled: "close", dispute_opened: "flag", dispute_resolved: "scale",
@@ -63,7 +66,7 @@ const EVENT_ICON: Record<ChatEventKind, IconName> = {
 };
 const EVENT_COLOR: Record<ChatEventKind, string> = {
   proposed: colors.brick, accepted: colors.success, rejected: colors.error, cancelled: colors.muted, expired: colors.muted,
-  applied: colors.brick, withdrawn: colors.muted, dismissed: colors.error,
+  applied: colors.brick, withdrawn: colors.muted, dismissed: colors.error, offered: colors.brick, offer_rejected: colors.error,
   agreed: colors.success, checkedin: colors.brick, delivered: colors.brick, settled: colors.success,
   evidence: colors.brick, approved: colors.success, review_extended: colors.muted, changes_requested: colors.brick,
   topped_up: colors.brick, order_cancelled: colors.error, dispute_opened: colors.error, dispute_resolved: colors.brick,
@@ -81,6 +84,7 @@ export default function ChatScreen() {
   const room = useChatRoom(Number(id), String(counterpart), refreshFromServer);
   const toast = useToast();
   const { choose } = useChooseApplicant();
+  const { reject: rejectOffer } = useRejectOffer();
   const counterpartProfile = usePublicProfile(String(counterpart));
   const counterpartName = counterpartProfile.data?.name;
   const { address: me } = useSession();
@@ -90,12 +94,26 @@ export default function ChatScreen() {
 
   const ownerAddress = room.access.role === "owner" ? me : String(counterpart);
   const applicantAddress = room.access.role === "owner" ? String(counterpart) : me;
-  const proposal = agreements.find((item) => item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;
   const ownChanga = (useMyChangas().data ?? []).find((item) => item.id === room.access.changaId) ?? null;
   const application = (useReceivedApplications(room.access.changaId, room.access.role === "owner").data ?? []).find((item) => item.id === Number(id)) ?? null;
   const myApplications = useMyApplications().data ?? [];
   const orderId = room.access.role === "owner" ? ownChanga?.orderId ?? null : myApplications.find((item) => item.id === Number(id))?.changa.orderId ?? null;
-  const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null && !agreements.some((item) => item.orderId === ownChanga.orderId && (item.status === "pending" || item.status === "sending"));
+  const proposal = agreements.find((item) => orderId !== null && item.orderId === orderId && item.payer.toLowerCase() === (ownerAddress ?? "").toLowerCase() && item.payee.toLowerCase() === (applicantAddress ?? "").toLowerCase() && (item.status === "pending" || item.status === "sending")) ?? null;
+  // Un acuerdo aceptado ("submitted") todavía puede tardar en verse como changa acordada: mientras tanto no se vuelve a elegir ni a proponer.
+  const canChoose = room.access.role === "owner" && room.writable && ownChanga?.status === "open" && application !== null && !agreements.some((item) => item.orderId === ownChanga.orderId && (item.status === "pending" || item.status === "sending" || item.status === "submitted"));
+  // La propuesta de la persona postulada (otro plan u otro monto), mientras quien publica no haya elegido ni rechazado.
+  const myApplication = room.access.role === "applicant" ? myApplications.find((item) => item.id === Number(id)) ?? null : null;
+  const offerSource = room.access.role === "owner" ? (application && application.status === "active" ? { plan: application.plan, amount: application.amount, published: ownChanga?.amount ?? null } : null) : myApplication && myApplication.status === "active" && myApplication.changa.status === "open" ? { plan: myApplication.plan, amount: myApplication.amount, published: myApplication.changa.amount } : null;
+  const offerAmount = offerSource ? offerTotal(offerSource.plan, offerSource.amount, offerSource.published) : null;
+  const agreedOrConfirming = orderId !== null && agreements.some((item) => item.orderId === orderId && item.status === "submitted");
+  const showOffer = !proposal && !agreedOrConfirming && offerSource !== null && offerAmount !== null && (room.access.role === "applicant" ? room.writable : canChoose);
+  const acceptOffer = () => {
+    const name = counterpartName ?? t.chat.unknownUser;
+    Alert.alert(t.offer.acceptTitle, t.offer.acceptBody.replace("{name}", name), [
+      { text: t.common.cancel, style: "cancel" },
+      { text: t.offer.acceptConfirm, onPress: () => void choose(application!, ownChanga!, true) },
+    ]);
+  };
   const attachmentViewer = useAttachmentViewer();
   const [draft, setDraft] = useState("");
   const [picks, setPicks] = useState<PickedFile[]>([]);
@@ -233,6 +251,10 @@ export default function ChatScreen() {
             proposal ? (
               <View style={styles.proposal}>
                 <AgreementCard agreement={proposal} role={room.access.role} title={String(title ?? "")} counterpartName={counterpartName ?? t.chat.unknownUser} />
+              </View>
+            ) : showOffer && offerSource && offerAmount !== null ? (
+              <View style={styles.proposal}>
+                <OfferCard role={room.access.role} name={counterpartName ?? t.chat.unknownUser} plan={offerSource.plan} total={offerAmount} published={offerSource.published} onAccept={acceptOffer} onReject={() => rejectOffer(Number(id), counterpartName ?? t.chat.unknownUser)} />
               </View>
             ) : orderId !== null && applicantAddress ? (
               <View style={styles.proposal}>

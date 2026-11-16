@@ -19,6 +19,8 @@ import { useGroup } from "../../data/useGroup";
 import { PersonCard } from "../../components/PersonCard";
 import { Journey, type JourneyStep } from "../../components/Journey";
 import { Card } from "../../components/Card";
+import { ChangaInfo } from "../../components/ChangaInfo";
+import { ApproxZone } from "../../components/ApproxZone";
 import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { Stars } from "../../components/Stars";
@@ -26,7 +28,7 @@ import { MilestoneBoard } from "../../components/MilestoneBoard";
 import { useChangaBySpec } from "../../data/useChangas";
 import { useMyCases } from "../../data/useCases";
 import { useOrder } from "../../data/useOrder";
-import { EvidenceGallery, EvidenceUploader, RequirementList, useCoveredRequirements, useEvidence } from "../../evidence/EvidenceSection";
+import { EvidenceThumbnails, EvidenceUploader, RequirementList, useCoveredRequirements, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
 import { t } from "../../i18n";
 import { canFinish, extendedRole, roleOf, viewFor } from "../../lib/actions";
@@ -179,6 +181,9 @@ export default function OrderScreen() {
         <Text style={text.label}>{t.order.amount}</Text>
         <Text style={text.amount}>{formatUsdc(state.price.toString())}</Text>
       </Card>
+      {changaForOrder.data?.spec.modality === "onsite" && (role === "payer" || role === "payee") ? (
+        changaForOrder.data.spec.area ? <ApproxZone zone={changaForOrder.data.spec.area} /> : <Secondary>{t.order.approxAddress}</Secondary>
+      ) : null}
 
       {role === "payer" || role === "payee" ? (
         <PersonCard
@@ -189,6 +194,8 @@ export default function OrderScreen() {
       ) : contributor && state.payee ? (
         <PersonCard address={state.payee} label={t.order.whoWorks} />
       ) : null}
+
+      {changaForOrder.data && (role === "payer" || role === "payee") ? <ChangaInfo changa={changaForOrder.data} inOrder /> : null}
 
       {journey ? <Journey title={role === "payer" ? t.journey.payerTitle : t.journey.payeeTitle} steps={journey.steps} current={journey.current} /> : null}
 
@@ -231,7 +238,7 @@ export default function OrderScreen() {
       {!state.hasMilestones && view === "payer-reviewing" ? (
         <>
           <Body>{t.order.reviewTitle}</Body>
-          <EvidenceGallery orderId={id} items={items} />
+          <EvidenceThumbnails orderId={id} items={items} />
           <Secondary>{`${t.order.autoRelease}`}</Secondary>
           {qr ? (
             <View style={styles.qr}>
@@ -242,7 +249,6 @@ export default function OrderScreen() {
             </View>
           ) : (
             <>
-              <Text style={text.subtitle}>{t.order.rating}</Text>
               <Stars value={rating} onChange={setRating} />
               <DetailActions
                 actions={[
@@ -258,7 +264,7 @@ export default function OrderScreen() {
       {contributor && state.status === 4 ? (
         <>
           <Body>{t.group.reviewTitle}</Body>
-          <EvidenceGallery orderId={id} items={items} />
+          <EvidenceThumbnails orderId={id} items={items} />
           {groupInfo.data ? (
             <Secondary>{`${t.group.objectionProgress}: ${groupInfo.data.target > 0n ? Number((groupInfo.data.objectionMoney * 10000n) / groupInfo.data.target) / 100 : 0}% ${t.group.objectionMoney} · ${groupInfo.data.objectionCount} ${t.group.objectionPeople}`}</Secondary>
           ) : null}

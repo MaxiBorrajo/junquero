@@ -11,6 +11,8 @@ import { sendViaRelay } from "../../chain/orderActions";
 import { relayDepsFor } from "../../lib/relayHelpers";
 import { DetailActions } from "../../components/DetailActions";
 import { useChooseApplicant } from "../../lib/useChooseApplicant";
+import { useRejectOffer } from "../../lib/useRejectOffer";
+import { offerTotal } from "../../lib/offer";
 import { PersonMenu } from "../../components/PersonMenu";
 import { Icon } from "../../components/Icon";
 import { BackButton, ErrorText, Secondary, Title } from "../../components/ui";
@@ -37,6 +39,7 @@ export default function ReceivedApplications() {
 
   const proposal = changa?.orderId ? (agreements.data ?? []).find((item) => item.orderId === changa.orderId && (item.status === "pending" || item.status === "sending")) : undefined;
 
+  const { reject: rejectOffer } = useRejectOffer();
   const { choose, busy: choosing, failed: chooseFailed } = useChooseApplicant();
   const working = busy ?? choosing;
 
@@ -89,6 +92,7 @@ export default function ReceivedApplications() {
           const sentToThis = proposal?.payee.toLowerCase() === item.applicant.toLowerCase();
           const open = changa !== null && changa.status === "open" && !proposal;
           const talk = () => router.push({ pathname: "/chat/[id]", params: { id: String(item.id), counterpart: item.applicant, title: changa?.spec.title ?? "" } });
+          const hasOffer = open && !(agreements.data ?? []).some((agreement) => agreement.orderId === changa?.orderId && agreement.status === "submitted") && offerTotal(item.plan, item.amount, changa?.amount ?? null) !== null;
           const choosePress = () => changa && void choose(item, changa);
           const menu = <PersonMenu role="owner" applicationId={item.id} changaId={id} counterpart={item.applicant} active={item.status === "active"} />;
           const plan = item.plan ? (
@@ -140,6 +144,12 @@ export default function ReceivedApplications() {
                   </Pressable>
                 ) : null}
               </View>
+              {hasOffer ? (
+                <Pressable accessibilityRole="button" onPress={() => rejectOffer(item.id, name)} style={[styles.small, styles.smallOutline]}>
+                  <Icon name="close" size={16} color={colors.brick} />
+                  <Text style={[styles.smallLabel, { color: colors.brick }]}>{t.offer.rejectConfirm}</Text>
+                </Pressable>
+              ) : null}
             </Card>
           );
         }}

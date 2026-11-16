@@ -4,7 +4,7 @@ import { app, readCache } from "../src/app";
 import { applicationsHandler, MAX_ACTIVE_PER_APPLICANT, MAX_ACTIVE_PER_CHANGA } from "../src/applications";
 import { createChangasHandler } from "../src/changas";
 import { processEvents } from "../src/eventStream";
-import { authed, createdEvent, futureSpec, owner, plainEvent, setup, stranger, TOKEN, tokenFor } from "./helpers";
+import { authed, chain, createdEvent, futureSpec, owner, plainEvent, setup, stranger, TOKEN, tokenFor } from "./helpers";
 
 beforeEach(() => readCache.clear());
 
@@ -25,6 +25,15 @@ const apply = (ctx: ReturnType<typeof setup>, token: string, id: number, body: u
   ctx.call(`/me/applications/${id}`, authed(token, "PUT", body));
 
 describe("applying", () => {
+  it("refuses an application when the order is already cancelled on chain but the database has not caught up", async () => {
+    const ctx = setup();
+    const { id } = await openChanga(ctx);
+    const worker = await tokenFor(ctx.call, stranger);
+    chain.orderStatus = 7;
+    expect((await apply(ctx, worker.body.token, id)).status).toBe(409);
+    expect((ctx.raw.prepare("SELECT COUNT(*) AS n FROM applications").get() as { n: number }).n).toBe(0);
+  });
+
   it("creates an application, with an optional counter offer, and updates it in place", async () => {
     const ctx = setup();
     const { id } = await openChanga(ctx);
@@ -190,5 +199,23 @@ describe("chain events", () => {
     plainEvent(ctx.raw, "OrderAgreed", 1, 500, { payee: "nope" });
     await processEvents(ctx.db, handlers, 100);
     expect(statuses(ctx)).toEqual({ [chosen]: "active", [other]: "active" });
+  });
+});
+
+describe("requested sync", () => {
+  it("needs a login, runs the indexer on request and does not repeat within a few seconds", async () => {
+    const ctx = setup();
+    let runs = 0;
+    const { setSyncRunner } = await import("../src/app");
+    setSyncRunner(async () => { runs += 1; });
+    try {
+      expect((await ctx.call("/me/sync", { method: "POST" })).status).toBe(401);
+      const { body } = await tokenFor(ctx.call, owner);
+      expect(((await (await ctx.call("/me/sync", authed(body.token, "POST"))).json()) as any).started).toBe(true);
+      expect(((await (await ctx.call("/me/sync", authed(body.token, "POST"))).json()) as any).started).toBe(false);
+      expect(runs).toBe(1);
+    } finally {
+      setSyncRunner(null);
+    }
   });
 });

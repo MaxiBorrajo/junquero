@@ -3,7 +3,7 @@ import type { EventHandler, StreamEvent } from "./eventStream";
 
 export type ChatEventKind =
   | "proposed" | "accepted" | "rejected" | "cancelled" | "expired"
-  | "applied" | "withdrawn" | "dismissed"
+  | "applied" | "withdrawn" | "dismissed" | "offered" | "offer_rejected"
   | "agreed" | "checkedin" | "delivered" | "settled"
   | "evidence" | "approved" | "review_extended" | "changes_requested"
   | "topped_up" | "order_cancelled" | "dispute_opened" | "dispute_resolved"

@@ -92,6 +92,7 @@ export default function Profile() {
         <Text style={text.label}>{t.me.balance}</Text>
         <Text style={text.amount}>{balance.data !== undefined ? formatUsdc(balance.data.toString()) : "-"}</Text>
         <Secondary>{t.me.faucetNote}</Secondary>
+        <Button label={t.me.reloadBalance} variant="ghost" icon="refresh" loading={balance.isFetching} onPress={() => void balance.refetch()} />
       </Card>
       <Card gap="xs">
         <Text style={text.label}>{t.activity.title}</Text>

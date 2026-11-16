@@ -7,7 +7,7 @@ import { colors, radius, spacing, text } from "../theme";
 const SIZE = 104;
 const COMPACT = 64;
 
-export function AttachmentTile({ name, mime, uri, onRemove, onOpen, compact = false }: { name: string; mime: string; uri?: string; onRemove: () => void; onOpen?: () => void; compact?: boolean }) {
+export function AttachmentTile({ name, mime, uri, onRemove, onOpen, compact = false }: { name: string; mime: string; uri?: string; onRemove?: () => void; onOpen?: () => void; compact?: boolean }) {
   const image = mime.startsWith("image/") && uri;
   return (
     <Pressable accessibilityRole="button" onPress={onOpen} disabled={!onOpen} style={[styles.tile, compact && styles.compact]}>
@@ -21,9 +21,11 @@ export function AttachmentTile({ name, mime, uri, onRemove, onOpen, compact = fa
           </Text>
         </View>
       )}
-      <Pressable accessibilityRole="button" accessibilityLabel={t.publish.remove} hitSlop={8} onPress={onRemove} style={[styles.remove, compact && styles.removeCompact]}>
-        <Icon name="close" size={compact ? 12 : 16} color={colors.white} />
-      </Pressable>
+      {onRemove ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={t.publish.remove} hitSlop={8} onPress={onRemove} style={[styles.remove, compact && styles.removeCompact]}>
+          <Icon name="close" size={compact ? 12 : 16} color={colors.white} />
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }

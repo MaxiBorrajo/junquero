@@ -1,4 +1,4 @@
-import { app } from "./app";
+import { app, setSyncRunner } from "./app";
 import { purgeAgreements } from "./agreements";
 import { purgeReleases } from "./releases";
 import { applicationsHandler } from "./applications";
@@ -87,6 +87,8 @@ async function chainHook(request: Request, env: Env, ctx: ExecutionContext): Pro
   ctx.waitUntil(syncChain(env, Number(env.HOOK_CONFIRMATIONS ?? "0")).catch((error) => console.error("hook sync failed", error)));
   return new Response("ok");
 }
+
+setSyncRunner((env) => syncChain(env, Number(env.HOOK_CONFIRMATIONS ?? "0")));
 
 export { ChatRoom } from "./chatRoom";
 export { RelayerGate } from "./relayerGate";

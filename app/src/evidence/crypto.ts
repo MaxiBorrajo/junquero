@@ -14,6 +14,8 @@ export interface EvidenceMeta {
   mime: string;
   // Posición de la prueba pedida (la ficha de la changa) a la que corresponde este archivo.
   requirement?: number;
+  // Hito al que pertenece esta prueba, en un trabajo por hitos.
+  milestone?: number;
 }
 
 export interface EncryptedEvidence {

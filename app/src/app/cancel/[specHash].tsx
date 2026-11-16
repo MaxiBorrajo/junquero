@@ -66,6 +66,8 @@ export default function CancelChanga() {
     try {
       await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(orderId)));
       markCancelling(changa.id);
+      // Que el servidor se ponga al día ya, sin esperar al reloj de cada minuto. Si falla no importa: el reloj lo recoge.
+      void api.send("POST", "/me/sync").catch(() => {});
       toast({ text: t.detail.cancelDone, tone: "success", icon: "check" });
       await queryClient.invalidateQueries();
       router.replace("/my-changas");

@@ -7,7 +7,7 @@ import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../chain/createOrder";
 import { deployment } from "../chain/deployment";
 import { encodeTopUp, sendViaRelay } from "../chain/orderActions";
 import { readTokenBalance, readTokenNonce } from "../chain/reader";
-import { milestoneTerms, milestoneTermsHash } from "../chain/terms";
+import { milestoneTerms, milestoneTermsHash, milestoneTotal } from "../chain/terms";
 import { useToast } from "../components/Toast";
 import { useMyChangas } from "../data/useMine";
 import { t } from "../i18n";
@@ -62,16 +62,18 @@ export function useChooseApplicant() {
     return "waiting";
   };
 
-  const choose = async (application: ReceivedApplication, target: Changa): Promise<void> => {
+  // `confirmed`: la persona ya confirmó la elección en otra pantalla (por ejemplo al aceptar una propuesta), así que no se vuelve a preguntar.
+  const choose = async (application: ReceivedApplication, target: Changa, confirmed = false): Promise<void> => {
     if (!address || target.orderId === null) return;
     const plan = milestoneTerms(application.plan?.milestones ?? target.spec.milestones, target.specHash as `0x${string}`);
-    const price = plan ? proposalPrice(null, target.amount) : proposalPrice(application.amount, target.amount);
+    const chosenMilestones = application.plan?.milestones ?? target.spec.milestones;
+    const price = plan && chosenMilestones ? milestoneTotal(chosenMilestones) : proposalPrice(application.amount, target.amount);
     if (price === null) return;
     const published = target.amount !== null && /^\d+$/.test(target.amount) ? BigInt(target.amount) : null;
-    const higher = !plan && published !== null && price > published;
+    const higher = published !== null && price > published;
     if (higher) {
       if (!(await confirmTopUp(price, published))) return;
-    } else if (!(await confirmChoice(application.profile?.name ?? t.received.thisPerson, price))) return;
+    } else if (!confirmed && !(await confirmChoice(application.profile?.name ?? t.received.thisPerson, price))) return;
     setBusy(application.id);
     setFailed(false);
     try {

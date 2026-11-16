@@ -83,7 +83,7 @@ export default function ChatScreen() {
   }, [queryClient, id]);
   const room = useChatRoom(Number(id), String(counterpart), refreshFromServer);
   const toast = useToast();
-  const { choose } = useChooseApplicant();
+  const { choose, busy: choosing } = useChooseApplicant();
   const { reject: rejectOffer } = useRejectOffer();
   const counterpartProfile = usePublicProfile(String(counterpart));
   const counterpartName = counterpartProfile.data?.name;
@@ -254,7 +254,7 @@ export default function ChatScreen() {
               </View>
             ) : showOffer && offerSource && offerAmount !== null ? (
               <View style={styles.proposal}>
-                <OfferCard role={room.access.role} name={counterpartName ?? t.chat.unknownUser} plan={offerSource.plan} total={offerAmount} published={offerSource.published} onAccept={acceptOffer} onReject={() => rejectOffer(Number(id), counterpartName ?? t.chat.unknownUser)} />
+                <OfferCard role={room.access.role} name={counterpartName ?? t.chat.unknownUser} plan={offerSource.plan} total={offerAmount} published={offerSource.published} busy={choosing !== null} onAccept={acceptOffer} onReject={() => rejectOffer(Number(id), counterpartName ?? t.chat.unknownUser)} />
               </View>
             ) : orderId !== null && applicantAddress ? (
               <View style={styles.proposal}>

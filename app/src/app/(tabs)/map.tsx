@@ -122,14 +122,14 @@ export default function MapScreen() {
               layout={{
                 "icon-image": ["concat", ["case", ["==", ["get", "id"], selected ?? -1], "pin-on-", "pin-"], ["get", "size"]],
                 "icon-size": 0.85,
-                "icon-allow-overlap": true,
+                "icon-allow-overlap": false,
                 "text-field": ["get", "label"],
                 "text-size": 12,
                 "text-font": ["Noto Sans Bold"],
                 "text-anchor": "left",
                 "text-offset": TEXT_OFFSET,
-                "text-allow-overlap": true,
-                "symbol-sort-key": ["case", ["==", ["get", "id"], selected ?? -1], 1, 0],
+                "text-allow-overlap": false,
+                "symbol-sort-key": ["case", ["==", ["get", "id"], selected ?? -1], 0, 1],
               }}
               paint={{ "text-color": colors.white }}
             />

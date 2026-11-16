@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet } from "react-native";
@@ -28,17 +28,19 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
   const queryClient = useQueryClient();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const blocks = useQuery({ queryKey: ["blocks"], queryFn: async () => (await api.get<{ blocks: { address: string }[] }>("/me/blocks")).blocks });
+  const isBlocked = (blocks.data ?? []).some((entry) => entry.address.toLowerCase() === counterpart.toLowerCase());
 
   const refresh = async () => {
-    await Promise.all([queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["chats"] })]);
+    await Promise.all([queryClient.invalidateQueries({ queryKey: ["blocks"] }), queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["chats"] })]);
   };
 
-  const run = async (action: () => Promise<unknown>, message: string) => {
+  const run = async (action: () => Promise<unknown>, message: string, leave = true) => {
     try {
       await action();
       await refresh();
       toast({ text: message, tone: "success" });
-      onDone?.();
+      if (leave) onDone?.();
     } catch {
       toast({ text: t.person.failed, tone: "error" });
     }
@@ -51,7 +53,7 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
     ]);
 
   const choices: Choice[] = [];
-  if (role === "owner" && active) {
+  if (role === "owner" && active && !isBlocked) {
     if (onChoose) choices.push({ key: "choose", label: t.received.choose, icon: "check", onPress: onChoose });
     choices.push({
       key: "dismiss",
@@ -74,12 +76,21 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
         onPress: () => confirm(t.person.leaveTitle, t.person.leaveBody, () => void run(() => api.send("DELETE", `/me/applications/${changaId}`), t.person.done.leave)),
       });
     }
-    choices.push({
-      key: "block",
-      label: t.person.block,
-      icon: "block",
-      onPress: () => confirm(t.person.blockTitle, t.person.blockBody, () => void run(() => api.send("POST", "/me/blocks", { address: counterpart }), t.person.done.block)),
-    });
+    choices.push(
+      isBlocked
+        ? {
+            key: "unblock",
+            label: t.person.unblock,
+            icon: "block",
+            onPress: () => void run(() => api.send("DELETE", `/me/blocks/${counterpart}`), t.person.done.unblock, false),
+          }
+        : {
+            key: "block",
+            label: t.person.block,
+            icon: "block",
+            onPress: () => confirm(t.person.blockTitle, t.person.blockBody, () => void run(() => api.send("POST", "/me/blocks", { address: counterpart }), t.person.done.block)),
+          },
+    );
   }
   choices.unshift({ key: "profile", label: t.received.viewProfile, icon: "user", onPress: () => router.push({ pathname: "/profile-public", params: { address: counterpart } }) });
   choices.push({ key: "report", label: t.person.report, icon: "flag", onPress: () => router.push({ pathname: "/report/[kind]", params: { kind: "user", target: counterpart } }) });

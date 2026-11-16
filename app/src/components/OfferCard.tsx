@@ -15,10 +15,11 @@ interface Props {
   published: string | null;
   onAccept?: () => void;
   onReject?: () => void;
+  busy?: boolean;
 }
 
 // La propuesta de una persona postulada (otro plan o otro monto), dentro del chat. Quien publica la acepta (eso la elige) o la rechaza (sigue postulada); quien la mandó ve que está esperando.
-export function OfferCard({ role, name, plan, total, published, onAccept, onReject }: Props) {
+export function OfferCard({ role, name, plan, total, published, onAccept, onReject, busy = false }: Props) {
   const card = t.offer.card;
   const diff = published !== null && /^\d+$/.test(published) ? total - BigInt(published) : null;
   const note = diff === null || diff === 0n ? null : (diff > 0n ? (role === "owner" ? card.higherOwner : card.higherMine) : card.lower).replace("{diff}", formatUsdc((diff > 0n ? diff : -diff).toString()));
@@ -39,13 +40,13 @@ export function OfferCard({ role, name, plan, total, published, onAccept, onReje
       ) : null}
       {role === "owner" ? (
         <>
-          <Text style={text.secondary}>{card.ownerHint.replace("{name}", name)}</Text>
+          <Text style={text.secondary}>{busy ? (diff !== null && diff > 0n ? card.working : card.workingSame) : card.ownerHint.replace("{name}", name)}</Text>
           <View style={styles.actions}>
             <View style={{ flex: 1 }}>
-              <Button label={card.reject} icon="close" variant="outline" onPress={() => onReject?.()} />
+              <Button label={card.reject} icon="close" variant="outline" disabled={busy} onPress={() => onReject?.()} />
             </View>
             <View style={{ flex: 1 }}>
-              <Button label={card.accept} icon="check" onPress={() => onAccept?.()} />
+              <Button label={card.accept} icon="check" loading={busy} onPress={() => onAccept?.()} />
             </View>
           </View>
         </>

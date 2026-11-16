@@ -179,37 +179,37 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Esperado: vuelve a estar abierta; la garantía se libera.
 
 **3.7 Ajustar el plan en la postulación (hitos), mismo total** · Rol: Beto y Ana
-- [ ] Pasos: en una changa con hitos, Beto se postula proponiendo cambios de nombres, criterios o reparto entre hitos, sin cambiar el total. Probar dos veces, una por cada camino.
+- [ x ] Pasos: en una changa con hitos, Beto se postula proponiendo cambios de nombres, criterios o reparto entre hitos, sin cambiar el total. Probar dos veces, una por cada camino.
 - Esperado al postularse: Beto ve en su chat "Mandaste una propuesta de cambio" y en el detalle de la changa "Tu plan propuesto". Ana ve en el chat y en las postulaciones "Beto te propone cambios", con el plan propuesto junto al original. No hay diferencia de monto, así que no hay aviso de suma ni de devolución.
 - **Camino A, Ana acepta:** toca "Aceptar" y confirma que está eligiendo a Beto. Se manda el acuerdo con el plan de Beto, Beto lo firma y queda lo acordado. Ese plan no se puede editar después.
 - **Camino B, Ana rechaza:** toca "Rechazar" y confirma. Beto sigue postulado con el plan original (su propuesta desaparece) y en su chat figura "rechazó tu propuesta". Ana todavía puede elegirlo con el plan original, y Beto puede mandar otra propuesta.
 
 **3.8 Contraoferta más alta: Ana suma la diferencia** · Rol: Ana y Beto
-- [ ] Pasos: Ana publica una changa de 100 USDC → Beto se postula con 150 (ve el aviso de cuánto es de más) → Ana abre las postulaciones y toca "Elegir" → aparece la confirmación con el precio pedido, el publicado y la diferencia → "Sumar y elegir" → firma el permiso → se manda la propuesta → Beto la abre y firma el acuerdo.
+- [ x ] Pasos: Ana publica una changa de 100 USDC → Beto se postula con 150 (ve el aviso de cuánto es de más) → Ana abre las postulaciones y toca "Elegir" → aparece la confirmación con el precio pedido, el publicado y la diferencia → "Sumar y elegir" → firma el permiso → se manda la propuesta → Beto la abre y firma el acuerdo.
 - Esperado: Ana deposita en garantía solo la diferencia (50 USDC); su saldo baja en ese monto. La changa pasa a mostrarse a 150 USDC sin que Ana la edite. Después se firma el acuerdo por 150 y el pago en garantía queda en 150. Si Ana cancela la confirmación, no se mueve plata. Si no le alcanza el saldo, avisa cuánto falta y no hace nada. Si el indexador tarda en reflejar la suma, la app espera y, pasado un rato, pide volver a elegir sin perder la suma depositada.
 - Observaciones: _
 
 **3.9 Contraoferta más baja** · Rol: Ana y Beto
-- [ ] Pasos: con una changa de 100 USDC, Beto se postula con 80 → Ana lo elige → ambos firman.
+- [ x ] Pasos: con una changa de 100 USDC, Beto se postula con 80 → Ana lo elige → ambos firman.
 - Esperado: no hay confirmación de suma. Al acordar por 80 le vuelven 20 USDC a Ana y el pago en garantía queda en 80.
 - Observaciones: _
 
 **3.10 Plan de hitos con total menor** · Rol: Beto y Ana
-- [ ] Pasos: Ana publica una changa con hitos de 100 USDC (por ejemplo 50 y 50) → Beto se postula cambiando el plan a un total de 80 → el formulario avisa que son 20 menos y que la diferencia vuelve a quien publica → Ana ve el plan propuesto y la oferta de 80 → "Elegir" → ambos firman.
+- [ x ] Pasos: Ana publica una changa con hitos de 100 USDC (por ejemplo 50 y 50) → Beto se postula cambiando el plan a un total de 80 → el formulario avisa que son 20 menos y que la diferencia vuelve a quien publica → Ana ve el plan propuesto y la oferta de 80 → "Elegir" → ambos firman.
 - Esperado: no hay confirmación de suma. Se firma por 80, los hitos suman 80 y al acordar le vuelven 20 USDC a Ana. Los pagos de los hitos salen del nuevo plan.
 - Observaciones: _
 
 **3.11 Plan de hitos con total mayor** · Rol: Beto y Ana
-- [ ] Pasos: con la misma changa de 100 USDC, Beto se postula con un plan de 150 → el formulario avisa que son 50 más y que Ana tendrá que sumar esa diferencia → Ana toca "Elegir" → confirmación "Sumar y elegir" → firma el permiso → se manda la propuesta → ambos firman.
+- [ x ] Pasos: con la misma changa de 100 USDC, Beto se postula con un plan de 150 → el formulario avisa que son 50 más y que Ana tendrá que sumar esa diferencia → Ana toca "Elegir" → confirmación "Sumar y elegir" → firma el permiso → se manda la propuesta → ambos firman.
 - Esperado: Ana deposita solo la diferencia (50 USDC) y la changa pasa a mostrarse a 150. Se firma por 150 y los hitos suman 150. Si Ana cancela la confirmación o no le alcanza el saldo, no se mueve plata. Si otra persona se había postulado con el plan original, después de este `topUp` se la puede elegir igual por 100 y le vuelve a Ana la diferencia.
 - Observaciones: _
 
 **3.12 Plan inválido** · Rol: Beto
-- [ ] Pasos: en la postulación con plan, dejar un hito sin nombre, criterio o evidencia, o con monto 0, o un solo hito.
+- [ x ] Pasos: en la postulación con plan, dejar un hito sin nombre, criterio o evidencia, o con monto 0, o un solo hito.
 - Esperado: no deja enviar. (El servidor también lo rechaza si se intenta por afuera de la app.)
 
 **3.13 Propuesta del postulante en el chat: aceptar o rechazar** · Rol: Beto y Ana
-- [ ] Pasos: Beto se postula con un plan de hitos distinto (o con otro monto) → en su chat ve el aviso "Mandaste una propuesta de cambio" con el total, y en el detalle de la changa ve "Tu plan propuesto" → Ana abre el chat y ve "Beto te propone cambios" con el plan, el total y la diferencia contra lo publicado → toca "Rechazar" y confirma.
+- [ x ] Pasos: Beto se postula con un plan de hitos distinto (o con otro monto) → en su chat ve el aviso "Mandaste una propuesta de cambio" con el total, y en el detalle de la changa ve "Tu plan propuesto" → Ana abre el chat y ve "Beto te propone cambios" con el plan, el total y la diferencia contra lo publicado → toca "Rechazar" y confirma.
 - Esperado: Beto sigue postulado, con las condiciones publicadas (su plan o monto propuesto desaparece), y en su chat figura "rechazó tu propuesta". Ana todavía puede elegirlo, y también ver su postulación en la lista. Después Beto puede mandar una propuesta nueva. Repetir pero tocando "Aceptar": aparece el aviso "Si la aceptás, estás eligiendo a Beto…"; al confirmar se manda el acuerdo (con la suma de la diferencia si el total es mayor, como en 3.11) y la tarjeta pasa a "Propuesta enviada". En la lista de postulaciones también se ve "Rechazar propuesta" en las que traen propuesta.
 - Observaciones: _
 
@@ -218,66 +218,66 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 ## 4. Chat y notificaciones
 
 **4.1 Chat entre las partes** · Rol: Ana y Beto
-- [ ] Pasos: abrir el chat desde la changa → enviar texto y una imagen.
+- [ x ] Pasos: abrir el chat desde la changa → enviar texto y una imagen.
 - Esperado: el otro lo ve en tiempo real. Los mensajes viajan cifrados. Cerrar y volver a abrir conserva el historial.
 
 **4.2 Lista de mensajes** · Rol: Ana y Beto
-- [ ] Pasos: pestaña Mensajes, con varios chats (de la misma changa con distintos postulantes, y de changas distintas).
+- [ x ] Pasos: pestaña Mensajes, con varios chats (de la misma changa con distintos postulantes, y de changas distintas).
 - Esperado: cada fila muestra la inicial y el nombre de la otra persona, "En: título de la changa" (así se distinguen los chats de una misma changa), la hora del último mensaje (hora si fue hoy, "Ayer", día de la semana o fecha) y el último mensaje. Si lo escribiste vos, empieza con "Vos:". Si el último mensaje solo tiene adjuntos, dice "Foto", "PDF" o "N fotos / archivos". Los chats con mensajes sin leer muestran el nombre y el mensaje en negrita, la hora en color y un número con la cantidad. Un chat sin mensajes dice "Todavía no hay mensajes…" (a quien publicó) o "Esperando que te conteste" (a quien se postuló). Están ordenados por el último mensaje.
 - Observaciones: _
 
 **4.14 Contador en la pestaña y privacidad de lo leído** · Rol: Ana y Beto
-- [ ] Pasos: con la app en otra pestaña, que la otra persona escriba en dos chats distintos. Abrir uno. Después mirar si la otra persona puede saber si leíste.
+- [ x ] Pasos: con la app en otra pestaña, que la otra persona escriba en dos chats distintos. Abrir uno. Después mirar si la otra persona puede saber si leíste.
 - Esperado: la pestaña Mensajes muestra un número con la cantidad de chats con algo sin leer (2) y baja a 1 al abrir uno. La otra persona no ve en ningún momento que leíste el mensaje, ni "en línea".
 
 **4.15 Cambio de celular** · Rol: Ana
-- [ ] Pasos: instalar la app en otro celular (o en el otro emulador), ingresar con la misma billetera y activar el chat.
+- [ x ] Pasos: instalar la app en otro celular (o en el otro emulador), ingresar con la misma billetera y activar el chat.
 - Esperado: se piden las dos firmas de activación una vez. Al terminar, la lista muestra con quién hablás y el último mensaje de cada chat sin entrar a ninguno, y al abrir un chat se ve todo el historial. Antes de activar, la lista muestra "Mensaje nuevo" en los que tienen algo sin leer.
 - Observaciones: _
 
 **4.3 Centro de notificaciones** · Rol: cualquiera
-- [ ] Pasos: durante los flujos anteriores, abrir la campanita.
+- [ x ] Pasos: durante los flujos anteriores, abrir la campanita.
 - Esperado: hay una notificación por evento (nueva postulación, te eligieron, pago en garantía, etc.), con contador de no leídas; al tocarla abre la pantalla de la changa.
 
 **4.5 Activar el chat al postularse y al entrar** · Rol: Beto y Ana
-- [ ] Pasos: con una cuenta que nunca activó el chat, Beto se postula; después Ana entra por primera vez al chat de esa postulación.
+- [ x ] Pasos: con una cuenta que nunca activó el chat, Beto se postula; después Ana entra por primera vez al chat de esa postulación.
 - Esperado: al postularse, la pantalla avisa que se va a pedir una firma para el chat privado (porque va cifrado); Beto firma dos mensajes una sola vez y no cuesta nada. Ana, al abrir el chat por primera vez, ve la pantalla "Activá tu chat privado" con la explicación y el botón "Activar chat" antes de que aparezca la firma. Si Beto cancela la firma, la postulación queda enviada y el chat se activa la próxima vez. En un celular nuevo con la misma billetera se piden las firmas otra vez y se ve todo el historial.
 - Observaciones: _
 
 **4.6 Quién escribe primero** · Rol: Beto y Ana
-- [ ] Pasos: Beto abre el chat de su postulación antes de que Ana conteste. Después Ana abre el chat y escribe. Beto responde.
+- [ x ] Pasos: Beto abre el chat de su postulación antes de que Ana conteste. Después Ana abre el chat y escribe. Beto responde.
 - Esperado: antes de que Ana conteste, Beto ve su mensaje de postulación como primer recuadro ("Tu mensaje de postulación"), no puede escribir y ve el aviso de que espere. Ana ve ese mismo mensaje ("Mensaje de postulación") y puede escribir. En cuanto Ana contesta, a Beto se le habilita el campo sin cerrar el chat.
 - Observaciones: _
 
 **4.7 Bloqueo de datos de contacto** · Rol: Ana y Beto
-- [ ] Pasos: antes del acuerdo, intentar enviar un teléfono (`11 5555 1234`), un mail, un enlace (`wa.me/...`) y un usuario (`@nombre`). Probar también un monto como `1.500.000` y una dirección como `Neuquén 1021`. Después de firmar el acuerdo, repetir.
+- [ x ] Pasos: antes del acuerdo, intentar enviar un teléfono (`11 5555 1234`), un mail, un enlace (`wa.me/...`) y un usuario (`@nombre`). Probar también un monto como `1.500.000` y una dirección como `Neuquén 1021`. Después de firmar el acuerdo, repetir.
 - Esperado: antes del acuerdo, los datos de contacto no se envían y aparece un aviso que explica por qué; los montos y direcciones sí se envían. Hay un aviso fijo sobre el campo de texto. Después del acuerdo se pueden compartir.
 - Observaciones: _
 
 **4.8 Límite de mensajes** · Rol: cualquiera
-- [ ] Pasos: enviar muchos mensajes seguidos.
+- [ x ] Pasos: enviar muchos mensajes seguidos.
 - Esperado: no más de 20 por minuto ni 200 por hora por persona, y la conversación se cierra al llegar a 2.000 mensajes. Al pasarse, el mensaje queda como "No se envió" con la opción de reintentar.
 
 **4.9 Descartar y bloquear a un postulante** · Rol: Ana y Beto
-- [ ] Pasos: Beto se postula. Ana abre las postulaciones, toca los tres puntos de la tarjeta de Beto y elige "Descartar postulación". Después, con otra postulación, elige "Descartar y bloquear". Repetir desde el menú del chat.
+- [ x ] Pasos: Beto se postula. Ana abre las postulaciones, toca los tres puntos de la tarjeta de Beto y elige "Descartar postulación". Después, con otra postulación, elige "Descartar y bloquear". Repetir desde el menú del chat.
 - Esperado: pide confirmación. Al descartar, el chat de esa postulación queda de solo lectura para los dos y Beto no puede volver a postularse a ese trabajo, pero sí a otros de Ana. Al bloquear, Beto tampoco puede postularse a ningún trabajo de Ana, y sus otras postulaciones activas a trabajos de Ana quedan descartadas. En la lista de Beto la postulación figura como "Descartada". Beto no recibe un aviso de que lo bloquearon.
 - Observaciones: _
 
 **4.10 Bajarse de la postulación y bloquear a quien publicó** · Rol: Beto
-- [ ] Pasos: desde el menú del chat, "Bajarme de la postulación"; en otra postulación, "Bloquear a esta persona".
+- [ x ] Pasos: desde el menú del chat, "Bajarme de la postulación"; en otra postulación, "Bloquear a esta persona".
 - Esperado: al bajarse, la postulación pasa a "Retirada" y el chat queda cerrado; puede volver a postularse. Al bloquear a Ana, retira sus postulaciones a los trabajos de ella y no puede postularse a nuevos.
 
 **4.11 Reportar a una persona desde el chat** · Rol: Ana y Beto
-- [ ] Pasos: menú del chat o de la postulación → "Reportar a esta persona" → motivo → enviar.
+- [ x ] Pasos: menú del chat o de la postulación → "Reportar a esta persona" → motivo → enviar.
 - Esperado: abre la pantalla de reporte con la persona ya elegida. El reporte llega al panel (sección Reportes). No se puede reportar dos veces lo mismo.
 
 **4.12 Adjuntos en el chat** · Rol: Ana y Beto
-- [ ] Pasos: con el chat abierto en las dos direcciones, tocar el clip y mandar una foto sacada en el momento, fotos de la galería (varias a la vez) y un PDF. Probar un archivo de más de 10 MB y agregar más de 5 en un mismo mensaje. Tocar los adjuntos que recibís.
+- [ x ] Pasos: con el chat abierto en las dos direcciones, tocar el clip y mandar una foto sacada en el momento, fotos de la galería (varias a la vez) y un PDF. Probar un archivo de más de 10 MB y agregar más de 5 en un mismo mensaje. Tocar los adjuntos que recibís.
 - Esperado: el clip ofrece "Sacar una foto", "Elegir fotos" y "Elegir un PDF". Los archivos elegidos aparecen como chips sobre el campo de texto y se pueden quitar. Un archivo de más de 10 MB no se agrega y avisa; el máximo es de 5 por mensaje. Se puede enviar solo adjuntos, sin texto. Mientras suben, el globo dice "Enviando adjuntos". El otro lado los ve con su nombre y tamaño, y al tocarlos se abre la foto en pantalla completa o el PDF con la app del teléfono. Los archivos viajan cifrados: en el servidor son solo bytes sin sentido, y solo las dos personas del chat los pueden bajar. Si un envío falla, queda como "No se envió" y se puede reintentar sin volver a elegir los archivos.
 - Observaciones: _
 
 **4.13 Botones y tarjeta del chat** · Rol: Ana y Beto
-- [ ] Pasos: abrir un chat.
+- [ x ] Pasos: abrir un chat.
 - Esperado: el botón de enviar es un círculo con el ícono de avión de papel, y se apaga si no hay texto ni adjuntos. En la cabecera hay un botón con el maletín que abre el detalle del trabajo y vuelve al chat. Arriba del chat hay una tarjeta "Pago protegido" que se puede plegar y desplegar y recuerda su estado mientras la app está abierta. Debajo está el mensaje de la postulación.
 - Observaciones: _
 

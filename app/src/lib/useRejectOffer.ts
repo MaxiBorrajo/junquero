@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
+import { useActivity } from "../components/Activity";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
 import { useSession } from "../session/SessionProvider";
@@ -9,11 +10,14 @@ export function useRejectOffer() {
   const { api } = useSession();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const track = useActivity();
 
   const send = async (applicationId: number) => {
     try {
-      await api.send("POST", `/me/applications/${applicationId}/reject-offer`, {});
-      await Promise.all([queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["chat-events"] })]);
+      await track(t.common.working, async () => {
+        await api.send("POST", `/me/applications/${applicationId}/reject-offer`, {});
+        await Promise.all([queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["chat-events"] })]);
+      });
       toast({ text: t.offer.rejected, icon: "close", tone: "info" });
     } catch {
       toast({ text: t.offer.rejectFailed, tone: "error" });

@@ -4,6 +4,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import type { PublicProfile } from "../api/types";
 import { Card } from "../components/Card";
+import { HistoryCard } from "../components/HistoryCard";
+import { ReceiptsCard } from "../components/ReceiptsCard";
 import { useToast } from "../components/Toast";
 import { Button, Screen, Secondary, Title } from "../components/ui";
 import { formatMonthYear } from "../lib/format";
@@ -61,29 +63,8 @@ export default function PublicProfileScreen() {
         </View>
       </View>
       {data.createdAt ? <Secondary>{t.publicProfile.since.replace("{date}", formatMonthYear(data.createdAt))}</Secondary> : null}
-      {data.stats ? (
-        <Card gap="sm">
-          <Text style={text.label}>{t.publicProfile.history}</Text>
-          <View style={styles.stat}>
-            <Text style={text.body}>{t.publicProfile.rating}</Text>
-            <Text style={text.subtitle}>{data.stats.rating !== null ? `★ ${data.stats.rating.toFixed(1)}` : "-"}</Text>
-          </View>
-          <Secondary>{data.stats.rating !== null ? t.publicProfile.ratingCount.replace("{count}", String(data.stats.ratings)) : t.publicProfile.ratingNone}</Secondary>
-          <View style={styles.stat}>
-            <Text style={text.body}>{t.publicProfile.doneAsPayee}</Text>
-            <Text style={text.subtitle}>{data.stats.doneAsPayee}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={text.body}>{t.publicProfile.doneAsPayer}</Text>
-            <Text style={text.subtitle}>{data.stats.doneAsPayer}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={text.body}>{t.publicProfile.disputed}</Text>
-            <Text style={text.subtitle}>{data.stats.disputed}</Text>
-          </View>
-          {data.stats.doneAsPayee + data.stats.doneAsPayer === 0 ? <Secondary>{t.publicProfile.newcomer}</Secondary> : null}
-        </Card>
-      ) : null}
+      {data.stats ? <HistoryCard stats={data.stats} /> : null}
+      <ReceiptsCard address={data.address} count={data.receiptsCount ?? 0} />
       {data.categories && data.categories.length > 0 ? (
         <Card gap="xs">
           <Text style={text.label}>{t.publicProfile.categories}</Text>

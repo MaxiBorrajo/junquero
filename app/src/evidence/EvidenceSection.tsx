@@ -4,43 +4,50 @@ import * as Location from "expo-location";
 import { Image } from "expo-image";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { signMessage } from "wagmi/actions";
 import { fetchCounterpartKey } from "../crypto/keyManager";
 import { useChatKey } from "../chat/ChatKeyProvider";
 import { Card } from "../components/Card";
 import { ChoiceSheet } from "../components/ChoiceSheet";
 import { Icon } from "../components/Icon";
-import { Button, ErrorText, Secondary } from "../components/ui";
+import { useActivity, type ActivityHandle } from "../components/Activity";
+import { useToast } from "../components/Toast";
+import { Button } from "../components/ui";
 import type { EvidenceItem } from "../data/useOrder";
 import { t } from "../i18n";
 import { readBytes, sha256Hex } from "../lib/files";
 import { writeTempFile } from "../lib/openDocument";
 import { pickDocuments, pickMedia, takeMedia, type PickedFile } from "../lib/pick";
 import { useSession } from "../session/SessionProvider";
-import { wagmiAdapter } from "../wallet/appkit";
-import { isRejection } from "../wallet/sign";
+import { isRejection, signText } from "../wallet/sign";
 import { colors, radius, spacing, text } from "../theme";
 import { AttachmentTile } from "../components/AttachmentTile";
 import { useAttachmentViewer, type Viewable } from "../components/useAttachmentViewer";
 import { decryptFile, decryptMeta, unwrapKey, type EvidenceMeta } from "./crypto";
-import { MAX_BATCH_ITEMS, uploadEvidenceBatch } from "./upload";
+import { MAX_BATCH_ITEMS, uploadEvidenceBatch, type EvidenceFile } from "./upload";
+import { addStaged, clearStaged, flattenStaged, roomLeft, stagedCount, type Staged } from "./staging";
 
 export function useEvidence(orderId: number) {
   const { api } = useSession();
   return useQuery({
     queryKey: ["evidence", orderId],
-    refetchInterval: useFocusedInterval(60_000),
+    refetchInterval: useFocusedInterval(30_000),
     queryFn: async () => (await api.get<{ role: string; evidence: EvidenceItem[] }>(`/me/orders/${orderId}/evidence`)).evidence,
   });
 }
 
-// Sube pruebas cifradas. Si se indica `requirement`, quedan asociadas a esa prueba pedida.
+type UploadEntry = { file: PickedFile; requirement?: number };
+
+// Las subidas van de a una y siguen aunque se cierre la pantalla: así no se pisan las firmas de la billetera y quien sube
+// puede seguir cargando otras pruebas mientras tanto. El avance se cuenta con toasts, no con texto en la pantalla.
+let uploadQueue: Promise<unknown> = Promise.resolve();
+
+// Sube pruebas cifradas en segundo plano. Si se indica `requirement`, quedan asociadas a esa prueba pedida.
 export function useEvidenceSend(orderId: number, counterpart: string) {
   const { api, address } = useSession();
   const { ensure } = useChatKey();
   const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const track = useActivity();
 
   const place = async (): Promise<{ lat?: number; lng?: number }> => {
     try {
@@ -53,43 +60,49 @@ export function useEvidenceSend(orderId: number, counterpart: string) {
     }
   };
 
-  const send = async (picked: PickedFile[], requirement?: number, milestone?: number) => {
-    if (!address || picked.length === 0) return;
-    setBusy(true);
-    setError(null);
+  const upload = async (entries: UploadEntry[], activity: ActivityHandle, milestone?: number) => {
+    if (!address) return;
     try {
       const mine = await ensure();
       const where = await place();
-      const files = [];
-      for (const item of picked.slice(0, MAX_BATCH_ITEMS)) {
+      const files: EvidenceFile[] = [];
+      for (const { file: item, requirement } of entries.slice(0, MAX_BATCH_ITEMS)) {
         files.push({ file: await readBytes(item.uri), meta: { capturedAt: Math.floor(Date.now() / 1000), name: item.name, mime: item.mime, ...where, ...(requirement === undefined ? {} : { requirement }), ...(milestone === undefined ? {} : { milestone }) } as EvidenceMeta });
       }
-      await uploadEvidenceBatch(
-        { api, address, counterpart, mine, signMessage: (message) => signMessage(wagmiAdapter.wagmiConfig, { message }), hash: sha256Hex },
-        orderId,
-        files,
-      );
-      await queryClient.invalidateQueries({ queryKey: ["evidence", orderId] });
+      const stages = { upload: t.order.evidenceStageUpload, sign: t.order.evidenceStageSign, share: t.order.evidenceStageShare } as const;
+      await uploadEvidenceBatch({ api, address, counterpart, mine, signMessage: signText, hash: sha256Hex, onStage: (stage) => activity.update(stages[stage]) }, orderId, files);
+      activity.update(t.order.evidenceStageRefresh);
+      for (const key of ["evidence", "order"]) await queryClient.invalidateQueries({ queryKey: [key] });
+      toast({ text: t.order.evidenceDone, tone: "success", icon: "check" });
     } catch (failure) {
       const status = (failure as { status?: number }).status;
-      setError((failure as Error).message === "counterpart_without_key" ? t.order.evidenceNoKey : status === 403 || status === 409 ? t.order.evidenceSyncing : isRejection(failure) ? t.order.evidenceCancelled : t.order.evidenceFailed);
-    } finally {
-      setBusy(false);
+      if (isRejection(failure)) return void toast({ text: t.order.evidenceCancelled, tone: "info", icon: "info" });
+      const text = (failure as Error).message === "counterpart_without_key" ? t.order.evidenceNoKey : status === 403 || status === 409 ? t.order.evidenceSyncing : t.order.evidenceFailed;
+      toast({ text, tone: "error", icon: "alert" });
     }
   };
 
-  return { send, busy, error };
+  // Todo lo que se pasa junto se sube con una sola firma (hasta MAX_BATCH_ITEMS archivos), cada archivo con su prueba pedida.
+  const sendMany = (entries: UploadEntry[], milestone?: number) => {
+    if (!address || entries.length === 0) return;
+    toast({ text: t.order.evidenceUploading, tone: "info", icon: "clock", durationMs: 5000 });
+    uploadQueue = uploadQueue.then(() => track(t.order.evidenceStageUpload, (activity) => upload(entries, activity, milestone)));
+  };
+
+  const send = (picked: PickedFile[], requirement?: number, milestone?: number) => sendMany(picked.map((file) => ({ file, requirement })), milestone);
+
+  return { send, sendMany };
 }
 
 export function EvidenceUploader({ orderId, counterpart, milestone }: { orderId: number; counterpart: string; milestone?: number }) {
-  const { send: sendAny, busy, error } = useEvidenceSend(orderId, counterpart);
+  const { send: sendAny } = useEvidenceSend(orderId, counterpart);
   const send = (picked: PickedFile[]) => sendAny(picked, undefined, milestone);
   const [sheet, setSheet] = useState(false);
 
   return (
     <View style={styles.box}>
-      <Button label={t.order.addPhoto} icon="camera" variant="outline" onPress={() => setSheet(true)} loading={busy} />
-      <Button label={t.order.addFile} icon="file" variant="ghost" onPress={async () => send(await pickDocuments())} disabled={busy} />
+      <Button label={t.order.addPhoto} icon="camera" variant="outline" onPress={() => setSheet(true)} />
+      <Button label={t.order.addFile} icon="file" variant="ghost" onPress={async () => send(await pickDocuments())} />
       <ChoiceSheet
         visible={sheet}
         onClose={() => setSheet(false)}
@@ -98,8 +111,6 @@ export function EvidenceUploader({ orderId, counterpart, milestone }: { orderId:
           { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(10).then((picked) => send(picked)) },
         ]}
       />
-      {busy ? <Secondary>{t.order.evidenceUploading}</Secondary> : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
 }
@@ -162,40 +173,51 @@ export function useCoveredRequirements(items: EvidenceItem[], total: number) {
   return new Set(query.data ?? []);
 }
 
-// Una fila por cada prueba que pidió quien publicó, con su propio botón para subirla.
+// Una fila por cada prueba que pidió quien publicó. Se eligen los archivos de todas las filas y se suben juntos con una sola firma.
 export function RequirementList({ orderId, counterpart, requirements, covered }: { orderId: number; counterpart: string; requirements: string[]; covered: Set<number> }) {
-  const { send, busy, error } = useEvidenceSend(orderId, counterpart);
+  const { sendMany } = useEvidenceSend(orderId, counterpart);
   const [target, setTarget] = useState<number | null>(null);
+  const [staged, setStaged] = useState<Staged>({});
+  const total = stagedCount(staged);
+  const room = roomLeft(staged);
+  const stage = (picked: PickedFile[]) => {
+    if (target !== null) setStaged((current) => addStaged(current, target, picked));
+  };
+  const upload = () => {
+    sendMany(flattenStaged(staged));
+    setStaged({});
+  };
   return (
     <View style={styles.box}>
       {requirements.map((label, index) => {
         const done = covered.has(index);
+        const ready = staged[index]?.length ?? 0;
         return (
           <Card key={`${index}-${label}`} gap="xs">
             <View style={styles.requirement}>
-              <View style={[styles.mark, done && styles.markDone]}>
-                {done ? <Icon name="check" size={14} color={colors.white} /> : <Text style={text.label}>{index + 1}</Text>}
+              <View style={[styles.mark, (done || ready > 0) && styles.markDone]}>
+                {done || ready > 0 ? <Icon name="check" size={14} color={colors.white} /> : <Text style={text.label}>{index + 1}</Text>}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={text.body}>{label}</Text>
-                <Text style={text.secondary}>{done ? t.order.requirementDone : t.order.requirementPending}</Text>
+                <Text style={text.secondary}>{ready > 0 ? (ready === 1 ? t.order.requirementStagedOne : t.order.requirementStagedMany.replace("{n}", String(ready))) : done ? t.order.requirementDone : t.order.requirementPending}</Text>
               </View>
             </View>
-            <Button label={done ? t.order.requirementReplace : t.order.requirementUpload} icon={done ? "refresh" : "camera"} variant={done ? "ghost" : "outline"} onPress={() => setTarget(index)} disabled={busy} />
+            <Button label={done || ready > 0 ? t.order.requirementReplace : t.order.requirementUpload} icon={done || ready > 0 ? "plus" : "camera"} variant={done || ready > 0 ? "ghost" : "outline"} onPress={() => setTarget(index)} disabled={room === 0} />
+            {ready > 0 ? <Button label={t.order.requirementUnstage} icon="close" variant="ghost" onPress={() => setStaged((current) => clearStaged(current, index))} /> : null}
           </Card>
         );
       })}
+      {total > 0 ? <Button label={(total === 1 ? t.order.uploadStagedOne : t.order.uploadStagedMany).replace("{n}", String(total))} icon="send" onPress={upload} /> : null}
       <ChoiceSheet
         visible={target !== null}
         onClose={() => setTarget(null)}
         choices={[
-          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then((picked) => send(picked, target ?? undefined)) },
-          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(1).then((picked) => send(picked, target ?? undefined)) },
-          { key: "file", label: t.order.addFile, icon: "file", onPress: () => void pickDocuments().then((picked) => send(picked.slice(0, 1), target ?? undefined)) },
+          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then(stage) },
+          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(Math.min(10, room)).then(stage) },
+          { key: "file", label: t.order.addFile, icon: "file", onPress: () => void pickDocuments().then((picked) => stage(picked.slice(0, room))) },
         ]}
       />
-      {busy ? <Secondary>{t.order.evidenceUploading}</Secondary> : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
 }

@@ -36,11 +36,15 @@ La pregunta es: ¿qué le pasó a la persona?
 | --- | --- |
 | Una acción salió bien (aportar, enviar, copiar, guardar, cancelar) | **Toast** de éxito, con ícono |
 | Canceló la firma de la billetera | Toast informativo, sin tono de error |
+| Algo largo que corre en segundo plano (subir y cifrar pruebas) | Toast informativo al empezar y toast de éxito o error al terminar. Nunca texto suelto ni botón bloqueado: se puede seguir cargando |
 | Una acción falló y se puede reintentar | Toast de error, o `ErrorText` si hay que corregir algo |
 | Un campo no es válido | `Field` con `error` (borde rojo y texto debajo) |
 | Algo bloquea la pantalla (sin saldo, sesión vencida) | `ErrorText` en la pantalla, con el paso siguiente |
 | Un estado o invitación que sigue vigente (invitación a aportar, selfie en revisión) | `Banner` |
 
+- **Todo lo que tarda muestra actividad.** Mientras una acción espera la billetera, la red o una subida en segundo plano, aparece arriba una pastilla con spinner y la etapa ("Firmá en tu billetera…", "Confirmando en la red…"); no aparece si la tarea dura menos de 0,4 s. Se usa `useActivity().track(...)` (ya incluido en `useRunAction`). No reemplaza al toast: la pastilla dice que algo está pasando y el toast dice cómo terminó.
+- **Las firmas abren la billetera.** WalletConnect no abre MetaMask solo: al pedir una firma, la app la abre con su deep link (`withWallet`) y, apenas se resuelve la firma, se vuelve a abrir a sí misma con el link de la pantalla en la que estaba (`junquero://…`), porque la billetera no devuelve sola. Si Android bloquea ese regreso, queda tocar "Volver" en la billetera. Todas las firmas pasan por `signTyped` o `signText` de `wallet/sign.ts`, nunca directo por wagmi.
+- **Las subidas de pruebas van en segundo plano**, de a una, y a la otra parte le llega el aviso `evidence_uploaded` cuando ya puede abrir la prueba.
 - **Una confirmación nunca es texto fijo en la pantalla.** Se muestra con el toast (`useToast()`), que sobrevive a un cambio de pantalla.
 - El toast es una tarjeta blanca con borde `line` y texto tinta, como el resto de la app (nunca oscuro). Dura **7 segundos** (9 los errores), se puede cerrar tocándolo y lleva ícono: check verde (éxito), información azul (aviso), alerta roja (error). El color nunca es el único aviso.
 - **Una acción sobre la cadena confirma recién cuando la red la confirmó.** Mientras tanto se muestra "Enviado, esperando confirmación…". Se actualiza la pantalla y recién ahí aparece el toast de éxito. Así nunca se dice "Listo" con datos viejos.

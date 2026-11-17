@@ -1,4 +1,4 @@
-import { getAddress, isHex, verifyTypedData, type Address, type Hex } from "viem";
+import { getAddress, isHex, keccak256, verifyTypedData, type Address, type Hex } from "viem";
 import { escrowDomain } from "./agreements";
 import { queueNotification } from "./notifications";
 
@@ -131,6 +131,39 @@ export async function readRelease(db: D1Database, orderId: number, address: stri
   if (!row) return { ok: true, release: null };
   return {
     ok: true,
+    release: { index: row.milestone === 1 ? row.idx : null, payee: row.payee, amount: row.amount, rating: row.rating, evidenceHash: row.evidence_hash, expiry: row.expiry, signature: row.signature },
+  };
+}
+
+// Código corto para dictar en persona cuando la cámara no anda. Sale de la propia firma (40 bits de su hash, en base 32 sin
+// letras que se confunden). La app calcula el mismo código con la misma regla (app/src/chain/releaseCode.ts).
+const CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+export const CODE_LENGTH = 8;
+
+export function releaseCode(signature: string): string {
+  const hash = keccak256(signature as Hex);
+  let bits = 0n;
+  for (let index = 0; index < 5; index += 1) bits = (bits << 8n) | BigInt(`0x${hash.slice(2 + index * 2, 4 + index * 2)}`);
+  let code = "";
+  for (let index = CODE_LENGTH - 1; index >= 0; index -= 1) code += CODE_ALPHABET[Number((bits >> BigInt(index * 5)) & 31n)];
+  return code;
+}
+
+// Acepta mayúsculas, minúsculas, guiones y espacios, y las letras que se confunden con números (O por 0, I y L por 1).
+export const normalizeCode = (raw: string): string => raw.toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/O/g, "0").replace(/[IL]/g, "1");
+
+// La liberación vigente de quien va a cobrar que tiene ese código. Solo la ve la persona a la que se le paga.
+export async function findReleaseByCode(db: D1Database, address: string, raw: string, nowSeconds: number): Promise<{ orderId: number; release: ReleaseView } | null> {
+  const code = normalizeCode(raw);
+  if (code.length !== CODE_LENGTH) return null;
+  const { results } = await db
+    .prepare("SELECT order_id, idx, payee, amount, rating, evidence_hash, expiry, signature, milestone FROM releases WHERE payee = ? AND expiry >= ? ORDER BY created_at DESC LIMIT 20")
+    .bind(address, nowSeconds)
+    .all<{ order_id: number; idx: number; payee: string; amount: string; rating: number; evidence_hash: string; expiry: number; signature: string; milestone: number }>();
+  const row = results.find((candidate) => releaseCode(candidate.signature) === code);
+  if (!row) return null;
+  return {
+    orderId: row.order_id,
     release: { index: row.milestone === 1 ? row.idx : null, payee: row.payee, amount: row.amount, rating: row.rating, evidenceHash: row.evidence_hash, expiry: row.expiry, signature: row.signature },
   };
 }

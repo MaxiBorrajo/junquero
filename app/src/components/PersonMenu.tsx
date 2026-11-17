@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Alert, Pressable, StyleSheet } from "react-native";
 import { ChoiceSheet, type Choice } from "./ChoiceSheet";
 import { Icon } from "./Icon";
+import { useActivity } from "./Activity";
 import { useToast } from "./Toast";
 import { t } from "../i18n";
 import { useSession } from "../session/SessionProvider";
@@ -27,6 +28,7 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
   const { api } = useSession();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const track = useActivity();
   const [open, setOpen] = useState(false);
   const blocks = useQuery({ queryKey: ["blocks"], queryFn: async () => (await api.get<{ blocks: { address: string }[] }>("/me/blocks")).blocks });
   const isBlocked = (blocks.data ?? []).some((entry) => entry.address.toLowerCase() === counterpart.toLowerCase());
@@ -37,8 +39,10 @@ export function PersonMenu({ role, applicationId, changaId, counterpart, active,
 
   const run = async (action: () => Promise<unknown>, message: string, leave = true) => {
     try {
-      await action();
-      await refresh();
+      await track(t.common.working, async () => {
+        await action();
+        await refresh();
+      });
       toast({ text: message, tone: "success" });
       if (leave) onDone?.();
     } catch {

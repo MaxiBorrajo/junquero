@@ -1,6 +1,9 @@
 import { useAppKit } from "@reown/appkit-react-native";
 import { useFocusedInterval } from "../../lib/useFocusedInterval";
+import type { PublicProfile } from "../../api/types";
 import { Card } from "../../components/Card";
+import { HistoryCard } from "../../components/HistoryCard";
+import { ReceiptsCard } from "../../components/ReceiptsCard";
 import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
@@ -43,7 +46,9 @@ export default function Profile() {
     queryFn: () => readTokenBalance(address as `0x${string}`),
   });
 
-  const refresh = useManualRefresh([() => refreshSession(), () => balance.refetch(), () => activity.refetch(), () => summary.refetch()]);
+  const mine = useQuery({ queryKey: ["profile", address], enabled: Boolean(address), queryFn: async () => (await api.get<{ profile: PublicProfile }>(`/profiles/${address}`)).profile });
+
+  const refresh = useManualRefresh([() => refreshSession(), () => balance.refetch(), () => activity.refetch(), () => summary.refetch(), () => mine.refetch()]);
 
   if (!address) {
     return (
@@ -105,6 +110,8 @@ export default function Profile() {
         {activity.data ? <Secondary>{`${activity.data.settledAsPayee} ${t.activity.closedAsPayee} · ${activity.data.settledAsPayer} ${t.activity.closedAsPayer}`}</Secondary> : null}
         <Secondary>{t.activity.note}</Secondary>
       </Card>
+      {mine.data?.stats ? <HistoryCard stats={mine.data.stats} title={t.history.mine} /> : null}
+      <ReceiptsCard address={address} count={mine.data?.receiptsCount ?? 0} mine />
       <Card gap="xs">
         <Text style={text.label}>{t.me.wallet}</Text>
         <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>

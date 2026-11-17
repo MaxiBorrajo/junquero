@@ -5,7 +5,17 @@ import { FORWARD_VALIDITY_SECONDS, forwardTypedData, relayBody } from "./createO
 import type { Deployment } from "./deployment";
 
 export const ACTION_GAS = 1_500_000n;
-export const RELEASE_VALIDITY_SECONDS = 24 * 3600;
+const DEFAULT_RELEASE_VALIDITY_SECONDS = 24 * 3600;
+const MIN_RELEASE_VALIDITY_SECONDS = 60;
+
+// Cuánto dura el QR o la aprobación a distancia. Siempre 24 h, salvo en pruebas: EXPO_PUBLIC_RELEASE_VALIDITY_SECONDS la acorta
+// (mínimo 60 s, que es lo que acepta el servidor) para poder probar un QR vencido sin esperar un día.
+export function releaseValidity(raw: string | undefined): number {
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= MIN_RELEASE_VALIDITY_SECONDS && value <= DEFAULT_RELEASE_VALIDITY_SECONDS ? value : DEFAULT_RELEASE_VALIDITY_SECONDS;
+}
+
+export const RELEASE_VALIDITY_SECONDS = releaseValidity(process.env.EXPO_PUBLIC_RELEASE_VALIDITY_SECONDS);
 
 export interface ReleaseData {
   orderId: bigint;

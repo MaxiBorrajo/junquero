@@ -291,37 +291,44 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 Con la changa individual presencial ya acordada (prueba 3.4).
 
 **5.1 Llegada** · Rol: Beto
-- [ ] Pasos: el día de la changa, "Llegué".
+- [ x ] Pasos: el día de la changa, "Llegué".
 - Esperado: se registra la hora y la ubicación. Fuera de zona advierte pero deja continuar con motivo.
 
 **5.2 Cargar evidencia** · Rol: Beto
-- [ ] Pasos: subir las fotos o videos pedidos en el acuerdo.
+- [ x ] Pasos: subir las fotos o videos pedidos en el acuerdo.
 - Esperado: se suben cifradas con una sola firma por tanda. Si falta lo pedido, no deja cerrar.
 
 **5.3 Marcar como terminada** · Rol: Beto
-- [ ] Pasos: "Terminé".
+- [ x ] Pasos: "Terminé".
 - Esperado: Ana recibe el aviso "Revisá el trabajo".
 
 **5.4 Revisar y aprobar** · Rol: Ana
-- [ ] Pasos: ver evidencia y acuerdo → "Está todo bien".
+- [ x ] Pasos: ver evidencia y acuerdo → "Está todo bien".
 - Esperado: se pasa a la liberación del pago.
 
 **5.5 Cobro en persona con QR** · Rol: Ana y Beto
-- [ ] Pasos: Ana muestra el QR de liberación → Beto lo escanea con la cámara.
+- [ x ] Pasos: Ana muestra el QR de liberación → Beto lo escanea con la cámara.
 - Esperado: el pago llega a Beto, la garantía de Beto se devuelve, se cobra la comisión. Ambos ven "Listo, se liberó el pago". Los saldos coinciden con lo anotado al empezar.
+- Sin cámara: debajo del QR, Ana ve un código corto (por ejemplo `228D-QV28`). Beto, en la pantalla de escaneo, toca "Escribir código", lo tipea y toca "Cobrar". Mismo resultado que con el QR. Ana también puede tocar "Copiar código" y mandárselo por el chat. Un código mal escrito dice "Código inválido"; uno vencido deja de servir. Si el servidor no pudo guardar la liberación, Ana ve solo el QR, sin código.
 - Observaciones: _
 
 **5.6 Cobro a distancia por aprobación remota** · Rol: Ana y Beto
-- [ ] Pasos: sin QR, Ana aprueba remotamente y Beto cobra.
+- [ x ] Pasos: sin QR, Ana aprueba remotamente y Beto cobra.
 - Esperado: el mismo resultado que en 5.5.
 
 **5.7 QR vencido o inválido** · Rol: Ana y Beto
-- [ ] Pasos: esperar a que venza el QR y escanearlo / escanear un QR cualquiera.
+- [ x ] Pasos: esperar a que venza el QR y escanearlo / escanear un QR cualquiera.
 - Esperado: no libera plata; muestra un error claro. Ana puede generar otro.
+- Cómo probar el vencido sin esperar un día: el QR dura 24 h y su vencimiento va firmado adentro, así que no se puede acortar después de generarlo. Para la prueba, levantar Metro con la duración corta (mínimo 60 s) y generar el QR con esa versión de la app:
+  `cd app && EXPO_PUBLIC_RELEASE_VALIDITY_SECONDS=90 npx expo start --dev-client --port 8081`
+  Generar el QR, esperar más de 90 s y escanearlo: debe decir que venció. Para el caso "inválido", escanear cualquier otro QR (por ejemplo uno de una página web). Volver a levantar Metro sin la variable para dejar la duración normal.
 
 **5.8 Calificar y comprobante** · Rol: Ana y Beto
-- [ ] Pasos: calificar con estrellas. Beto reclama el comprobante intransferible (opcional).
-- Esperado: la calificación se refleja en el perfil. El comprobante aparece solo para Beto y no se puede transferir.
+- [ x ] Pasos: calificar con estrellas. Beto abre el trabajo cerrado y toca "Reclamar comprobante" (opcional).
+- Esperado: la calificación se refleja en el perfil de Beto. En el detalle del trabajo cerrado, Beto ve "Quien publicó te calificó con N de 5" y Ana ve "Calificaste este trabajo con N de 5"; las dos partes ven las pruebas subidas. El comprobante lo reclama solo Beto (Ana ve "todavía no reclamó" o "ya reclamó") y no se puede transferir. Una vez reclamado, el perfil de Beto muestra una tarjeta "Comprobantes" con la cantidad (la ve Beto en "Perfil" y Ana entrando al perfil de Beto); al tocarla se abre una pantalla con una medalla por trabajo, con el nombre de la changa, el rubro (por ejemplo Hogar) y la fecha de cierre, del más reciente al más antiguo. Las pruebas se conservan 180 días después del cierre.
+- El comprobante tarda en figurar en el perfil hasta que el indexador procesa el evento (alrededor de un minuto). Al reclamarlo, la pantalla del trabajo lo marca enseguida.
+- "Perfil" propio: ver "Mi historial" (calificación promedio, trabajos hechos y publicados, reclamos) y la tarjeta "Comprobantes".
+- "Mis trabajos" → chip "Cerrados": todos los trabajos pagados en los que participó (como quien publicó o como quien lo hizo), del cierre más reciente al más antiguo, con "Cerrado el {fecha}". Tocar uno abre el detalle con la calificación, las pruebas y el comprobante.
 
 **5.9 Liberación automática** · Rol: Ana y Beto
 - [ ] Pasos: Beto termina, Ana no responde.

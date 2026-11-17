@@ -6,6 +6,8 @@ import { StyleSheet, View } from "react-native";
 import { deployment } from "../../chain/deployment";
 import { encodeReleaseMilestone, parseMilestoneQr } from "../../chain/milestones";
 import { encodeRelease, parseReleaseQr, sendViaRelay } from "../../chain/orderActions";
+import { releaseCall, type RemoteRelease } from "../../chain/remoteRelease";
+import { isShortCode, normalizeCode } from "../../chain/releaseCode";
 import { readForwarderNonce } from "../../chain/reader";
 import { Body, Button, ErrorText, Field, Screen, Title } from "../../components/ui";
 import { t } from "../../i18n";
@@ -25,8 +27,39 @@ export default function Scan() {
   const [manual, setManual] = useState("");
   const [showManual, setShowManual] = useState(false);
 
+  // Código corto: el servidor devuelve la liberación firmada que guardó quien publicó, y se envía igual que la del QR.
+  const claimByCode = async (raw: string) => {
+    if (handled.current || !address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const found = await api.get<{ orderId: number; release: RemoteRelease }>(`/me/release-codes/${normalizeCode(raw)}`).catch((failure: { status?: number }) => {
+        throw failure?.status === 404 ? new Error("invalid") : failure;
+      });
+      if (String(found.orderId) !== String(orderId)) {
+        setError(t.order.scanInvalid);
+        return;
+      }
+      handled.current = true;
+      const account = address as `0x${string}`;
+      await sendViaRelay(
+        { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped },
+        releaseCall(found.orderId, found.release),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["order", Number(orderId)] });
+      if (found.release.index !== null) await queryClient.invalidateQueries({ queryKey: ["milestones", Number(orderId)] });
+      setDone(true);
+    } catch (failure) {
+      handled.current = false;
+      setError((failure as Error).message === "invalid" ? t.order.scanInvalid : isRejection(failure) ? t.order.signCancelled : t.order.releaseFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = async (raw: string) => {
     if (handled.current || !address) return;
+    if (isShortCode(raw)) return claimByCode(raw);
     const nowSeconds = Math.floor(Date.now() / 1000);
     const milestone = raw.includes('"k":"m"') ? parseMilestoneQr(raw, nowSeconds) : null;
     if (milestone && milestone !== "invalid" && milestone !== "expired") {
@@ -106,7 +139,7 @@ export default function Scan() {
         }
       >
         <Title>{t.order.scanTitle}</Title>
-        {showManual ? <Field label={t.order.manualCode} value={manual} onChangeText={setManual} multiline autoCapitalize="none" /> : <Body>{t.selfie.cameraDenied}</Body>}
+        {showManual ? <Field label={t.order.codeLabel} value={manual} onChangeText={setManual} placeholder="ABCD-1234" autoCapitalize="characters" autoCorrect={false} maxLength={12} /> : <Body>{t.selfie.cameraDenied}</Body>}
         {error ? <ErrorText>{error}</ErrorText> : null}
       </Screen>
     );

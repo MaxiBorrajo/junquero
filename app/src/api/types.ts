@@ -69,6 +69,8 @@ export interface Changa {
   amount: string | null;
   status: ChangaStatus;
   createdAt: number;
+  // Cuándo se cerró y pagó (solo en tus listas, para trabajos cerrados).
+  closedAt?: number | null;
 }
 
 export type ApplicationStatus = "active" | "withdrawn" | "chosen" | "closed" | "dismissed";
@@ -87,7 +89,7 @@ export interface Application {
 }
 
 export interface MyApplication extends Application {
-  changa: { specHash: string; orderId: number | null; status: ChangaStatus; title: string; amount: string | null; category: number | null; modality: "onsite" | "remote" | null; when: number | null };
+  changa: { specHash: string; orderId: number | null; status: ChangaStatus; title: string; amount: string | null; category: number | null; modality: "onsite" | "remote" | null; when: number | null; closedAt?: number | null };
 }
 
 export interface ReceivedApplication extends Application {
@@ -138,6 +140,21 @@ export interface PublicProfile {
   categories?: number[];
   createdAt?: number;
   stats?: { doneAsPayee: number; doneAsPayer: number; disputed: number; rating: number | null; ratings: number };
+  receiptsCount?: number;
+}
+
+// Comprobante intransferible de un trabajo cerrado: solo rubro y mes, sin datos personales.
+export interface ReceiptItem {
+  orderId: number;
+  category: number;
+  month: number;
+  title: string;
+  closedAt: number | null;
+}
+
+export interface Closing {
+  ratings: { index: number | null; rating: number }[];
+  receipt: { category: number; month: number } | null;
 }
 
 export interface Milestone {

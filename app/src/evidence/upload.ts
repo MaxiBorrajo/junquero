@@ -27,6 +27,8 @@ export interface UploadDeps {
   mine: ChatKeyPair;
   signMessage: (message: string) => Promise<Hex>;
   hash: (bytes: Uint8Array) => Promise<string>;
+  // Avisa en qué etapa va, para mostrarlo en pantalla: subiendo los archivos, esperando la firma o compartiendo las claves.
+  onStage?: (stage: "upload" | "sign" | "share") => void;
 }
 
 export interface EvidenceFile {
@@ -43,6 +45,7 @@ export async function uploadEvidenceBatch(deps: UploadDeps, orderId: number, fil
   const counterpartKey = await fetchCounterpartKey(deps.api, deps.counterpart);
   if (!counterpartKey) throw new Error("counterpart_without_key");
 
+  deps.onStage?.("upload");
   const prepared: { key: Uint8Array; fileHash: string; metaHash: string; meta: string; kind: EvidenceKind }[] = [];
   for (const item of files) {
     const encrypted = encryptEvidence(item.file, item.meta);
@@ -55,12 +58,14 @@ export async function uploadEvidenceBatch(deps: UploadDeps, orderId: number, fil
     prepared.push({ key: encrypted.key, fileHash, metaHash: await deps.hash(new TextEncoder().encode(encrypted.meta)), meta: encrypted.meta, kind: kindOf(item.meta.mime) });
   }
 
+  deps.onStage?.("sign");
   const signature = await deps.signMessage(buildEvidenceBatchMessage(orderId, prepared.map(({ fileHash, metaHash }) => ({ fileHash, metaHash }))));
   await deps.api.send("POST", `/me/orders/${orderId}/evidence/batch`, {
     items: prepared.map((item) => ({ hash: item.fileHash, kind: item.kind, meta: item.meta })),
     signature,
   });
 
+  deps.onStage?.("share");
   for (const item of prepared) {
     await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.address.toLowerCase(), wrapped: wrapKey(item.key, deps.mine.publicKey, deps.mine) });
     await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.counterpart.toLowerCase(), wrapped: wrapKey(item.key, counterpartKey, deps.mine) });

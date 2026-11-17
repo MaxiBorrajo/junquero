@@ -39,7 +39,8 @@ import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, profileStats, upsertProfile, validateProfile } from "./profiles";
 import { emergencyCases, listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
 import { casesFor } from "./cases";
-import { cancelRelease, parseRelease, readRelease, submitRelease } from "./releases";
+import { closingFor, receiptsCount, receiptsOf } from "./receipts";
+import { cancelRelease, findReleaseByCode, parseRelease, readRelease, submitRelease } from "./releases";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
 import { chainReadsFor, type ChainReads } from "./chainReads";
@@ -225,7 +226,14 @@ app.get("/profiles/:address", async (c) => {
   if (!ADDRESS.test(address)) return c.json({ error: "invalid address" }, 400);
   const row = await getProfile(c.env.DB, address.toLowerCase());
   if (!row) return c.json({ error: "not found" }, 404);
-  return c.json({ profile: { ...presentPublicProfile(row), stats: await cachedSlow(`stats:${address.toLowerCase()}`, () => profileStats(c.env.DB, address.toLowerCase())) } });
+  return c.json({ profile: { ...presentPublicProfile(row), stats: await cachedSlow(`stats:${address.toLowerCase()}`, () => profileStats(c.env.DB, address.toLowerCase())), receiptsCount: await cachedSlow(`receipts-count:${address.toLowerCase()}`, () => receiptsCount(c.env.DB, address)) } });
+});
+
+// Los comprobantes de una persona para la pantalla de medallas: son públicos, igual que su perfil.
+app.get("/profiles/:address/receipts", async (c) => {
+  const address = c.req.param("address");
+  if (!ADDRESS.test(address)) return c.json({ error: "invalid address" }, 400);
+  return c.json({ receipts: await cachedSlow(`receipts:${address.toLowerCase()}`, () => receiptsOf(c.env.DB, address)) });
 });
 
 app.post("/me/changas", async (c) => {
@@ -454,8 +462,15 @@ app.put("/me/orders/:orderId/evidence/:hash/keys", async (c) => {
   if ("response" in found) return found.response;
   const hash = c.req.param("hash").toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(hash)) return c.json({ error: "invalid hash" }, 400);
-  const outcome = await shareKey(c.env.DB, found.orderId, hash, c.get("address"), found.access, await readJson(c), nowSeconds());
-  return outcome.ok ? c.json({ ok: true }) : c.json({ error: outcome.error }, outcome.status);
+  const body = await readJson(c);
+  const outcome = await shareKey(c.env.DB, found.orderId, hash, c.get("address"), found.access, body, nowSeconds());
+  if (!outcome.ok) return c.json({ error: outcome.error }, outcome.status);
+  // Recién cuando la otra parte recibe la clave puede abrir la prueba: ahí se le avisa (varias pruebas seguidas = un solo aviso pendiente).
+  const recipient = typeof (body as { recipient?: unknown } | undefined)?.recipient === "string" ? String((body as { recipient: string }).recipient).toLowerCase() : "";
+  const mineAddress = c.get("address").toLowerCase();
+  const other = mineAddress === found.access.payer?.toLowerCase() ? found.access.payee : found.access.payer;
+  if (other && recipient === other.toLowerCase()) await queueNotification(c.env.DB, recipient, "evidence_uploaded", String(found.orderId)).run();
+  return c.json({ ok: true });
 });
 
 const CHAT_PAGE = 100;
@@ -766,11 +781,25 @@ app.get("/me/orders/:orderId/release", async (c) => {
   return result.ok ? c.json({ release: result.release }) : c.json({ error: result.error }, result.status);
 });
 
+// Quien va a cobrar escribe el código corto que le dicta quien publicó, y recibe la liberación firmada para enviarla.
+app.get("/me/release-codes/:code", async (c) => {
+  const found = await findReleaseByCode(c.env.DB, c.get("address"), c.req.param("code"), nowSeconds());
+  return found ? c.json(found) : c.json({ error: "code not found" }, 404);
+});
+
 app.delete("/me/orders/:orderId/release", async (c) => {
   const orderId = parseOrderId(c.req.param("orderId"));
   if (orderId === null) return c.json({ error: "invalid order id" }, 400);
   const result = await cancelRelease(c.env.DB, orderId, c.get("address"));
   return result.ok ? c.json({ ok: true }) : c.json({ error: result.error }, result.status);
+});
+
+// Cómo se cerró un trabajo, para las dos partes: calificación recibida o dada y comprobante reclamado.
+app.get("/me/orders/:orderId/closing", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const result = await closingFor(c.env.DB, orderId, c.get("address"));
+  return result.ok ? c.json(result.closing) : c.json({ error: "order not found" }, 404);
 });
 
 app.get("/me/contributions", async (c) => {

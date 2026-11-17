@@ -29,6 +29,15 @@ Ideas para después de la entrega. Nada de esto está construido ni validado tod
 - Opciones a evaluar: Transak, MoonPay, Ramp o proveedores locales que operen en Argentina.
 - Es lo más cómodo para el usuario y lo más caro de integrar: comisiones, verificación de identidad y cumplimiento.
 
+### Billetera integrada y billeteras externas, las dos opciones
+
+Decisión: la billetera dentro de la app es la opción ideal para quien no tiene MetaMask, y las billeteras externas (MetaMask por WalletConnect) se mantienen para quien ya las usa. La persona elige al conectarse.
+
+- **Por qué:** con la billetera integrada, firmar es un paso dentro de Junquero y no hay ida y vuelta a otra app. Hoy el regreso desde MetaMask no es confiable en Android: WalletConnect depende de que MetaMask honre el esquema de regreso (`junquero://`, ya registrado en la app y pasado a AppKit), y no siempre lo hace. La app ya intenta volver sola al terminar la firma (`withWallet`), pero Android puede bloquearlo.
+- **Qué hay que resolver:** que la billetera integrada firme igual que hoy (firma de mensaje para derivar la clave del chat, datos tipados para pagos y acuerdos, permisos de token), que la misma cuenta se recupere al cambiar de celular, y que todo siga pasando por `signTyped` y `signText` de `wallet/sign.ts`, que es el único punto de firma.
+- **Opciones de proveedor a evaluar:** Privy, Web3Auth, Dynamic, Coinbase Smart Wallet. Se compara costo, recuperación de la cuenta y si la clave del chat se puede derivar de forma estable.
+- **Universal link:** el dominio `junquero.app` todavía no existe. Cuando exista, se puede sumar `universal` y `linkMode` a la redirección de AppKit para mejorar el regreso desde las billeteras externas.
+
 ### Qué tendría que cambiar en la app
 
 - **Login:** hoy se entra con WalletConnect/MetaMask. Habría que agregar el ingreso con billetera embebida como alternativa, no como reemplazo.
@@ -63,3 +72,30 @@ Ideas para después de la entrega. Nada de esto está construido ni validado tod
 - Pago en efectivo en la pantalla de publicar (el contrato ya lo tiene).
 - Testigo para changas de más de 300 USDC y votación de parámetros en pantalla (ver el plan de pruebas, secciones 12 a 14).
 - Mejor buscador de direcciones con número de puerta (cambiar de proveedor de mapas o sumar uno con datos de direcciones).
+
+## 4. Comentarios y calificación en los dos sentidos
+
+Hoy solo califica quien publicó (1 a 5, firmada al liberar el pago) y no hay texto. Idea: que la calificación lleve un comentario opcional, que los próximos solicitantes lo vean al elegir a un postulante, y que quien hizo el trabajo también pueda calificar y comentar a quien publicó. Se hace si se termina el resto.
+
+**Versión recomendada: fuera de la cadena, sin tocar los contratos**
+- Tabla nueva en el servidor (pedido, quién escribe, a quién, nota, comentario, fecha) y un endpoint para escribirla. Solo pueden escribir las dos partes de un pedido terminado, una vez por pedido y por sentido. Las partes salen de `order_parties`.
+- App: campo de comentario opcional en el bloque de calificación; lista de reseñas en el perfil público y en la tarjeta de postulante; promedio y reseñas de quien publica, visibles para quien se postula.
+- Moderación: botón de reportar y la guarda de datos de contacto (`contactGuard`) también en los comentarios.
+- Requiere migración del servidor y `npm run deploy` del servidor. No requiere redesplegar contratos.
+
+**Qué no conviene poner en la cadena**
+- El texto de los comentarios: no se puede borrar ni corregir, es texto libre de personas, tiene costo de gas y el Escrow ya está al límite de tamaño. Si algún día hace falta que sea inalterable, guardar solo el hash en la cadena y el texto en el servidor.
+
+**Qué sí aportaría ponerlo en la cadena (cambio de contrato futuro)**
+- La nota que el prestador le pone a quien publicó, para que cuente en la reputación del solicitante (`Reputation`, hoy solo cuenta cierres y fallas) y pueda pesar en reglas, por ejemplo en la decisión del jurado.
+- Costo: un paso y una firma más para quien ya cobró (poco incentivo para hacerlo), redespliegue y migración de pedidos en curso. Conviene decidirlo cuando haya uso real. Si las notas ya se guardan en el servidor con pedido y partes, migrarlas es copiar datos.
+
+## 5. Comprobantes como imágenes
+
+Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simple: un círculo con el nombre del trabajo, el rubro y la fecha de cierre (pantalla "Comprobantes", a la que se llega desde una tarjeta del perfil). Para que sean algo más atractivo y más fáciles de mostrar:
+
+- **Imagen propia de cada comprobante:** una ilustración por rubro (hogar, mudanzas, mascotas, etc.), con variantes por mes o por cantidad de trabajos cerrados, y quizá niveles (bronce, plata, oro) según la trayectoria de la persona.
+- **Que se vea fuera de la app:** hoy el contrato `Receipt` no define `tokenURI`, así que una billetera o un mercado de NFT no muestra ninguna imagen. Hace falta agregar `tokenURI` (cambio de contrato) que apunte a metadatos con nombre, rubro, mes e imagen, alojados en el servidor o en un almacenamiento descentralizado. Los metadatos no deben llevar datos personales: solo rubro y mes, como hoy en la cadena.
+- **Imagen generada:** puede armarse al vuelo en el servidor (SVG por rubro y mes) para no guardar un archivo por comprobante.
+- **En la app:** la medalla pasa a mostrar esa imagen, con la opción de compartirla.
+- Decidir si el título del trabajo aparece en la imagen: hoy se muestra en la app porque es el título público de la publicación, pero no está en la cadena.

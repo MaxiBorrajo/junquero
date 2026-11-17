@@ -32,7 +32,7 @@ export function PushHandler() {
     if (status !== "ready") return;
     const subscription = Notifications.addNotificationReceivedListener(() => {
       void refresh().catch(() => {});
-      for (const key of ["summary", "notifications", "chats", "applications", "agreements", "changas"]) void queryClient.invalidateQueries({ queryKey: [key] });
+      for (const key of ["summary", "notifications", "chats", "applications", "agreements", "changas", "order", "evidence"]) void queryClient.invalidateQueries({ queryKey: [key] });
     });
     return () => subscription.remove();
   }, [status, refresh, queryClient]);

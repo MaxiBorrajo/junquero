@@ -3,6 +3,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
+import { ReleaseCode } from "../../components/ReleaseCode";
+import { releaseCode } from "../../chain/releaseCode";
 import { deployment } from "../../chain/deployment";
 import { MilestoneStatus, encodeDeliverMilestone, encodeMilestoneQr, milestoneReleaseTypedData } from "../../chain/milestones";
 import { RELEASE_VALIDITY_SECONDS, sendViaRelay } from "../../chain/orderActions";
@@ -39,7 +41,7 @@ export default function MilestoneScreen() {
   const forMilestone = useEvidenceByMilestone(evidence.data ?? []);
   const { run: runAction, busy, error } = useRunAction();
   const [rating, setRating] = useState(5);
-  const [qr, setQr] = useState<string | null>(null);
+  const [qr, setQr] = useState<{ text: string; code: string | null } | null>(null);
   const remote = useQuery({
     queryKey: ["release", orderId, address, "m"],
     enabled: Boolean(address),
@@ -78,7 +80,12 @@ export default function MilestoneScreen() {
       const expiry = Math.floor(Date.now() / 1000) + RELEASE_VALIDITY_SECONDS;
       const data = { orderId: BigInt(orderId), index, amount: item.amount, rating, evidenceHash: item.evidenceHash, expiry };
       const signature = await signTyped(milestoneReleaseTypedData(deployment, data));
-      setQr(encodeMilestoneQr(data, payee as `0x${string}`, signature));
+      // Se guarda la liberación firmada en el servidor: así quien cobra puede escribir el código corto si la cámara no anda.
+      const code = await api
+        .send("POST", `/me/orders/${orderId}/release`, { index, amount: item.amount.toString(), rating, evidenceHash: item.evidenceHash, expiry, signature })
+        .then(() => releaseCode(signature))
+        .catch(() => null);
+      setQr({ text: encodeMilestoneQr(data, payee as `0x${string}`, signature), code });
     }, t.milestonesBoard.qrReady, "scan");
 
   const statusNote =
@@ -145,7 +152,8 @@ export default function MilestoneScreen() {
           {qr ? (
             <View style={styles.qr}>
               <Text style={text.subtitle}>{t.order.qrTitle}</Text>
-              <QRCode value={qr} size={240} backgroundColor={colors.white} />
+              <QRCode value={qr.text} size={240} backgroundColor={colors.white} />
+              {qr.code ? <ReleaseCode code={qr.code} /> : null}
               <Button label={t.common.retry} icon="refresh" variant="ghost" onPress={() => setQr(null)} />
             </View>
           ) : (

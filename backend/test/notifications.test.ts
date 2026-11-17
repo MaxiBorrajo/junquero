@@ -119,6 +119,14 @@ describe("what triggers a notification", () => {
     );
   });
 
+  it("tells the owner when the provider checks in", async () => {
+    const ctx = setup();
+    await agreedOrder(ctx);
+    plainEvent(ctx.raw, "OrderCheckedIn", 1, 501);
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).find((r) => r.kind === "checked_in")?.address).toBe(owner.address.toLowerCase());
+  });
+
   it("tells the other party when a dispute with a jury is opened", async () => {
     const ctx = setup();
     ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (3, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());

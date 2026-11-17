@@ -14,22 +14,24 @@ interface Template {
 }
 
 export const TEMPLATES: Record<string, Template> = {
-  application_new: { title: "Nueva postulación", body: "Un junquero se postuló a tu trabajo.", priority: "high" },
-  agreement_proposed: { title: "Te eligieron", body: "Te eligieron para un trabajo. Confirmá el acuerdo.", priority: "high" },
-  published: { title: "Trabajo publicado", body: "Tu trabajo ya está confirmado y aparece en el mapa.", priority: "default" },
+  application_new: { title: "Nueva postulación", body: "Alguien se postuló a tu trabajo. Entrá a ver su perfil y elegí a quién querés.", priority: "high" },
+  agreement_proposed: { title: "Te eligieron", body: "Te eligieron para un trabajo. Revisá el acuerdo y aceptalo.", priority: "high" },
+  published: { title: "Trabajo publicado", body: "Tu trabajo ya está confirmado y aparece en el mapa. Te avisamos cuando alguien se postule.", priority: "default" },
   group_published: { title: "Trabajo grupal publicado", body: "Tu trabajo grupal ya puede recibir aportes. Compartilo para juntar la meta.", priority: "default" },
-  agreed: { title: "Trabajo acordado", body: "Quedó acordado. Abrí la app para ver los detalles.", priority: "high" },
-  chat: { title: "Mensaje nuevo", body: "Tenés un mensaje nuevo.", priority: "default" },
-  delivered: { title: "Entrega registrada", body: "Revisá el trabajo: si no respondés a tiempo, se aprueba solo.", priority: "high" },
-  cancelled: { title: "Trabajo cancelado", body: "Uno de tus trabajos fue cancelado.", priority: "high" },
-  settled: { title: "Pago liberado", body: "Se liberó el pago de un trabajo.", priority: "default" },
-  reminder_start: { title: "Tu trabajo es pronto", body: "Tenés un trabajo en una hora.", priority: "high" },
-  release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí la app para confirmar.", priority: "high" },
-  dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Abrí la app ahora.", priority: "high" },
-  jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para actuar. Abrí la app ahora.", priority: "high" },
-  jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito.", priority: "high" },
-  selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a trabajos.", priority: "default" },
-  selfie_rejected: { title: "Revisá tu selfie", body: "No pudimos verificarla. Probá de nuevo con buena luz.", priority: "default" },
+  agreed: { title: "Trabajo acordado", body: "Quedó acordado y el pago está en garantía. Abrí el trabajo para ver fecha, lugar y chat.", priority: "high" },
+  chat: { title: "Mensaje nuevo", body: "Te escribieron por un trabajo. Entrá a leer y responder.", priority: "default" },
+  delivered: { title: "Trabajo terminado", body: "Marcaron el trabajo como terminado. Revisalo y aprobalo: si no respondés a tiempo, se aprueba solo.", priority: "high" },
+  cancelled: { title: "Trabajo cancelado", body: "Cancelaron un trabajo tuyo. Abrilo para ver cómo queda el pago.", priority: "high" },
+  settled: { title: "Pago liberado", body: "Se liberó el pago de un trabajo. Calificá a la otra persona desde el trabajo.", priority: "default" },
+  reminder_start: { title: "Tu trabajo es pronto", body: "Tenés un trabajo en una hora. Abrilo para ver el lugar y cuando llegues, tocá Llegué.", priority: "high" },
+  checked_in: { title: "Llegó quien hace tu trabajo", body: "Avisó que llegó al lugar. Salí a recibirlo y abrí el trabajo para ver los detalles.", priority: "high" },
+  evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
+  release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
+  dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Entrá al trabajo ahora.", priority: "high" },
+  jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para votar. Entrá al reclamo ahora.", priority: "high" },
+  jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito. Entrá al reclamo ahora.", priority: "high" },
+  selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a trabajos. Buscá uno en el mapa.", priority: "default" },
+  selfie_rejected: { title: "Revisá tu selfie", body: "No pudimos verificarla. Sacate otra con buena luz desde tu perfil.", priority: "default" },
 };
 
 const nowSql = "CAST(strftime('%s', 'now') AS INTEGER)";
@@ -96,6 +98,8 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
       const payee = parse<{ payee?: string }>(event.args)?.payee;
       if (!payee || !isAddress(payee)) continue;
       statements.push(queueNotification(db, payee, "agreed", String(event.order_id)), ...reminderFor(db, event.order_id, payee));
+    } else if (event.name === "OrderCheckedIn" && event.order_id !== null) {
+      statements.push(insertFromChanga(db, "checked_in", event.order_id, "owner"));
     } else if (event.name === "OrderDelivered" && event.order_id !== null) {
       statements.push(insertFromChanga(db, "delivered", event.order_id, "owner"));
     } else if (event.name === "OrderCancelled" && event.order_id !== null) {

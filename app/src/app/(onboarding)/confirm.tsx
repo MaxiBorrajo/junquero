@@ -1,12 +1,11 @@
 import { useAccount } from "@reown/appkit-react-native";
 import { router } from "expo-router";
 import { useState } from "react";
-import { signMessage } from "wagmi/actions";
 import { Body, Button, ErrorText, Screen, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { useSession } from "../../session/SessionProvider";
 import { useSwitchAccount } from "../../session/useSwitchAccount";
-import { wagmiAdapter } from "../../wallet/appkit";
+import { signText } from "../../wallet/sign";
 
 function isUserRejection(error: unknown): boolean {
   const text = String((error as { message?: string })?.message ?? error).toLowerCase();
@@ -28,7 +27,7 @@ export default function Confirm() {
     setBusy(true);
     setError(null);
     try {
-      await signIn(address, (message) => signMessage(wagmiAdapter.wagmiConfig, { message }));
+      await signIn(address, signText);
       router.replace("/");
     } catch (failure) {
       setError(isUserRejection(failure) ? t.confirm.cancelled : t.confirm.failed);

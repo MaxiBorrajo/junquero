@@ -12,6 +12,12 @@ export function buildTimeline<M extends { createdAt: number; key: string }>(mess
   return rows.map((row, index) => ({ row, index })).sort((a, b) => a.row.createdAt - b.row.createdAt || (a.row.type === b.row.type ? a.index - b.index : a.row.type === "event" ? -1 : 1)).map((entry) => entry.row);
 }
 
+const pad = (value: number): string => String(value).padStart(2, "0");
+export const clockTime = (seconds: number): string => {
+  const date = new Date(seconds * 1000);
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 type Texts = Record<ChatEventKind, string>;
 
 // "Aceptaste el acuerdo" para quien lo hizo y "{nombre} aceptó el acuerdo" para la otra persona. Completa los datos chicos del hecho (monto, cantidad, número de hito).
@@ -21,6 +27,7 @@ export function eventText(event: ChatEvent, me: string | null, name: string, tex
   const count = Number(data.count ?? 1);
   return (mine ? texts.mine : texts.theirs)[event.kind]
     .replace("{name}", name)
+    .replace("{time}", clockTime(event.createdAt))
     .replace("{pruebas}", count === 1 ? "1 prueba" : `${count} pruebas`)
     .replace("{amount}", formatUsdc(String(data.added ?? data.paid ?? "0")))
     .replace("{n}", String(Number(data.index ?? 0) + 1))

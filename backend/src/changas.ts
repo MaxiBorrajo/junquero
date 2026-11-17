@@ -30,6 +30,8 @@ export interface ChangaRow {
   amount: string | null;
   status: string;
   created_at: number;
+  // Cuándo se cerró y pagó el trabajo (solo en las listas propias, para los trabajos cerrados).
+  closed_at?: number | null;
 }
 
 export interface ListFilters {
@@ -59,6 +61,7 @@ export const presentChanga = (row: ChangaRow) => ({
   amount: row.amount,
   status: row.status,
   createdAt: row.created_at,
+  closedAt: row.closed_at ?? null,
 });
 
 export async function saveDraft(
@@ -157,8 +160,9 @@ export async function getPublished(db: D1Database, specHash: string): Promise<Ch
 export async function listByOwner(db: D1Database, owner: string, limit: number): Promise<ChangaRow[]> {
   const { results } = await db
     .prepare(
-      `SELECT id, owner, spec_hash, spec, order_id, token, amount, status, created_at
-       FROM changas WHERE owner = ? ORDER BY id DESC LIMIT ?`,
+      `SELECT id, owner, spec_hash, spec, order_id, token, amount, status, created_at,
+              CASE WHEN status = 'settled' THEN (SELECT MAX(e.block_timestamp) FROM events e WHERE e.order_id = changas.order_id AND e.name = 'OrderSettled') END AS closed_at
+       FROM changas WHERE owner = ? ORDER BY id DESC LIMIT ?`
     )
     .bind(owner, limit)
     .all<ChangaRow>();

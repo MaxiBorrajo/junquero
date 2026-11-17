@@ -204,15 +204,16 @@ export async function listMine(db: D1Database, applicant: string, limit: number)
     .prepare(
       `SELECT a.*, c.spec_hash, c.order_id, c.status AS changa_status, json_extract(c.spec, '$.title') AS changa_title, c.amount AS changa_amount,
               json_extract(c.spec, '$.category') AS changa_category, json_extract(c.spec, '$.modality') AS changa_modality,
-              COALESCE(json_extract(c.spec, '$.startsAt'), json_extract(c.spec, '$.deadline')) AS changa_when
+              COALESCE(json_extract(c.spec, '$.startsAt'), json_extract(c.spec, '$.deadline')) AS changa_when,
+              CASE WHEN c.status = 'settled' THEN (SELECT MAX(e.block_timestamp) FROM events e WHERE e.order_id = c.order_id AND e.name = 'OrderSettled') END AS changa_closed_at
        FROM applications a JOIN changas c ON c.id = a.changa_id
        WHERE a.applicant = ? ORDER BY a.id DESC LIMIT ?`,
     )
     .bind(applicant, limit)
-    .all<ApplicationRow & { spec_hash: string; order_id: number | null; changa_status: string; changa_title: string | null; changa_amount: string | null; changa_category: number | null; changa_modality: string | null; changa_when: number | null }>();
+    .all<ApplicationRow & { spec_hash: string; order_id: number | null; changa_status: string; changa_title: string | null; changa_amount: string | null; changa_category: number | null; changa_modality: string | null; changa_when: number | null; changa_closed_at: number | null }>();
   return results.map((row) => ({
     ...presentApplication(row),
-    changa: { specHash: row.spec_hash, orderId: row.order_id, status: row.changa_status, title: row.changa_title ?? "", amount: row.changa_amount, category: row.changa_category, modality: row.changa_modality, when: row.changa_when },
+    changa: { specHash: row.spec_hash, orderId: row.order_id, status: row.changa_status, title: row.changa_title ?? "", amount: row.changa_amount, category: row.changa_category, modality: row.changa_modality, when: row.changa_when, closedAt: row.changa_closed_at },
   }));
 }
 

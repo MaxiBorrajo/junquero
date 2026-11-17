@@ -50,3 +50,7 @@ Con la regla nueva (hubo postulaciones, y hay un prestador acordado, así que si
 - Redesplegar en Sepolia reutilizando la misma moneda de prueba.
 - Actualizar direcciones, ABI y constantes (app, panel y servidor), limpiar la base del servidor, volver a sembrar las cuentas de demo, actualizar el webhook de Alchemy y repetir el stake de los jurados.
 - Actualizar las pruebas 2.6, 3.3 y la sección 7 del plan de pruebas.
+
+## 6. Para evaluar más adelante
+
+- Calificación del prestador hacia quien publicó, dentro de la reputación del contrato. Detalle y motivos en "Junquero - plan a futuro", sección 4. No es parte de este cambio.

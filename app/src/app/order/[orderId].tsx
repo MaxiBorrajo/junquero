@@ -4,6 +4,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
+import { ClosingSection } from "../../components/ClosingSection";
+import { ReleaseCode } from "../../components/ReleaseCode";
+import { releaseCode } from "../../chain/releaseCode";
 import { deployment } from "../../chain/deployment";
 import { approveRemotely, releaseCall, type RemoteRelease } from "../../chain/remoteRelease";
 import { encodeCheckIn, encodeDeliver, encodeReleaseQr, releaseTypedData, sendViaRelay, RELEASE_VALIDITY_SECONDS } from "../../chain/orderActions";
@@ -52,7 +55,7 @@ export default function OrderScreen() {
   const myCase = (myCases.data?.asParty ?? []).find((item) => item.orderId === id);
   const { run: runAction, busy, error: failed } = useRunAction();
   const [rating, setRating] = useState(5);
-  const [qr, setQr] = useState<{ text: string; expiry: number } | null>(null);
+  const [qr, setQr] = useState<{ text: string; expiry: number; code: string | null } | null>(null);
 
   const contribution = useQuery({
     queryKey: ["contribution", id, address],
@@ -132,7 +135,12 @@ export default function OrderScreen() {
       const expiry = Math.floor(Date.now() / 1000) + RELEASE_VALIDITY_SECONDS;
       const data = { orderId: BigInt(id), payee: state.payee, amount: state.price, rating, evidenceHash: state.evidenceHash, expiry };
       const signature = await signTyped(releaseTypedData(deployment, data));
-      setQr({ text: encodeReleaseQr(data, signature), expiry });
+      // Se guarda la liberación firmada en el servidor: así quien cobra puede escribir el código corto si la cámara no anda.
+      const code = await api
+        .send("POST", `/me/orders/${id}/release`, { amount: data.amount.toString(), rating, evidenceHash: data.evidenceHash, expiry, signature })
+        .then(() => releaseCode(signature))
+        .catch(() => null);
+      setQr({ text: encodeReleaseQr(data, signature), expiry, code });
     }, t.order.releaseFailed, t.order.codeReady, "scan");
 
   const j = t.journey;
@@ -199,6 +207,8 @@ export default function OrderScreen() {
 
       {journey ? <Journey title={role === "payer" ? t.journey.payerTitle : t.journey.payeeTitle} steps={journey.steps} current={journey.current} /> : null}
 
+      {settled && (role === "payer" || role === "payee") ? <ClosingSection orderId={id} role={role} items={items} /> : null}
+
       {state.hasMilestones && view !== "settled" && view !== "cancelled" && view !== "disputed" ? (
         <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} />
       ) : null}
@@ -245,6 +255,7 @@ export default function OrderScreen() {
               <Text style={text.subtitle}>{t.order.qrTitle}</Text>
               <QRCode value={qr.text} size={240} backgroundColor={colors.white} />
               <Secondary>{`${t.agreement.expires}: ${formatDate(qr.expiry)}`}</Secondary>
+              {qr.code ? <ReleaseCode code={qr.code} /> : null}
               <Button label={t.common.retry} icon="refresh" variant="ghost" onPress={() => setQr(null)} />
             </View>
           ) : (

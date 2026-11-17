@@ -6,8 +6,9 @@ import { applicationsHandler } from "../src/applications";
 import { createChangasHandler } from "../src/changas";
 import { processEvents } from "../src/eventStream";
 import { escrowDomain } from "../src/agreements";
-import { milestoneReleaseTypes, releaseTypes } from "../src/releases";
+import { milestoneReleaseTypes, normalizeCode, releaseCode, releaseTypes } from "../src/releases";
 import { partiesHandler } from "../src/parties";
+import { receiptsHandler } from "../src/receipts";
 import { validateSpec } from "../src/spec";
 import { admin, authed, createdEvent, futureSpec, owner, plainEvent, setup, stranger, TOKEN, tokenFor } from "./helpers";
 
@@ -43,6 +44,37 @@ const releaseBody = async (signer: typeof owner, patch: Record<string, unknown> 
   });
   return { ...base, signature };
 };
+
+describe("código corto de liberación", () => {
+  it("sale de la firma con una regla fija que la app repite", () => {
+    expect(releaseCode(("0x" + "ab".repeat(65)) as Hex)).toBe("228DQV28");
+    expect(normalizeCode("22-8d qv2o")).toBe("228DQV20");
+    expect(normalizeCode("iL")).toBe("11");
+  });
+
+  it("quien va a cobrar recupera la liberación con el código y nadie más", async () => {
+    const w = await delivered();
+    const body = await releaseBody(owner);
+    expect((await w.ctx.call("/me/orders/1/release", authed(w.payer.body.token, "POST", body))).status).toBe(201);
+    const code = releaseCode(body.signature);
+
+    const found = await w.ctx.call(`/me/release-codes/${code.slice(0, 4).toLowerCase()}-${code.slice(4)}`, authed(w.worker.body.token, "GET"));
+    expect(found.status).toBe(200);
+    expect(await found.json()).toMatchObject({ orderId: 1, release: { index: null, amount: "100000000", rating: 5, payee: stranger.address.toLowerCase(), signature: body.signature } });
+
+    expect((await w.ctx.call("/me/release-codes/ZZZZZZZZ", authed(w.worker.body.token, "GET"))).status).toBe(404);
+    expect((await w.ctx.call("/me/release-codes/corto", authed(w.worker.body.token, "GET"))).status).toBe(404);
+    expect((await w.ctx.call(`/me/release-codes/${code}`, authed(w.payer.body.token, "GET"))).status).toBe(404);
+  });
+
+  it("un código vencido ya no sirve", async () => {
+    const w = await delivered();
+    const body = await releaseBody(owner, { expiry: now() + 61 });
+    await w.ctx.call("/me/orders/1/release", authed(w.payer.body.token, "POST", body));
+    w.ctx.raw.prepare("UPDATE releases SET expiry = ?").run(now() - 5);
+    expect((await w.ctx.call(`/me/release-codes/${releaseCode(body.signature)}`, authed(w.worker.body.token, "GET"))).status).toBe(404);
+  });
+});
 
 describe("remote approval", () => {
   it("stores the payer's signature once the work is delivered and the payee can read it", async () => {
@@ -242,5 +274,34 @@ describe("content reports", () => {
     const log = ((await (await r.ctx.call("/admin/log", authed(r.boss.body.token, "GET"))).json()) as any).log;
     expect(log[0]).toMatchObject({ action: "report_hide", target: `changa:${r.id}`, reason: "Confirmado" });
     expect((await r.ctx.call(`/admin/reports/${id}`, authed(r.boss.body.token, "POST", { action: "dismiss", reason: "Ya resuelto" }))).status).toBe(404);
+  });
+});
+
+describe("fecha de cierre en las listas propias", () => {
+  it("quien publicó ve cuándo se cerró cada trabajo pagado, y los abiertos no tienen fecha", async () => {
+    const w = await delivered();
+    plainEvent(w.ctx.raw, "OrderSettled", 1, 103, { payee: stranger.address, rating: "5" });
+    w.ctx.raw.prepare("UPDATE events SET block_timestamp = 1790000000 WHERE name = 'OrderSettled'").run();
+    await processEvents(w.ctx.db, handlers, 100);
+    const list = (await (await w.ctx.call("/me/changas", authed(w.payer.body.token, "GET"))).json()) as any;
+    expect(list.changas[0]).toMatchObject({ status: "settled", closedAt: 1790000000 });
+  });
+
+  it("un trabajo sin cerrar no trae fecha de cierre", async () => {
+    const w = await delivered();
+    const list = (await (await w.ctx.call("/me/changas", authed(w.payer.body.token, "GET"))).json()) as any;
+    expect(list.changas[0].closedAt).toBeNull();
+  });
+});
+
+describe("comprobante con el nombre del trabajo", () => {
+  it("trae el título de la changa y cuándo se cerró", async () => {
+    const w = await delivered();
+    plainEvent(w.ctx.raw, "OrderSettled", 1, 103, { payee: stranger.address, rating: "5" });
+    plainEvent(w.ctx.raw, "ReceiptClaimed", 1, 104, { payee: stranger.address, category: "2", month: "202611" });
+    w.ctx.raw.prepare("UPDATE events SET block_timestamp = 1790000000 WHERE name = 'OrderSettled'").run();
+    await processEvents(w.ctx.db, [...handlers, receiptsHandler], 100);
+    const list = (await (await w.ctx.call(`/profiles/${stranger.address}/receipts`, authed(w.worker.body.token, "GET"))).json()) as any;
+    expect(list.receipts).toEqual([{ orderId: 1, category: 2, month: 202611, title: "Cambiar una canilla", closedAt: 1790000000 }]);
   });
 });

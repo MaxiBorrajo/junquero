@@ -1,10 +1,10 @@
 import { keccak256, toBytes, type Address } from "viem";
 import { readContract } from "wagmi/actions";
-import { wagmiAdapter } from "../wallet/appkit";
+import { publicConfig } from "./publicConfig";
 import { escrowAbi, forwarderAbi, registryAbi, tokenAbi } from "./abis";
 import { deployment } from "./deployment";
 
-const config = () => wagmiAdapter.wagmiConfig;
+const config = () => publicConfig;
 
 export const readTokenBalance = (owner: Address): Promise<bigint> =>
   readContract(config(), { address: deployment.token, abi: tokenAbi, functionName: "balanceOf", args: [owner] });

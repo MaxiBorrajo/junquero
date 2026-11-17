@@ -129,6 +129,13 @@ describe("subida de evidencia por tanda", () => {
     expect(buildEvidenceBatchMessage(3, [b, a])).not.toBe(message);
   });
 
+  it("avisa las etapas en orden: subir, firmar y compartir", async () => {
+    const { deps } = harness();
+    const stages: string[] = [];
+    await uploadEvidenceBatch({ ...deps, onStage: (stage) => stages.push(stage) }, 7, [{ file, meta }]);
+    expect(stages).toEqual(["upload", "sign", "share"]);
+  });
+
   it("no sube nada si la otra parte no activó su clave", async () => {
     const calls: string[] = [];
     const api = createApi({ baseUrl: "https://x", getToken: () => "t", fetcher: async (url) => (calls.push(url), new Response("{}", { status: 404 })) });

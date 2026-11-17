@@ -8,6 +8,7 @@ export const deployment = {
   escrow: "0xdc05BE8B7587e39De3fCC06d6F9D0eB827f311B5" as Address,
   parameterRegistry: "0x6c523B229Df30030F21c26c74f9AE58185106280" as Address,
   arbitration: "0x7BC3012dEbcBEC295468DA44247d7357daF28742" as Address,
+  receipt: "0x97a035941356Aa32E494df21c5c80E17FDC23F93" as Address,
   tokenName: "USDC",
   tokenPermitVersion: "1",
   tokenDecimals: 6,

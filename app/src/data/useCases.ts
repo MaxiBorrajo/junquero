@@ -6,6 +6,9 @@ import { useSession } from "../session/SessionProvider";
 export interface CaseRef {
   caseId: number;
   orderId: number;
+  // Solo en los reclamos propios: quién lo abrió y si ya se resolvió.
+  claimant?: string | null;
+  resolved?: boolean;
 }
 
 export interface MyCases {

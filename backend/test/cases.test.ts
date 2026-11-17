@@ -39,9 +39,21 @@ describe("my cases", () => {
 
   it("lists the cases of an order where I am a party, newest first", async () => {
     const ctx = world();
-    expect((await list(ctx)).asParty).toEqual([{ caseId: 2, orderId: 2 }, { caseId: 1, orderId: 1 }]);
+    expect((await list(ctx)).asParty).toEqual([{ caseId: 2, orderId: 2, claimant: null, resolved: false }, { caseId: 1, orderId: 1, claimant: null, resolved: false }]);
     expect((await list(ctx, stranger)).asParty).toHaveLength(2);
     expect((await list(ctx, third)).asParty).toEqual([]);
+  });
+
+  it("says who opened each case and whether it was already resolved", async () => {
+    const ctx = world();
+    event(ctx.raw, "CaseOpened", 1, 10, 0, 1, { claimant: owner.address });
+    event(ctx.raw, "DisputeResolved", 0, 20, 0, 1);
+    event(ctx.raw, "CaseOpened", 2, 30, 0, 2, { claimant: stranger.address });
+    const parties = (await list(ctx)).asParty;
+    expect(parties).toEqual([
+      { caseId: 2, orderId: 2, claimant: stranger.address.toLowerCase(), resolved: false },
+      { caseId: 1, orderId: 1, claimant: owner.address.toLowerCase(), resolved: true },
+    ]);
   });
 
   it("lists the cases where I was drawn as a juror", async () => {

@@ -244,7 +244,7 @@ export default function OrderScreen() {
       {settled && (role === "payer" || role === "payee") ? <ClosingSection orderId={id} role={role} items={items} /> : null}
 
       {state.hasMilestones && view !== "settled" && view !== "cancelled" ? (
-        <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} />
+        <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} disputed={view === "disputed"} />
       ) : null}
 
       {!state.hasMilestones && view === "worker-working" ? (

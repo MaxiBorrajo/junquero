@@ -1,6 +1,9 @@
 export interface CaseRef {
   caseId: number;
   orderId: number;
+  // Solo en los reclamos propios: quién lo abrió y si ya se resolvió (para marcar los trabajos y filtrarlos).
+  claimant?: string | null;
+  resolved?: boolean;
 }
 
 const LIMIT = 50;
@@ -41,7 +44,12 @@ export async function casesFor(db: D1Database, address: string, now = Date.now()
   const [party, juror] = await db.batch([
     db
       .prepare(
-        `SELECT oc.case_id AS case_id, oc.order_id AS order_id FROM order_cases oc
+        `SELECT oc.case_id AS case_id, oc.order_id AS order_id,
+                (SELECT lower(json_extract(e.args, '$.claimant')) FROM events e WHERE e.case_id = oc.case_id AND e.name = 'CaseOpened' LIMIT 1) AS claimant,
+                EXISTS (SELECT 1 FROM events e JOIN events x ON x.order_id = e.order_id AND x.name = 'DisputeResolved'
+                          AND (x.block_number > e.block_number OR (x.block_number = e.block_number AND x.log_index > e.log_index))
+                        WHERE e.case_id = oc.case_id AND e.name = 'CaseOpened') AS resolved
+         FROM order_cases oc
          JOIN order_parties p ON p.order_id = oc.order_id
          WHERE p.payer = ?1 OR p.payee = ?1 ORDER BY oc.case_id DESC LIMIT ${LIMIT}`,
       )
@@ -57,7 +65,7 @@ export async function casesFor(db: D1Database, address: string, now = Date.now()
   type Rows = { results: { case_id: number; order_id: number }[] };
   const open = (await openCases(db, now)).filter((row) => row.payer !== address && row.payee !== address).slice(0, OPEN_LIMIT);
   return {
-    asParty: (party as unknown as Rows).results.map(toRef),
+    asParty: (party as unknown as { results: { case_id: number; order_id: number; claimant: string | null; resolved: number }[] }).results.map((row) => ({ ...toRef(row), claimant: row.claimant, resolved: Boolean(row.resolved) })),
     asJuror: (juror as unknown as Rows).results.map(toRef),
     openForJury: open.map(toRef),
   };

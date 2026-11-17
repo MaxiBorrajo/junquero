@@ -360,7 +360,7 @@ Con la changa por hitos acordada (2.5 y 3.4).
 - Esperado: el hito en reclamo aparece con la etiqueta "En reclamo" y un aviso dice cuál es. Pasa al flujo de jurado (ver sección 8). Mientras el jurado resuelve, el contrato pone en pausa todo el trabajo: no se puede entregar ni aprobar otro hito, ni terminar ni dejar el trabajo. Al resolverse, el hito se paga según el veredicto y el trabajo sigue con los hitos que faltan. Un hito chico no va a jurado: se reparte 50/50 al instante y el trabajo sigue sin pausa.
 
 **6.5 Terminar sin causa** · Rol: Ana
-- [ ] Pasos: terminar la changa a mitad, sin causa, con un hito pagado y uno en curso.
+- [ x ] Pasos: terminar la changa a mitad, sin causa, con un hito pagado y uno en curso.
 - Esperado: se pagan los hitos verificados, el hito en curso proporcional, vuelven los hitos sin empezar y hay una compensación adicional para Beto. El monto se muestra antes de confirmar. Beto puede subir evidencia de avance para el proporcional.
 - Observaciones: el contrato no distingue el motivo ("sin causa" o "con causa"); anotar qué se ve en la app.
 

@@ -12,7 +12,7 @@ import { colors, spacing, text } from "../theme";
 
 const WARN_STATUSES = new Set(["disputed", "cancelled", "cancelling"]);
 
-export function ChangaCard({ changa, distanceM, onPress, status, action, unavailable = false, strip }: { changa: Changa; distanceM?: number; onPress: () => void; status?: string; action?: { label: string; onPress: () => void }; unavailable?: boolean; strip?: StripData }) {
+export function ChangaCard({ changa, distanceM, onPress, status, action, unavailable = false, strip, badges }: { changa: Changa; distanceM?: number; onPress: () => void; status?: string; action?: { label: string; onPress: () => void }; unavailable?: boolean; strip?: StripData; badges?: { label: string; warn?: boolean }[] }) {
   const { spec } = changa;
   const where = [t.publish.categories[spec.category], spec.modality === "remote" ? t.map.remoteTag : t.map.onsiteTag, distanceM !== undefined ? `${t.map.away} ${formatDistance(distanceM)}` : null].filter(Boolean).join(" · ");
   const when = spec.startsAt ?? spec.deadline ?? null;
@@ -26,12 +26,14 @@ export function ChangaCard({ changa, distanceM, onPress, status, action, unavail
       </View>
       <Text style={text.secondary}>{where}</Text>
       {when ? <Text style={text.secondary}>{`${spec.modality === "remote" ? `${t.publish.deadlineLabel} ` : ""}${formatDate(when)}`}</Text> : null}
+      {spec.doneMilestones && spec.doneMilestones.length > 0 ? <Text style={text.secondary}>{spec.doneMilestones.length === 1 ? t.exitReasons.doneOne : t.exitReasons.doneMany.replace("{n}", String(spec.doneMilestones.length))}</Text> : null}
       {strip ? <StatusStrip data={strip} /> : null}
-      {status || unavailable || action ? (
+      {status || unavailable || action || (badges && badges.length > 0) ? (
         <View style={styles.footer}>
           {status ? (
             <StatusChip label={statusLabel(status)} warn={WARN_STATUSES.has(status)} />
           ) : null}
+          {(badges ?? []).map((badge) => <StatusChip key={badge.label} label={badge.label} warn={badge.warn} />)}
           {unavailable ? <Text style={styles.unavailable}>{t.map.unavailable}</Text> : null}
           {action ? (
             <Pressable accessibilityRole="button" hitSlop={8} onPress={action.onPress} style={styles.action}>

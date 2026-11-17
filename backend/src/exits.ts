@@ -15,11 +15,21 @@ export function validateExit(body: unknown): { ok: true; kind: ExitKind; reason:
 }
 
 // Solo quien hace el hecho puede justificarlo: el prestador deja el trabajo, quien publica lo termina.
-export async function saveExitReason(db: D1Database, orderId: number, caller: string, kind: ExitKind, reason: string, nowSeconds: number): Promise<{ ok: true } | { ok: false; status: 403 | 404; error: string }> {
+export async function saveExitReason(db: D1Database, orderId: number, caller: string, kind: ExitKind, reason: string, nowSeconds: number): Promise<{ ok: true } | { ok: false; status: 403 | 404 | 409; error: string }> {
   const parties = await db.prepare("SELECT payer, payee FROM order_parties WHERE order_id = ?").bind(orderId).first<{ payer: string | null; payee: string | null }>();
   if (!parties) return { ok: false, status: 404, error: "order not found" };
   const expected = kind === "abandoned" ? parties.payee : parties.payer;
   if (!expected || expected !== caller) return { ok: false, status: 403, error: "only the person doing this can justify it" };
+  // Con un reclamo abierto no se puede terminar ni dejar el trabajo: el contrato también lo rechaza.
+  const open = await db
+    .prepare(
+      `SELECT 1 AS ok FROM events o WHERE o.order_id = ?1 AND o.name = 'DisputeOpened'
+         AND NOT EXISTS (SELECT 1 FROM events x WHERE x.order_id = ?1 AND x.name = 'DisputeResolved'
+           AND (x.block_number > o.block_number OR (x.block_number = o.block_number AND x.log_index > o.log_index)))`,
+    )
+    .bind(orderId)
+    .first();
+  if (open) return { ok: false, status: 409, error: "the order has an open dispute" };
   await db.prepare("INSERT INTO exit_reasons (order_id, kind, actor, reason, created_at) VALUES (?, ?, ?, ?, ?)").bind(orderId, kind, caller, reason, nowSeconds).run();
   return { ok: true };
 }

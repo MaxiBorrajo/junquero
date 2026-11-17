@@ -96,6 +96,16 @@ describe("motivo al terminar o dejar", () => {
   });
 });
 
+describe("motivo con un reclamo abierto", () => {
+  it("no se guarda mientras el trabajo está en reclamo", async () => {
+    const { ctx, worker } = await agreed(three);
+    plainEvent(ctx.raw, "DisputeOpened", 1, 501, { claimant: owner.address });
+    await processEvents(ctx.db, handlers, 100);
+    const res = await ctx.call("/me/orders/1/exit-reason", authed(worker, "POST", { kind: "abandoned", reason: "No puedo seguir por salud" }));
+    expect(res.status).toBe(409);
+  });
+});
+
 describe("reclamo de un hito", () => {
   it("no cierra el trabajo: vuelve a acordado y sigue con los demás hitos", async () => {
     const { ctx } = await agreed(three);

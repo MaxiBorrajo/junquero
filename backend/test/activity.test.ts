@@ -41,6 +41,39 @@ describe("activity summary", () => {
   });
 });
 
+describe("activity from real payments", () => {
+  const event = (raw: ReturnType<typeof setup>["raw"], block: number, orderId: number, name: string, args: object) =>
+    raw.prepare("INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, args) VALUES (?, 0, ?, '0x', '0x', '0x', ?, ?, ?)").run(block, block, name, orderId, JSON.stringify(args));
+
+  it("counts paid milestones, early termination and milestones of a job the worker later left", async () => {
+    const ctx = setup();
+    const me = owner.address.toLowerCase();
+    const other = stranger.address.toLowerCase();
+    // 1: cerrado antes de tiempo por quien publicó: yo trabajé, se pagó un hito y una compensación.
+    changa(ctx.raw, 1, "settled", 100_000_000, other, me);
+    event(ctx.raw, 1, 1, "OrderAgreed", { payee: me });
+    event(ctx.raw, 2, 1, "MilestonesAgreed", {});
+    event(ctx.raw, 3, 1, "MilestonePaid", { index: "0", paid: "49000000", refunded: "0", fee: "1000000" });
+    event(ctx.raw, 4, 1, "OrderTerminated", { paidToPayee: "8000000", toTreasury: "200000", refunded: "40000000" });
+    // 2: dejé el trabajo después de cobrar un hito; ahora lo tiene otra persona.
+    changa(ctx.raw, 2, "open", 50_000_000, other, other);
+    ctx.raw.prepare("INSERT INTO abandonments (order_id, payee, block_number, log_index) VALUES (2, ?, 12, 0)").run(me);
+    event(ctx.raw, 10, 2, "OrderAgreed", { payee: me });
+    event(ctx.raw, 11, 2, "MilestonesAgreed", {});
+    event(ctx.raw, 12, 2, "MilestonePaid", { index: "0", paid: "29000000", refunded: "0", fee: "1000000" });
+    event(ctx.raw, 13, 2, "OrderAbandoned", { reopenedWith: "50000000" });
+    // 3: yo publiqué y se pagó un hito en un trabajo todavía en curso.
+    changa(ctx.raw, 3, "agreed", 80_000_000, me, other);
+    event(ctx.raw, 20, 3, "OrderAgreed", { payee: other });
+    event(ctx.raw, 21, 3, "MilestonesAgreed", {});
+    event(ctx.raw, 22, 3, "MilestonePaid", { index: "0", paid: "39000000", refunded: "0", fee: "1000000" });
+
+    const token = (await tokenFor(ctx.call, owner)).body.token;
+    const summary = (await (await ctx.call("/me/activity", authed(token, "GET"))).json()) as Record<string, unknown>;
+    expect(summary).toEqual({ earned: "86000000", spent: "40000000", toCollect: "0", inEscrow: "40000000", settledAsPayee: 2, settledAsPayer: 1 });
+  });
+});
+
 describe("notifications list", () => {
   const insert = (raw: ReturnType<typeof setup>["raw"], address: string, kind: string, ref: string, createdAt: number, dueAt = 0) =>
     raw.prepare("INSERT INTO notifications (address, kind, ref, due_at, created_at) VALUES (?, ?, ?, ?, ?)").run(address, kind, ref, dueAt, createdAt);

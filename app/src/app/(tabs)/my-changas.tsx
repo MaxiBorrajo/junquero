@@ -11,6 +11,8 @@ import { PullSpinner } from "../../components/PullSpinner";
 import { SearchField } from "../../components/SearchField";
 import { Button, Chip, Row, Secondary, Title } from "../../components/ui";
 import { effectiveStatus, useCancelling } from "../../data/cancelling";
+import { useMyCases } from "../../data/useCases";
+import { disputesByOrder, matchesDisputeFilter, type DisputeFilter, type DisputeInfo } from "../../lib/disputes";
 import { useMyAgreements, useMyApplications, useMyChangas, useMyContributions } from "../../data/useMine";
 import { t } from "../../i18n";
 import { formatClock, formatDate, sameDay } from "../../lib/format";
@@ -25,19 +27,22 @@ import { applicationView } from "../../lib/applicationState";
 import { useSession } from "../../session/SessionProvider";
 import { colors, radius, spacing, text } from "../../theme";
 
-type Tab = "agenda" | "published" | "applied" | "closed" | "contributions";
+type Tab = "agenda" | "published" | "applied" | "closed" | "contributions" | "disputes";
 
 export default function MyChangas() {
   const { address } = useSession();
   const [tab, setTab] = useState<Tab>("agenda");
-  const [queries, setQueries] = useState<Record<Tab, string>>({ agenda: "", published: "", applied: "", closed: "", contributions: "" });
+  const [queries, setQueries] = useState<Record<Tab, string>>({ agenda: "", published: "", applied: "", closed: "", contributions: "", disputes: "" });
+  const [disputeFilter, setDisputeFilter] = useState<DisputeFilter>("all");
   const query = queries[tab] ?? "";
   const published = useMyChangas();
   const applied = useMyApplications();
   const agreements = useMyAgreements();
   const contributions = useMyContributions();
+  const cases = useMyCases();
+  const disputes = disputesByOrder(cases.data?.asParty ?? [], address ?? null);
 
-  const refresh = useManualRefresh([() => published.refetch(), () => applied.refetch(), () => agreements.refetch(), () => contributions.refetch()]);
+  const refresh = useManualRefresh([() => published.refetch(), () => applied.refetch(), () => agreements.refetch(), () => contributions.refetch(), () => cases.refetch()]);
   const pull = usePullGesture(refresh);
 
   if (!address) {
@@ -65,11 +70,12 @@ export default function MyChangas() {
           <Chip icon="send" label={t.mine.applied} badge={toConfirm.length} selected={tab === "applied"} onPress={() => setTab("applied")} />
           <Chip icon="check" label={t.mine.closed} selected={tab === "closed"} onPress={() => setTab("closed")} />
           <Chip icon="users" label={t.mine.contributions} selected={tab === "contributions"} onPress={() => setTab("contributions")} />
+          <Chip icon="scale" label={t.disputesTab.title} badge={[...disputes.values()].filter((item) => item.open).length} selected={tab === "disputes"} onPress={() => setTab("disputes")} />
         </Row>
         <SearchField value={query} onChange={(value) => setQueries((current) => ({ ...current, [tab]: value }))} placeholder={t.mine.search} />
       </View>
       {tab === "agenda" ? (
-        <AgendaList items={agendaItems(published.data ?? [], applied.data ?? [])} query={query} pull={pull} refreshing={refresh.refreshing} />
+        <AgendaList items={agendaItems(published.data ?? [], applied.data ?? [])} disputes={disputes} query={query} pull={pull} refreshing={refresh.refreshing} />
       ) : tab === "published" ? (
         <FlatList
           contentContainerStyle={styles.list}
@@ -78,7 +84,7 @@ export default function MyChangas() {
           data={(published.data ?? []).filter((item) => matchesQuery(query, [item.spec.title, item.spec.description, t.publish.categories[item.spec.category], statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyPublished}</Secondary>}
-          renderItem={({ item }) => <PublishedItem changa={item} waiting={item.orderId !== null && waiting.has(item.orderId)} />}
+          renderItem={({ item }) => <PublishedItem changa={item} dispute={item.orderId !== null ? disputes.get(item.orderId) : undefined} waiting={item.orderId !== null && waiting.has(item.orderId)} />}
         />
       ) : tab === "closed" ? (
         <FlatList
@@ -89,6 +95,18 @@ export default function MyChangas() {
           keyExtractor={(job) => String(job.orderId)}
           ListEmptyComponent={<Secondary>{t.history.closedEmpty}</Secondary>}
           renderItem={({ item }) => <ClosedRow job={item} />}
+        />
+      ) : tab === "disputes" ? (
+        <DisputesList
+          items={[
+            ...(published.data ?? []).filter((item) => item.orderId !== null && disputes.has(item.orderId)).map((item) => ({ orderId: item.orderId!, title: item.spec.title, amount: item.amount, info: disputes.get(item.orderId!)! })),
+            ...(applied.data ?? []).filter((item) => item.changa.orderId !== null && disputes.has(item.changa.orderId)).map((item) => ({ orderId: item.changa.orderId!, title: item.changa.title, amount: item.changa.amount, info: disputes.get(item.changa.orderId!)! })),
+          ]}
+          query={query}
+          filter={disputeFilter}
+          onFilter={setDisputeFilter}
+          pull={pull}
+          refreshing={refresh.refreshing}
         />
       ) : tab === "contributions" ? (
         <FlatList
@@ -117,14 +135,14 @@ export default function MyChangas() {
           data={(applied.data ?? []).filter((item) => matchesQuery(query, [item.changa.title, item.message, statusLabel(item.status)]))}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={<Secondary>{t.mine.emptyApplied}</Secondary>}
-          renderItem={({ item }) => <AppliedItem application={item} proposal={(agreements.data ?? []).find((agreement) => agreement.payee === address && agreement.specHash === item.changa.specHash && (agreement.status === "pending" || agreement.status === "sending"))} />}
+          renderItem={({ item }) => <AppliedItem application={item} dispute={item.changa.orderId !== null ? disputes.get(item.changa.orderId) : undefined} proposal={(agreements.data ?? []).find((agreement) => agreement.payee === address && agreement.specHash === item.changa.specHash && (agreement.status === "pending" || agreement.status === "sending"))} />}
         />
       )}
     </SafeAreaView>
   );
 }
 
-function AgendaList({ items, query, pull, refreshing }: { items: AgendaItem[]; query: string; pull: object; refreshing: boolean }) {
+function AgendaList({ items, disputes, query, pull, refreshing }: { items: AgendaItem[]; disputes: Map<number, DisputeInfo>; query: string; pull: object; refreshing: boolean }) {
   const now = Math.floor(Date.now() / 1000);
   const shown = items.filter((item) => matchesQuery(query, [item.title, statusLabel(item.status), t.mine.agendaRole[item.role]]));
   const sections = buildAgenda(shown, now).map((group) => ({ key: group.section, title: t.mine.agendaSections[group.section], data: group.items }));
@@ -138,14 +156,14 @@ function AgendaList({ items, query, pull, refreshing }: { items: AgendaItem[]; q
       stickySectionHeadersEnabled={false}
       ListEmptyComponent={<Secondary>{t.mine.agendaEmpty}</Secondary>}
       renderSectionHeader={({ section }) => <Text style={[text.subtitle, styles.sectionTitle]}>{section.title}</Text>}
-      renderItem={({ item }) => <AgendaRow item={item} now={now} />}
+      renderItem={({ item }) => <AgendaRow item={item} now={now} dispute={disputes.get(item.orderId)} />}
       SectionSeparatorComponent={() => <View style={{ height: spacing.xs }} />}
       ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
     />
   );
 }
 
-function AgendaRow({ item, now }: { item: AgendaItem; now: number }) {
+function AgendaRow({ item, now, dispute }: { item: AgendaItem; now: number; dispute?: DisputeInfo }) {
   const open = () => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title } });
   const when = item.startsAt ? (sameDay(item.startsAt, now) ? formatClock(item.startsAt) : `${formatDate(item.startsAt)} · ${formatClock(item.startsAt)}`) : item.remote ? t.mine.agendaNoTime : null;
   return (
@@ -163,6 +181,7 @@ function AgendaRow({ item, now }: { item: AgendaItem; now: number }) {
       <View style={styles.titleRow}>
         <StatusChip label={t.mine.agendaRole[item.role]} />
         <StatusChip label={statusLabel(item.status)} />
+        {disputeBadge(dispute, item.status)}
       </View>
     </Card>
   );
@@ -184,7 +203,7 @@ function ClosedRow({ job }: { job: ClosedJob }) {
   );
 }
 
-function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }) {
+function PublishedItem({ changa, waiting, dispute }: { changa: Changa; waiting: boolean; dispute?: DisputeInfo }) {
   const status = effectiveStatus(changa, useCancelling());
   const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
   const hasOrder = changa.orderId !== null && ["agreed", "delivered", "settled", "disputed"].includes(changa.status);
@@ -196,12 +215,12 @@ function PublishedItem({ changa, waiting }: { changa: Changa; waiting: boolean }
         : undefined;
   return (
     <View style={styles.item}>
-      <ChangaCard changa={changa} status={status} action={action} strip={waiting ? { tone: "info", icon: "clock", title: t.mine.waitingTitle, body: t.mine.waitingAgreement } : undefined} onPress={changa.status === "draft" ? () => undefined : open} />
+      <ChangaCard changa={changa} status={status} badges={disputeBadges(dispute, status)} action={action} strip={waiting ? { tone: "info", icon: "clock", title: t.mine.waitingTitle, body: t.mine.waitingAgreement } : undefined} onPress={changa.status === "draft" ? () => undefined : open} />
     </View>
   );
 }
 
-function AppliedItem({ application, proposal }: { application: MyApplication; proposal: AgreementRecord | undefined }) {
+function AppliedItem({ application, proposal, dispute }: { application: MyApplication; proposal: AgreementRecord | undefined; dispute?: DisputeInfo }) {
   const { changa } = application;
   const open = () => router.push({ pathname: "/changa/[specHash]", params: { specHash: changa.specHash } });
   const where = [changa.category !== null ? t.publish.categories[changa.category] : null, changa.modality === "remote" ? t.map.remoteTag : changa.modality === "onsite" ? t.map.onsiteTag : null, changa.when ? formatDate(changa.when) : null].filter(Boolean).join(" · ");
@@ -232,8 +251,57 @@ function AppliedItem({ application, proposal }: { application: MyApplication; pr
         {changa.amount ? <Text style={[text.subtitle, { color: colors.brick }]}>{formatUsdc(changa.amount)}</Text> : null}
       </View>
       {where ? <Text style={text.secondary}>{where}</Text> : null}
+      {dispute ? <View style={styles.titleRow}>{disputeBadge(dispute, changa.status)}</View> : null}
       {state}
     </Card>
+  );
+}
+
+// Si el trabajo tiene un reclamo, se marca en la tarjeta. Con el trabajo ya "en reclamo" el estado lo dice solo.
+function disputeBadges(dispute: DisputeInfo | undefined, status: string): { label: string; warn?: boolean }[] {
+  if (!dispute) return [];
+  if (dispute.open) return status === "disputed" ? [] : [{ label: t.disputesTab.open, warn: true }];
+  return [{ label: t.disputesTab.had }];
+}
+
+function disputeBadge(dispute: DisputeInfo | undefined, status: string) {
+  return disputeBadges(dispute, status).map((badge) => <StatusChip key={badge.label} label={badge.label} warn={badge.warn} />);
+}
+
+type DisputeRow = { orderId: number; title: string; amount: string | null; info: DisputeInfo };
+
+function DisputesList({ items, query, filter, onFilter, pull, refreshing }: { items: DisputeRow[]; query: string; filter: DisputeFilter; onFilter: (value: DisputeFilter) => void; pull: object; refreshing: boolean }) {
+  const shown = items.filter((item) => matchesDisputeFilter(item.info, filter) && matchesQuery(query, [item.title]));
+  return (
+    <FlatList
+      contentContainerStyle={styles.list}
+      {...pull}
+      ListHeaderComponent={
+        <View style={{ gap: spacing.sm }}>
+          <PullSpinner active={refreshing} />
+          <Row>
+            {(["all", "open", "byMe", "byThem"] as const).map((key) => (
+              <Chip key={key} label={t.disputesTab.filters[key]} selected={filter === key} onPress={() => onFilter(key)} />
+            ))}
+          </Row>
+        </View>
+      }
+      data={shown}
+      keyExtractor={(item) => String(item.orderId)}
+      ListEmptyComponent={<Secondary>{t.disputesTab.empty}</Secondary>}
+      renderItem={({ item }) => (
+        <Card gap="sm" onPress={() => router.push({ pathname: "/order/[orderId]", params: { orderId: String(item.orderId), title: item.title } })}>
+          <View style={styles.titleRow}>
+            <Text style={[text.subtitle, { flex: 1 }]} numberOfLines={2}>{item.title}</Text>
+            {item.amount ? <Text style={[text.subtitle, { color: colors.brick }]}>{formatUsdc(item.amount)}</Text> : null}
+          </View>
+          <View style={styles.titleRow}>
+            <StatusChip label={item.info.open ? t.disputesTab.open : t.disputesTab.had} warn={item.info.open} />
+            <StatusChip label={item.info.byMe ? t.disputesTab.byMe : t.disputesTab.byThem} />
+          </View>
+        </Card>
+      )}
+    />
   );
 }
 

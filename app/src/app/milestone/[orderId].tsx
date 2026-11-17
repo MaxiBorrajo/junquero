@@ -1,3 +1,5 @@
+import { OrderStatus } from "../../chain/orderAbi";
+import { useOrder } from "../../data/useOrder";
 import { useDisputedMilestones } from "../../data/useDisputedMilestones";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
@@ -38,6 +40,7 @@ export default function MilestoneScreen() {
   const queryClient = useQueryClient();
   const changa = useChangaBySpec(spec || "0x");
   const board = useQuery({ queryKey: ["milestones", orderId], queryFn: () => fetchMilestones(api, orderId) });
+  const order = useOrder(orderId);
   const disputedBefore = useDisputedMilestones(orderId);
   const evidence = useEvidence(orderId);
   const forMilestone = useEvidenceByMilestone(evidence.data ?? []);
@@ -57,7 +60,7 @@ export default function MilestoneScreen() {
   const info = changa.data?.spec.milestones?.[index];
   if (!item) return <Screen><Secondary>{t.common.loading}</Secondary></Screen>;
   const isCurrent = index === state.next;
-  const frozen = state.disputing;
+  const frozen = state.disputing || order.data?.status === OrderStatus.Disputed;
   const inDispute = frozen && index === state.disputedIndex;
   const action = isCurrent && !frozen ? boardAction({ next: state.next, count: state.count, milestones: state.milestones }, role) : "none";
   const items = forMilestone(index);

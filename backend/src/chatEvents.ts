@@ -113,8 +113,18 @@ export const chatEventsHandler: EventHandler = (db: D1Database, events: StreamEv
 
 export async function listChatEvents(db: D1Database, applicationId: number) {
   const { results } = await db
-    .prepare("SELECT id, kind, actor, created_at, data FROM chat_events WHERE application_id = ? ORDER BY created_at, id LIMIT 300")
+    .prepare(
+      `SELECT e.id, e.kind, e.actor, e.created_at, e.data,
+         CASE WHEN e.kind IN ('abandoned', 'terminated') THEN (
+           SELECT r.reason FROM exit_reasons r JOIN changas c ON c.order_id = r.order_id JOIN applications a ON a.changa_id = c.id
+           WHERE a.id = e.application_id AND r.kind = e.kind AND r.created_at <= e.created_at AND r.actor = e.actor
+           ORDER BY r.created_at DESC, r.id DESC LIMIT 1) END AS reason
+       FROM chat_events e WHERE e.application_id = ? ORDER BY e.created_at, e.id LIMIT 300`,
+    )
     .bind(applicationId)
-    .all<{ id: number; kind: string; actor: string; created_at: number; data: string | null }>();
-  return results.map((row) => ({ id: row.id, kind: row.kind, actor: row.actor, createdAt: row.created_at, data: row.data ? (JSON.parse(row.data) as object) : null }));
+    .all<{ id: number; kind: string; actor: string; created_at: number; data: string | null; reason: string | null }>();
+  return results.map((row) => {
+    const data = row.data ? (JSON.parse(row.data) as object) : null;
+    return { id: row.id, kind: row.kind, actor: row.actor, createdAt: row.created_at, data: row.reason ? { ...(data ?? {}), reason: row.reason } : data };
+  });
 }

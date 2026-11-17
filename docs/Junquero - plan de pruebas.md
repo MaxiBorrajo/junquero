@@ -331,7 +331,7 @@ Con la changa individual presencial ya acordada (prueba 3.4).
 - "Mis trabajos" → chip "Cerrados": todos los trabajos pagados en los que participó (como quien publicó o como quien lo hizo), del cierre más reciente al más antiguo, con "Cerrado el {fecha}". Tocar uno abre el detalle con la calificación, las pruebas y el comprobante.
 
 **5.9 Liberación automática** · Rol: Ana y Beto
-- [ ] Pasos: Beto termina, Ana no responde.
+- [ x ] Pasos: Beto termina, Ana no responde.
 - Esperado: pasado el plazo (24 h en changa corta), el pago se libera solo a Beto. Verificar con el e2e o con plazos cortos de DEMO.
 
 **5.10 Changa a distancia con pedido de cambios** · Rol: Ana y Beto
@@ -345,19 +345,19 @@ Con la changa individual presencial ya acordada (prueba 3.4).
 Con la changa por hitos acordada (2.5 y 3.4).
 
 **6.1 Ciclo de un hito** · Rol: Beto y Ana
-- [ ] Pasos: Beto informa avance y entrega el primer hito con evidencia → Ana lo revisa contra los criterios → aprueba / cobra por QR.
+- [ x ] Pasos: Beto informa avance y entrega el primer hito con evidencia → Ana lo revisa contra los criterios → aprueba / cobra por QR.
 - Esperado: se paga solo ese hito. El tablero muestra el estado de cada hito, lo pagado y lo restante. El siguiente hito pasa a ser el actual.
 
 **6.2 Pago fuera de orden** · Rol: Beto
-- [ ] Pasos: intentar entregar el hito 2 antes del 1.
+- [ x ] Pasos: intentar entregar el hito 2 antes del 1.
 - Esperado: no se puede; solo el hito actual.
 
 **6.3 Liberación automática de un hito** · Rol: Ana y Beto
-- [ ] Esperado: sin respuesta de Ana, a las 72 h el hito se libera solo. Verificar con el e2e.
+- [ x ] Esperado: sin respuesta de Ana, a las 72 h el hito se libera solo. Verificar con el e2e.
 
 **6.4 Reclamo de un hito** · Rol: Ana
-- [ ] Pasos: "Tengo un problema" en un hito entregado.
-- Esperado: se congela solo ese hito; los demás siguen. Pasa al flujo de jurado (ver sección 8).
+- [ x ] Pasos: "Tengo un problema" en un hito entregado.
+- Esperado: el hito en reclamo aparece con la etiqueta "En reclamo" y un aviso dice cuál es. Pasa al flujo de jurado (ver sección 8). Mientras el jurado resuelve, el contrato pone en pausa todo el trabajo: no se puede entregar ni aprobar otro hito, ni terminar ni dejar el trabajo. Al resolverse, el hito se paga según el veredicto y el trabajo sigue con los hitos que faltan. Un hito chico no va a jurado: se reparte 50/50 al instante y el trabajo sigue sin pausa.
 
 **6.5 Terminar sin causa** · Rol: Ana
 - [ ] Pasos: terminar la changa a mitad, sin causa, con un hito pagado y uno en curso.

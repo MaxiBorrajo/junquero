@@ -32,6 +32,8 @@ export interface Spec {
   evidence: string[];
   attachments: Attachment[];
   milestones?: Milestone[];
+  // Hitos que ya se hicieron y pagaron antes de que el trabajo se reabriera (los que faltan quedan en `milestones`).
+  doneMilestones?: Milestone[];
   materials?: Materials;
   group?: GroupPlan;
 }

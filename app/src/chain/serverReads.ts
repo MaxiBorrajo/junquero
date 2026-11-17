@@ -52,6 +52,9 @@ export function milestonesFromServer(raw: { milestones: Raw[]; plan: Raw }) {
     next: Number(raw.plan.next),
     count: Number(raw.plan.count),
     paidTotal: big(raw.plan.paidTotal),
+    progressBps: Number(raw.plan.progressBps ?? 0),
+    disputing: Boolean(raw.plan.disputing),
+    disputedIndex: Number(raw.plan.disputedIndex ?? 0),
   };
 }
 

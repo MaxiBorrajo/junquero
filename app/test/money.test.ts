@@ -94,6 +94,7 @@ describe("postularse", () => {
     expect(applyBlock(changa(), { ...ready, hasProfile: false, selfieStatus: null })).toBe("no-profile");
     expect(applyBlock(changa(), { ...ready, selfieStatus: "pending" })).toBe("selfie");
     expect(applyBlock(changa(), { ...ready, applied: true })).toBe("applied");
+    expect(applyBlock(changa(), { ...ready, left: true })).toBe("left");
     expect(applyBlock(changa(), ready)).toBeNull();
   });
 });

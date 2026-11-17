@@ -41,6 +41,7 @@ import { emergencyCases, listChangas as adminChangas, listLog, listUsers, logAct
 import { casesFor } from "./cases";
 import { closingFor, receiptsCount, receiptsOf } from "./receipts";
 import { cancelRelease, findReleaseByCode, parseRelease, readRelease, submitRelease } from "./releases";
+import { disputedMilestones, listExitReasons, saveExitReason, validateExit } from "./exits";
 import { createReport, listReports, resolveReport } from "./reports";
 import { accept as acceptAgreement, cancel as cancelAgreement, listMine as listAgreements, presentAgreement, propose, validateProposal } from "./agreements";
 import { chainReadsFor, type ChainReads } from "./chainReads";
@@ -433,11 +434,13 @@ app.post("/me/orders/:orderId/evidence", async (c) => {
 app.post("/me/orders/:orderId/evidence/batch", async (c) => {
   const found = await evidenceFor(c, c.req.param("orderId"));
   if ("response" in found) return found.response;
-  const parsed = parseEvidenceBatch(await readJson(c));
+  const body = await readJson(c);
+  const quiet = (body as { quiet?: unknown } | undefined)?.quiet === true;
+  const parsed = parseEvidenceBatch(body);
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
   const outcome = await registerEvidenceBatch(c.env.DB, found.orderId, c.get("address"), parsed.value, found.access, nowSeconds());
   if (!outcome.ok) return c.json({ error: outcome.error, index: outcome.index }, outcome.status);
-  if (outcome.hashes.length > 0) await record(c, recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), outcome.hashes[0]!, nowSeconds(), { count: outcome.hashes.length }));
+  if (outcome.hashes.length > 0 && !quiet) await record(c, recordOrderEvent(c.env.DB, "evidence", found.orderId, c.get("address"), outcome.hashes[0]!, nowSeconds(), { count: outcome.hashes.length }));
   return c.json({ hashes: outcome.hashes }, 201);
 });
 
@@ -469,7 +472,8 @@ app.put("/me/orders/:orderId/evidence/:hash/keys", async (c) => {
   const recipient = typeof (body as { recipient?: unknown } | undefined)?.recipient === "string" ? String((body as { recipient: string }).recipient).toLowerCase() : "";
   const mineAddress = c.get("address").toLowerCase();
   const other = mineAddress === found.access.payer?.toLowerCase() ? found.access.payee : found.access.payer;
-  if (other && recipient === other.toLowerCase()) await queueNotification(c.env.DB, recipient, "evidence_uploaded", String(found.orderId)).run();
+  const quiet = (body as { quiet?: unknown } | undefined)?.quiet === true;
+  if (other && recipient === other.toLowerCase() && !quiet) await queueNotification(c.env.DB, recipient, "evidence_uploaded", String(found.orderId)).run();
   return c.json({ ok: true });
 });
 
@@ -772,6 +776,30 @@ app.post("/me/orders/:orderId/release", async (c) => {
   const result = await submitRelease(c.env.DB, orderId, c.get("address"), parsed.value, nowSeconds());
   if (result.ok) await record(c, recordOrderEvent(c.env.DB, "approved", orderId, c.get("address"), String(nowSeconds()), nowSeconds()));
   return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
+});
+
+// Quien termina o deja un trabajo lo justifica antes de mandar la transacción; el motivo se ve en el chat y en el detalle.
+app.post("/me/orders/:orderId/exit-reason", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const parsed = validateExit(await readJson(c));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const result = await saveExitReason(c.env.DB, orderId, c.get("address"), parsed.kind, parsed.reason, nowSeconds());
+  return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
+});
+
+app.get("/me/orders/:orderId/exit-reasons", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const reasons = await listExitReasons(c.env.DB, orderId, c.get("address"));
+  return reasons ? c.json({ reasons }) : c.json({ error: "not found" }, 404);
+});
+
+app.get("/me/orders/:orderId/disputed-milestones", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const disputed = await disputedMilestones(c.env.DB, orderId, c.get("address"));
+  return disputed ? c.json({ disputed }) : c.json({ error: "not found" }, 404);
 });
 
 app.get("/me/orders/:orderId/release", async (c) => {

@@ -53,6 +53,7 @@ export interface Spec {
   evidence: string[];
   attachments: Attachment[];
   milestones?: Milestone[];
+  doneMilestones?: Milestone[];
   materials?: "payer" | "worker";
   group?: GroupPlan;
 }
@@ -73,7 +74,7 @@ export interface Changa {
   closedAt?: number | null;
 }
 
-export type ApplicationStatus = "active" | "withdrawn" | "chosen" | "closed" | "dismissed";
+export type ApplicationStatus = "active" | "withdrawn" | "chosen" | "closed" | "dismissed" | "abandoned";
 
 export interface Application {
   id: number;
@@ -139,7 +140,7 @@ export interface PublicProfile {
   verified: boolean;
   categories?: number[];
   createdAt?: number;
-  stats?: { doneAsPayee: number; doneAsPayer: number; disputed: number; rating: number | null; ratings: number };
+  stats?: { doneAsPayee: number; doneAsPayer: number; disputed: number; abandoned?: number; rating: number | null; ratings: number };
   receiptsCount?: number;
 }
 

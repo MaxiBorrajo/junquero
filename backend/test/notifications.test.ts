@@ -119,6 +119,26 @@ describe("what triggers a notification", () => {
     );
   });
 
+  it("tells the owner when the provider leaves and the provider when the payer ends the job", async () => {
+    const ctx = setup();
+    await agreedOrder(ctx);
+    plainEvent(ctx.raw, "OrderAgreed", 1, 500, { payee: stranger.address });
+    plainEvent(ctx.raw, "OrderAbandoned", 1, 501, { by: stranger.address, reopenedWith: "4000000" });
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).find((r) => r.kind === "abandoned")?.address).toBe(owner.address.toLowerCase());
+    expect((ctx.raw.prepare("SELECT status, amount FROM changas WHERE order_id = 1").get() as any)).toEqual({ status: "open", amount: "4000000" });
+    expect((ctx.raw.prepare("SELECT status FROM applications WHERE applicant = ?").get(stranger.address.toLowerCase()) as any).status).toBe("abandoned");
+  });
+
+  it("notifies the chosen provider when the payer terminates the job", async () => {
+    const ctx = setup();
+    await agreedOrder(ctx);
+    plainEvent(ctx.raw, "OrderAgreed", 1, 500, { payee: stranger.address });
+    plainEvent(ctx.raw, "OrderTerminated", 1, 501, { by: owner.address });
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).find((r) => r.kind === "terminated")?.address).toBe(stranger.address.toLowerCase());
+  });
+
   it("tells the owner when the provider checks in", async () => {
     const ctx = setup();
     await agreedOrder(ctx);

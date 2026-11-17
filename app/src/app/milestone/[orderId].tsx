@@ -1,3 +1,4 @@
+import { useDisputedMilestones } from "../../data/useDisputedMilestones";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -37,6 +38,7 @@ export default function MilestoneScreen() {
   const queryClient = useQueryClient();
   const changa = useChangaBySpec(spec || "0x");
   const board = useQuery({ queryKey: ["milestones", orderId], queryFn: () => fetchMilestones(api, orderId) });
+  const disputedBefore = useDisputedMilestones(orderId);
   const evidence = useEvidence(orderId);
   const forMilestone = useEvidenceByMilestone(evidence.data ?? []);
   const { run: runAction, busy, error } = useRunAction();
@@ -55,7 +57,9 @@ export default function MilestoneScreen() {
   const info = changa.data?.spec.milestones?.[index];
   if (!item) return <Screen><Secondary>{t.common.loading}</Secondary></Screen>;
   const isCurrent = index === state.next;
-  const action = isCurrent ? boardAction({ next: state.next, count: state.count, milestones: state.milestones }, role) : "none";
+  const frozen = state.disputing;
+  const inDispute = frozen && index === state.disputedIndex;
+  const action = isCurrent && !frozen ? boardAction({ next: state.next, count: state.count, milestones: state.milestones }, role) : "none";
   const items = forMilestone(index);
   const mine = items.filter((entry) => entry.uploader.toLowerCase() === address.toLowerCase());
   const deps = relayDepsFor(api, address);
@@ -88,8 +92,9 @@ export default function MilestoneScreen() {
       setQr({ text: encodeMilestoneQr(data, payee as `0x${string}`, signature), code });
     }, t.milestonesBoard.qrReady, "scan");
 
+  const resolvedShare = disputedBefore.get(index);
   const statusNote =
-    item.status === MilestoneStatus.Paid ? t.milestonesBoard.detail.paid : item.status === MilestoneStatus.Disputed ? t.milestonesBoard.detail.disputed : !isCurrent ? t.milestonesBoard.detail.notYet : action === "wait-delivery" ? t.milestonesBoard.detail.waitDelivery : null;
+    item.status === MilestoneStatus.Paid && resolvedShare !== undefined ? t.milestonesBoard.detail.disputedResolved.replace("{percent}", String(Math.round(resolvedShare / 100))) : item.status === MilestoneStatus.Paid ? t.milestonesBoard.detail.paid : inDispute || item.status === MilestoneStatus.Disputed ? t.milestonesBoard.detail.disputed : frozen ? t.milestonesBoard.detail.frozen : !isCurrent ? t.milestonesBoard.detail.notYet : action === "wait-delivery" ? t.milestonesBoard.detail.waitDelivery : null;
 
   return (
     <Screen>

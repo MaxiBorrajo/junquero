@@ -16,7 +16,6 @@ const STATUS_BY_EVENT: Record<string, string> = {
   OrderCancelled: "cancelled",
   OrderTerminated: "settled",
   DisputeOpened: "disputed",
-  DisputeResolved: "settled",
   OrderAbandoned: "open",
 };
 
@@ -238,6 +237,44 @@ export function createChangasHandler(decimalsByToken: ReadonlyMap<string, number
       if (event.name === "FundingRefunded") {
         statements.push(db.prepare("UPDATE changas SET status = 'cancelled' WHERE order_id = ?").bind(event.order_id));
         continue;
+      }
+      if (event.name === "DisputeResolved") {
+        // Un reclamo sobre un hito no cierra el trabajo: el contrato lo vuelve a "acordado" y sigue con los hitos que faltan.
+        // Si era el último hito, `OrderSettled` ya cerró el trabajo en el mismo bloque y no hay nada que reabrir.
+        statements.push(
+          db.prepare("UPDATE changas SET status = 'agreed' WHERE order_id = ? AND status = 'disputed' AND json_type(spec, '$.milestones') IS NOT NULL").bind(event.order_id),
+          db.prepare("UPDATE changas SET status = 'settled' WHERE order_id = ? AND json_type(spec, '$.milestones') IS NULL").bind(event.order_id),
+        );
+        continue;
+      }
+      if (event.name === "MilestonePaid") {
+        statements.push(db.prepare("UPDATE changas SET milestones_paid = milestones_paid + 1 WHERE order_id = ?").bind(event.order_id));
+        continue;
+      }
+      if (event.name === "OrderAbandoned") {
+        // Al reabrirse, la garantía es lo que quedó depositado (no el precio acordado) y los hitos ya pagados pasan a "ya hechos":
+        // solo quedan por hacer los demás. Si falta uno solo, el trabajo sigue como un pago único por lo que falta.
+        const args = event.args ? (JSON.parse(event.args) as { reopenedWith?: string }) : {};
+        const done = `COALESCE((SELECT json_group_array(json(value)) FROM (SELECT value FROM json_each(COALESCE(json_extract(changas.spec, '$.doneMilestones'), '[]')) UNION ALL SELECT value FROM json_each(changas.spec, '$.milestones') WHERE key < changas.milestones_paid)), '[]')`;
+        const left = "(SELECT json_group_array(json(value)) FROM json_each(changas.spec, '$.milestones') WHERE key >= changas.milestones_paid)";
+        const leftCount = "(SELECT COUNT(*) FROM json_each(changas.spec, '$.milestones') WHERE key >= changas.milestones_paid)";
+        statements.push(
+          db
+            .prepare(
+              `UPDATE changas SET spec = CASE WHEN ${leftCount} >= 2
+                   THEN json_set(spec, '$.doneMilestones', json(${done}), '$.milestones', json(${left}))
+                   ELSE json_set(json_remove(spec, '$.milestones'), '$.doneMilestones', json(${done})) END,
+                 milestones_paid = 0
+               WHERE order_id = ? AND milestones_paid > 0 AND json_type(spec, '$.milestones') IS NOT NULL`,
+            )
+            .bind(event.order_id),
+        );
+        if (args.reopenedWith !== undefined) {
+          statements.push(
+            db.prepare("UPDATE changas SET status = 'open', amount = ?, amount_micro = ? WHERE order_id = ?").bind(args.reopenedWith, amountMicro(args.reopenedWith, groupDecimals), event.order_id),
+          );
+          continue;
+        }
       }
       const status = STATUS_BY_EVENT[event.name];
       if (status) statements.push(db.prepare("UPDATE changas SET status = ? WHERE order_id = ?").bind(status, event.order_id));

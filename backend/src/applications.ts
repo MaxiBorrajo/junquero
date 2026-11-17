@@ -132,6 +132,7 @@ export async function submitApplication(
     .bind(changaId, applicant)
     .first<{ id: number; status: string }>();
   if (existing?.status === "dismissed") return { ok: false, status: 403, error: "your application was dismissed" };
+  if (existing?.status === "abandoned") return { ok: false, status: 403, error: "you left this job and cannot apply to it again" };
   const reactivating = !existing || existing.status !== "active";
 
   if (reactivating) {
@@ -232,6 +233,15 @@ export const applicationsHandler: EventHandler = (db: D1Database, events: Stream
              WHERE changa_id = ${changaOf} AND status IN ('active', 'chosen')`,
           )
           .bind(payee.toLowerCase(), event.order_id),
+      );
+    } else if (event.name === "OrderAbandoned") {
+      // Quien dejó el trabajo ya no es la persona elegida y no puede volver a postularse a este trabajo.
+      // Las demás postulaciones siguen; si ya había hitos pagados, sus propuestas de plan quedan sin efecto (eran sobre el total).
+      statements.push(
+        db.prepare(`UPDATE applications SET plan = NULL, amount = NULL WHERE changa_id = ${changaOf} AND status = 'active' AND (SELECT COALESCE(json_array_length(json_extract(spec, '$.doneMilestones')), 0) FROM changas WHERE order_id = ?) > 0`).bind(event.order_id, event.order_id),
+        db.prepare(`UPDATE applications SET status = 'abandoned' WHERE changa_id = ${changaOf} AND status = 'chosen'`).bind(event.order_id),
+        // El acuerdo anterior ya no vale: sin esto, quedaba como "confirmándose" y no dejaba acordar con otra persona.
+        db.prepare("DELETE FROM agreements WHERE order_id = ?").bind(event.order_id),
       );
     } else if (CLOSING_EVENTS.has(event.name)) {
       statements.push(

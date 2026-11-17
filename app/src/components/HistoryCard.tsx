@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { PublicProfile } from "../api/types";
 import { t } from "../i18n";
-import { text } from "../theme";
+import { colors, text } from "../theme";
 import { Card } from "./Card";
 import { Secondary } from "./ui";
 
@@ -27,6 +27,12 @@ export function HistoryCard({ stats, title }: { stats: NonNullable<PublicProfile
         <Text style={text.body}>{t.publicProfile.disputed}</Text>
         <Text style={text.subtitle}>{stats.disputed}</Text>
       </View>
+      {stats.abandoned ? (
+        <View style={styles.stat}>
+          <Text style={text.body}>{t.publicProfile.abandoned}</Text>
+          <Text style={[text.subtitle, { color: colors.error }]}>{stats.abandoned}</Text>
+        </View>
+      ) : null}
       {stats.doneAsPayee + stats.doneAsPayer === 0 ? <Secondary>{t.publicProfile.newcomer}</Secondary> : null}
     </Card>
   );

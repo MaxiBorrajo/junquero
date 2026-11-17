@@ -8,6 +8,10 @@ import type { Changa } from "../api/types";
 import { MilestoneStatus, encodeAbandon, encodeDeclareAbandoned, encodeTerminateEarly } from "../chain/milestones";
 import { sendViaRelay } from "../chain/orderActions";
 import { fetchMilestones } from "../chain/serverReads";
+import { readFeeRule, readParam } from "../chain/reader";
+import { terminationPreview } from "../chain/termination";
+import { useOrder } from "../data/useOrder";
+import { useDisputedMilestones } from "../data/useDisputedMilestones";
 import { useEvidence, useEvidenceByMilestone } from "../evidence/EvidenceSection";
 import { t } from "../i18n";
 import { allPaid, boardAction } from "../lib/board";
@@ -19,7 +23,7 @@ import { colors, fonts, radius, spacing, text } from "../theme";
 import { Card } from "./Card";
 import { Icon } from "./Icon";
 import { Journey } from "./Journey";
-import { Body, Button, ErrorText, Secondary } from "./ui";
+import { Body, Button, ErrorText, Field, Secondary } from "./ui";
 
 export function MilestoneBoard({ orderId, role, counterpart, changa, payee, deadline }: { orderId: number; role: "payer" | "payee" | "viewer"; counterpart: string; changa: Changa | null; payee: string; deadline: number }) {
   const { api, address } = useSession();
@@ -27,10 +31,25 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
   const evidence = useEvidence(orderId);
   const forMilestone = useEvidenceByMilestone(evidence.data ?? []);
   const { run: runAction, busy, error } = useRunAction();
+  const disputedBefore = useDisputedMilestones(orderId);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [reason, setReason] = useState("");
+  const order = useOrder(orderId);
+  const preview = useQuery({
+    queryKey: ["termination-preview", orderId, board.data?.next, board.data?.progressBps, order.data?.deposited?.toString()],
+    enabled: confirmEnd && Boolean(board.data && order.data),
+    queryFn: async () => {
+      const [compBps, payeeShareBps, fee] = await Promise.all([readParam("TERMINATION_COMP_BPS"), readParam("CANCEL_PAYEE_SHARE_BPS"), readFeeRule()]);
+      const data = board.data!;
+      return terminationPreview({ deposited: order.data!.deposited, currentAmount: data.milestones[data.next]!.amount, progressBps: data.progressBps, compBps, payeeShareBps, fee });
+    },
+  });
   if (!board.data || !address) return <Secondary>{t.common.loading}</Secondary>;
   const state = board.data;
-  const action = boardAction({ next: state.next, count: state.count, milestones: state.milestones }, role);
+  // Con un reclamo abierto en un hito el trabajo queda en pausa (lo decide el contrato): se ve cuál hito está en reclamo y no hay acciones.
+  const frozen = state.disputing;
+  const action = frozen ? "none" : boardAction({ next: state.next, count: state.count, milestones: state.milestones }, role);
   const current = state.milestones[state.next];
   const items = forMilestone(state.next);
   const mine = items.filter((item) => item.uploader.toLowerCase() === address.toLowerCase());
@@ -42,11 +61,18 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
     runAction(work, { success, successIcon: icon, failure: t.milestonesBoard.failed, invalidate: refresh });
 
   const send = (data: `0x${string}`) => () => sendViaRelay(deps, data);
+  // Terminar o dejar el trabajo exige un motivo: primero se guarda en el servidor y recién después se manda a la cadena.
+  const reasonOk = reason.trim().length >= 10;
+  const sendWithReason = (kind: "terminated" | "abandoned", data: `0x${string}`) => async () => {
+    await api.send("POST", `/me/orders/${orderId}/exit-reason`, { kind, reason: reason.trim() });
+    return sendViaRelay(deps, data);
+  };
 
   return (
     <View style={styles.box}>
       <Text style={text.subtitle}>{t.milestonesBoard.title}</Text>
-      {role !== "viewer" && !allPaid(state.milestones) ? (
+      {frozen ? <Secondary>{t.milestonesBoard.frozenNote.replace("{n}", String(state.disputedIndex + 1))}</Secondary> : null}
+      {role !== "viewer" && !allPaid(state.milestones) && !frozen ? (
         <Journey
           title={t.journeyMilestone.title}
           steps={role === "payee" ? [{ key: "work", ...t.journeyMilestone.payee.work }, { key: "deliver", ...t.journeyMilestone.payee.deliver }, { key: "review", ...t.journeyMilestone.payee.review }] : [{ key: "wait", ...t.journeyMilestone.payer.wait }, { key: "review", ...t.journeyMilestone.payer.review }, { key: "approve", ...t.journeyMilestone.payer.approve }]}
@@ -56,7 +82,7 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
       {state.milestones.map((item, index) => {
         const info = changa?.spec.milestones?.[index];
         const isCurrent = index === state.next && !allPaid(state.milestones);
-        const chip = chipFor(item.status, isCurrent);
+        const chip = chipFor((frozen && index === state.disputedIndex) || (item.status === MilestoneStatus.Paid && disputedBefore.has(index)) ? MilestoneStatus.Disputed : item.status, isCurrent);
         return (
           <Card
             key={index}
@@ -79,23 +105,44 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
       })}
       {allPaid(state.milestones) ? <Body>{t.milestonesBoard.allPaid}</Body> : null}
 
-      {role === "payer" && state.next < state.count && current?.status !== MilestoneStatus.Delivered ? (
+      {!frozen && role === "payer" && state.next < state.count && current?.status !== MilestoneStatus.Delivered ? (
         confirmEnd ? (
           <>
             <Secondary>{t.milestonesBoard.terminateNote}</Secondary>
-            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="outline" onPress={() => run(send(encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.terminated, "check")} loading={busy} />
+            <Text style={text.subtitle}>{t.milestonesBoard.terminatePreviewTitle}</Text>
+            {preview.data ? (
+              <>
+                <Body>{t.milestonesBoard.terminatePreviewPayee.replace("{amount}", formatUsdc(preview.data.toPayee.toString()))}</Body>
+                <Body>{t.milestonesBoard.terminatePreviewRefund.replace("{amount}", formatUsdc(preview.data.refund.toString()))}</Body>
+                <Secondary>{t.milestonesBoard.terminatePreviewNote}</Secondary>
+              </>
+            ) : <Secondary>{t.milestonesBoard.terminatePreviewLoading}</Secondary>}
+            <Field label={t.milestonesBoard.reasonLabel} hint={t.milestonesBoard.reasonHint} placeholder={t.milestonesBoard.reasonTerminatePlaceholder} value={reason} onChangeText={setReason} multiline maxLength={500} />
+            <Button label={t.milestonesBoard.terminateConfirm} icon="check" variant="outline" onPress={() => run(sendWithReason("terminated", encodeTerminateEarly(BigInt(orderId))), t.milestonesBoard.terminated, "check")} loading={busy} disabled={!reasonOk} />
           </>
         ) : (
           <Button label={t.milestonesBoard.terminate} icon="close" variant="ghost" onPress={() => setConfirmEnd(true)} />
         )
       ) : null}
-      {role === "payer" && deadline > 0 && Math.floor(Date.now() / 1000) > deadline && current?.status === MilestoneStatus.Pending ? (
+      {!frozen && role === "payer" && deadline > 0 && Math.floor(Date.now() / 1000) > deadline && current?.status === MilestoneStatus.Pending ? (
         <Button label={`${t.milestonesBoard.declareAbandoned} (${formatDate(deadline)})`} icon="info" variant="ghost" onPress={() => run(send(encodeDeclareAbandoned(BigInt(orderId))), t.milestonesBoard.abandonedDeclared, "check")} disabled={busy} />
       ) : null}
-      {role === "payee" && state.next < state.count ? (
+      {!frozen && role === "payee" && state.next < state.count ? (
         <>
-          <Secondary>{t.milestonesBoard.abandonNote}</Secondary>
-          <Button label={t.milestonesBoard.abandon} icon="logout" variant="ghost" onPress={() => run(send(encodeAbandon(BigInt(orderId))), t.milestonesBoard.abandoned, "check")} disabled={busy} />
+          {confirmLeave ? (
+            <>
+              <Text style={text.subtitle}>{t.milestonesBoard.abandonConfirmTitle}</Text>
+              <Secondary>{t.milestonesBoard.abandonConfirmBody}</Secondary>
+              <Field label={t.milestonesBoard.reasonLabel} hint={t.milestonesBoard.reasonHint} placeholder={t.milestonesBoard.reasonAbandonPlaceholder} value={reason} onChangeText={setReason} multiline maxLength={500} />
+              <Button label={t.milestonesBoard.abandonConfirm} icon="logout" variant="outline" onPress={() => run(sendWithReason("abandoned", encodeAbandon(BigInt(orderId))), t.milestonesBoard.abandoned, "check")} loading={busy} disabled={!reasonOk} />
+              <Button label={t.milestonesBoard.abandonCancel} icon="close" variant="ghost" onPress={() => setConfirmLeave(false)} disabled={busy} />
+            </>
+          ) : (
+            <>
+              <Secondary>{t.milestonesBoard.abandonNote}</Secondary>
+              <Button label={t.milestonesBoard.abandon} icon="logout" variant="ghost" onPress={() => setConfirmLeave(true)} />
+            </>
+          )}
         </>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}

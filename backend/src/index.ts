@@ -6,6 +6,7 @@ import { chatEventsHandler } from "./chatEvents";
 import { ratingsHandler } from "./ratings";
 import { withChatNotify } from "./chatNotify";
 import { partiesHandler } from "./parties";
+import { abandonmentsHandler } from "./exits";
 import { createChangasHandler, purgeStaleDrafts } from "./changas";
 import { receiptsHandler } from "./receipts";
 import { deployedTokenDecimals, indexedContracts, startBlock } from "./contracts";
@@ -40,7 +41,7 @@ function chainClient(rpcUrl: string): ChainClient {
 
 const changasHandler = createChangasHandler(deployedTokenDecimals);
 
-const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler, chatEventsHandler, ratingsHandler, receiptsHandler];
+const projections = [watchedHandler, changasHandler, applicationsHandler, notificationsHandler, partiesHandler, abandonmentsHandler, chatEventsHandler, ratingsHandler, receiptsHandler];
 
 // Indexa la cadena y después arma las tablas de consulta con los eventos nuevos, en ese orden y de una sola vez.
 // ¿Hay algo para hacer? Un bloque nuevo ya confirmado o eventos guardados sin procesar. Si no, no se toma el candado ni se

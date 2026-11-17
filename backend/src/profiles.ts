@@ -112,15 +112,17 @@ export async function profileStats(db: D1Database, address: string) {
          (SELECT COUNT(*) FROM order_parties p WHERE p.payee = ?1 AND EXISTS (SELECT 1 FROM changas c WHERE c.order_id = p.order_id AND c.status = 'settled')) AS done_as_payee,
          (SELECT COUNT(*) FROM order_parties p WHERE p.payer = ?1 AND EXISTS (SELECT 1 FROM changas c WHERE c.order_id = p.order_id AND c.status = 'settled')) AS done_as_payer,
          (SELECT COUNT(*) FROM order_parties p WHERE (p.payee = ?1 OR p.payer = ?1) AND EXISTS (SELECT 1 FROM changas c WHERE c.order_id = p.order_id AND c.status = 'disputed')) AS disputed,
+         (SELECT COUNT(*) FROM abandonments WHERE payee = ?1) AS abandoned,
          (SELECT AVG(rating) FROM payee_ratings WHERE payee = ?1) AS rating_avg,
          (SELECT COUNT(*) FROM payee_ratings WHERE payee = ?1) AS rating_count`,
     )
     .bind(address)
-    .first<{ done_as_payee: number; done_as_payer: number; disputed: number; rating_avg: number | null; rating_count: number }>();
+    .first<{ done_as_payee: number; done_as_payer: number; disputed: number; abandoned: number; rating_avg: number | null; rating_count: number }>();
   return {
     doneAsPayee: row?.done_as_payee ?? 0,
     doneAsPayer: row?.done_as_payer ?? 0,
     disputed: row?.disputed ?? 0,
+    abandoned: row?.abandoned ?? 0,
     rating: row && row.rating_count > 0 && row.rating_avg !== null ? Math.round(row.rating_avg * 10) / 10 : null,
     ratings: row?.rating_count ?? 0,
   };

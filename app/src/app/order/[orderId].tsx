@@ -17,6 +17,7 @@ import { disputeCost, reasonHash } from "../../chain/jury";
 import { payeeCurrent, payeeSteps, payerCurrent, payerSteps } from "../../lib/journey";
 import { Banner } from "../../components/Banner";
 import { StatusChip } from "../../components/StatusChip";
+import { ExitReasons } from "../../components/ExitReasons";
 import { OwnerTag } from "../../components/OwnerTag";
 import { useGroup } from "../../data/useGroup";
 import { PersonCard } from "../../components/PersonCard";
@@ -31,6 +32,7 @@ import { MilestoneBoard } from "../../components/MilestoneBoard";
 import { useChangaBySpec } from "../../data/useChangas";
 import { useMyCases } from "../../data/useCases";
 import { useOrder } from "../../data/useOrder";
+import { OrderStatus } from "../../chain/orderAbi";
 import { EvidenceThumbnails, EvidenceUploader, RequirementList, useCoveredRequirements, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
 import { t } from "../../i18n";
@@ -50,6 +52,8 @@ export default function OrderScreen() {
   const evidence = useEvidence(id);
   const myCases = useMyCases();
   const changaForOrder = useChangaBySpec(order.data?.specHash ?? "0x");
+  // Los avisos abren esta pantalla sin el título: si no llega, se toma el de la changa.
+  const heading = title ?? changaForOrder.data?.spec.title ?? t.order.title;
   const requirements = changaForOrder.data?.spec.evidence ?? [];
   const covered = useCoveredRequirements(evidence.data ?? [], requirements.length);
   const myCase = (myCases.data?.asParty ?? []).find((item) => item.orderId === id);
@@ -74,7 +78,7 @@ export default function OrderScreen() {
   if (order.isLoading || !order.data || !address) {
     return (
       <Screen>
-        <Title>{title ?? t.order.title}</Title>
+        <Title>{heading}</Title>
         {order.isError ? <ErrorText>{t.order.loadError}</ErrorText> : <Secondary>{t.common.loading}</Secondary>}
       </Screen>
     );
@@ -83,6 +87,34 @@ export default function OrderScreen() {
   const state = order.data;
   const role = roleOf(state, address);
   const view = viewFor(state.status, role);
+  // Si quien trabajaba dejó el trabajo, el contrato lo reabre sin precio ni prestador: se muestra lo que quedó en garantía.
+  if (state.status === OrderStatus.Open) {
+    const isOwner = state.payer.toLowerCase() === address.toLowerCase();
+    return (
+      <Screen
+        footer={
+          isOwner && changaForOrder.data ? (
+            <Button label={t.order.reopenedSeeApplications} icon="users" onPress={() => router.push({ pathname: "/applications/[changaId]", params: { changaId: String(changaForOrder.data!.id) } })} />
+          ) : changaForOrder.data ? (
+            <Button label={t.order.reopenedSeeChanga} icon="briefcase" onPress={() => router.push({ pathname: "/changa/[specHash]", params: { specHash: changaForOrder.data!.specHash } })} />
+          ) : null
+        }
+      >
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Title>{heading}</Title>
+          </View>
+          <StatusChip label={t.order.reopenedChip} warn />
+        </View>
+        <Card gap="xs">
+          <Text style={text.label}>{t.order.reopenedAmount}</Text>
+          <Text style={text.amount}>{formatUsdc(state.deposited.toString())}</Text>
+        </Card>
+        <Body>{isOwner ? t.order.reopenedOwner : t.order.reopenedOther}</Body>
+        <ExitReasons orderId={id} />
+      </Screen>
+    );
+  }
   const items = evidence.data ?? [];
   const counterpart = role === "payer" ? state.payee : state.payer;
   const contributor = extendedRole(role, state.isGroup, contribution.data ?? 0n) === "contributor";
@@ -181,7 +213,7 @@ export default function OrderScreen() {
       {role === "payer" || role === "payee" ? <OwnerTag label={role === "payer" ? t.order.role.payer : t.order.role.payee} /> : null}
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
-          <Title>{title ?? t.order.title}</Title>
+          <Title>{heading}</Title>
         </View>
         {chip ? <StatusChip label={chip.label} warn={chip.warn} /> : null}
       </View>
@@ -203,13 +235,15 @@ export default function OrderScreen() {
         <PersonCard address={state.payee} label={t.order.whoWorks} />
       ) : null}
 
+      {view === "cancelled" ? <ExitReasons orderId={id} /> : null}
+
       {changaForOrder.data && (role === "payer" || role === "payee") ? <ChangaInfo changa={changaForOrder.data} inOrder /> : null}
 
       {journey ? <Journey title={role === "payer" ? t.journey.payerTitle : t.journey.payeeTitle} steps={journey.steps} current={journey.current} /> : null}
 
       {settled && (role === "payer" || role === "payee") ? <ClosingSection orderId={id} role={role} items={items} /> : null}
 
-      {state.hasMilestones && view !== "settled" && view !== "cancelled" && view !== "disputed" ? (
+      {state.hasMilestones && view !== "settled" && view !== "cancelled" ? (
         <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} />
       ) : null}
 

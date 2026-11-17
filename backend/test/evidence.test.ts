@@ -285,3 +285,17 @@ describe("registering a batch with one signature", () => {
     expect((await ctx.call("/me/orders/1/evidence/batch", authed(outsider.body.token, "POST", body))).status).toBe(403);
   });
 });
+
+describe("notification when sharing keys", () => {
+  it("warns the other party about new evidence, but not for a quiet upload (the dispute statement)", async () => {
+    const ctx = setup();
+    const { payee } = await agreed(ctx);
+    const first = await uploaded(ctx, payee, 3);
+    await register(ctx, payee, first.bytes);
+    await ctx.call(`/me/orders/1/evidence/${first.hash}/keys`, authed(payee, "PUT", { recipient: owner.address, wrapped, quiet: true }));
+    const count = () => (ctx.raw.prepare("SELECT COUNT(*) AS n FROM notifications WHERE kind = 'evidence_uploaded'").get() as { n: number }).n;
+    expect(count()).toBe(0);
+    await ctx.call(`/me/orders/1/evidence/${first.hash}/keys`, authed(payee, "PUT", { recipient: owner.address, wrapped }));
+    expect(count()).toBe(1);
+  });
+});

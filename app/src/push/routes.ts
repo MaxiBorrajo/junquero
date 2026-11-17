@@ -15,6 +15,7 @@ export function routeForNotification(kind: string, ref: string): AppRoute {
     case "checked_in":
     case "settled":
     case "cancelled":
+    case "terminated":
     case "reminder_start":
     case "dispute_opened":
       return { pathname: "/order/[orderId]", params: { orderId: ref } };

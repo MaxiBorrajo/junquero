@@ -94,21 +94,35 @@ export function useEvidenceSend(orderId: number, counterpart: string) {
   return { send, sendMany };
 }
 
+// Se eligen todas las pruebas que haga falta y recién después se suben juntas, con una sola firma (como en las pruebas pedidas).
 export function EvidenceUploader({ orderId, counterpart, milestone }: { orderId: number; counterpart: string; milestone?: number }) {
   const { send: sendAny } = useEvidenceSend(orderId, counterpart);
-  const send = (picked: PickedFile[]) => sendAny(picked, undefined, milestone);
   const [sheet, setSheet] = useState(false);
+  const [staged, setStaged] = useState<PickedFile[]>([]);
+  const room = Math.max(0, MAX_BATCH_ITEMS - staged.length);
+  const stage = (picked: PickedFile[]) => setStaged((current) => [...current, ...picked].slice(0, MAX_BATCH_ITEMS));
+  const upload = () => {
+    sendAny(staged, undefined, milestone);
+    setStaged([]);
+  };
 
   return (
     <View style={styles.box}>
-      <Button label={t.order.addPhoto} icon="camera" variant="outline" onPress={() => setSheet(true)} />
-      <Button label={t.order.addFile} icon="file" variant="ghost" onPress={async () => send(await pickDocuments())} />
+      <Button label={t.order.addPhoto} icon="camera" variant="outline" onPress={() => setSheet(true)} disabled={room === 0} />
+      <Button label={t.order.addFile} icon="file" variant="ghost" onPress={async () => stage((await pickDocuments()).slice(0, room))} disabled={room === 0} />
+      {staged.length > 0 ? (
+        <>
+          <Text style={text.secondary}>{staged.length === 1 ? t.order.requirementStagedOne : t.order.requirementStagedMany.replace("{n}", String(staged.length))}</Text>
+          <Button label={(staged.length === 1 ? t.order.uploadStagedOne : t.order.uploadStagedMany).replace("{n}", String(staged.length))} icon="send" onPress={upload} />
+          <Button label={t.order.requirementUnstage} icon="close" variant="ghost" onPress={() => setStaged([])} />
+        </>
+      ) : null}
       <ChoiceSheet
         visible={sheet}
         onClose={() => setSheet(false)}
         choices={[
-          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then((picked) => send(picked)) },
-          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(10).then((picked) => send(picked)) },
+          { key: "camera", label: t.publish.takeNow, icon: "camera", onPress: () => void takeMedia().then((picked) => stage(picked.slice(0, room))) },
+          { key: "gallery", label: t.publish.fromGallery, icon: "image", onPress: () => void pickMedia(Math.min(10, room)).then((picked) => stage(picked.slice(0, room))) },
         ]}
       />
     </View>

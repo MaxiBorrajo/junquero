@@ -29,6 +29,8 @@ export interface UploadDeps {
   hash: (bytes: Uint8Array) => Promise<string>;
   // Avisa en qué etapa va, para mostrarlo en pantalla: subiendo los archivos, esperando la firma o compartiendo las claves.
   onStage?: (stage: "upload" | "sign" | "share") => void;
+  // El relato de un reclamo se sube igual que una prueba, pero no debe avisar "subieron pruebas": el aviso es el del reclamo.
+  quiet?: boolean;
 }
 
 export interface EvidenceFile {
@@ -63,12 +65,13 @@ export async function uploadEvidenceBatch(deps: UploadDeps, orderId: number, fil
   await deps.api.send("POST", `/me/orders/${orderId}/evidence/batch`, {
     items: prepared.map((item) => ({ hash: item.fileHash, kind: item.kind, meta: item.meta })),
     signature,
+    ...(deps.quiet ? { quiet: true } : {}),
   });
 
   deps.onStage?.("share");
   for (const item of prepared) {
-    await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.address.toLowerCase(), wrapped: wrapKey(item.key, deps.mine.publicKey, deps.mine) });
-    await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.counterpart.toLowerCase(), wrapped: wrapKey(item.key, counterpartKey, deps.mine) });
+    await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.address.toLowerCase(), wrapped: wrapKey(item.key, deps.mine.publicKey, deps.mine), ...(deps.quiet ? { quiet: true } : {}) });
+    await deps.api.send("PUT", `/me/orders/${orderId}/evidence/${item.fileHash}/keys`, { recipient: deps.counterpart.toLowerCase(), wrapped: wrapKey(item.key, counterpartKey, deps.mine), ...(deps.quiet ? { quiet: true } : {}) });
   }
   return { hashes: prepared.map((item) => item.fileHash) };
 }

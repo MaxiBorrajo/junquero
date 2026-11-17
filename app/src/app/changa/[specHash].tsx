@@ -3,6 +3,7 @@ import { Card } from "../../components/Card";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { ChangaInfo } from "../../components/ChangaInfo";
 import { DetailActions } from "../../components/DetailActions";
+import { ExitReasons } from "../../components/ExitReasons";
 import { OwnerTag } from "../../components/OwnerTag";
 import { ActivityIndicator, Share, Text, View } from "react-native";
 import { Body, Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -22,6 +23,7 @@ const BLOCK_TEXT: Record<ApplyBlock, string | null> = {
   own: t.detail.ownChanga,
   closed: t.detail.notOpen,
   applied: t.detail.alreadyApplied,
+  left: t.detail.youLeft,
 };
 
 export default function ChangaDetail() {
@@ -58,7 +60,8 @@ export default function ChangaDetail() {
   if (isPartyOfOrder) return <Redirect href={{ pathname: "/order/[orderId]", params: { orderId: String(changa.orderId), title: spec.title } }} />;
   const applied = (mine.data ?? []).some((item) => item.changa.specHash === changa.specHash && (item.status === "active" || item.status === "chosen"));
   const myPlan = (mine.data ?? []).find((item) => item.changa.specHash === changa.specHash && (item.status === "active" || item.status === "chosen"))?.plan ?? null;
-  const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null, applied });
+  const left = (mine.data ?? []).some((item) => item.changa.specHash === changa.specHash && item.status === "abandoned");
+  const block = applyBlock(changa, { address, hasProfile: Boolean(profile), selfieStatus: profile?.selfieStatus ?? null, applied, left });
   const isOwner = block === "own";
   const isCancelling = effectiveStatus(changa, cancelling) === "cancelling";
   const isGroup = Boolean(spec.group);
@@ -87,6 +90,26 @@ export default function ChangaDetail() {
         <Text style={text.amount}>{formatUsdc(changa.amount)}</Text>
         <Secondary>{spec.milestones && spec.milestones.length > 0 ? t.detail.paymentMilestones : t.detail.paymentSingle}</Secondary>
       </Card>
+      {spec.doneMilestones && spec.doneMilestones.length > 0 ? (
+        <Card gap="xs">
+          <Text style={text.label}>{t.exitReasons.doneTitle}</Text>
+          {spec.doneMilestones.map((item, index) => (
+            <Body key={`done-${index}`}>{`✓ ${item.name} · ${formatUsdc(item.amount)}`}</Body>
+          ))}
+          <Secondary>{t.exitReasons.doneNote}</Secondary>
+          {spec.milestones && spec.milestones.length > 0 ? (
+            <>
+              <Text style={[text.label, { marginTop: 8 }]}>{t.exitReasons.leftTitle}</Text>
+              {spec.milestones.map((item, index) => (
+                <Body key={`left-${index}`}>{`${index + 1}. ${item.name} · ${formatUsdc(item.amount)}`}</Body>
+              ))}
+            </>
+          ) : (
+            <Secondary>{t.exitReasons.leftSingle}</Secondary>
+          )}
+        </Card>
+      ) : null}
+      {changa.orderId !== null && (isOwner || applied || left) ? <ExitReasons orderId={changa.orderId} /> : null}
       {isOwner && chosen ? <PersonCard address={chosen.applicant} label={t.detail.whoWorks} /> : null}
       {!isOwner ? <PersonCard address={changa.owner} label={t.detail.publishedBy} note={iAmChosen ? t.detail.chosenYou : undefined} /> : null}
       <ChangaInfo changa={changa} />

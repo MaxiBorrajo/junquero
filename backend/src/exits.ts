@@ -49,15 +49,26 @@ export async function listExitReasons(db: D1Database, orderId: number, caller: s
   return results.map((row) => ({ kind: row.kind, actor: row.actor, reason: row.reason, createdAt: row.created_at }));
 }
 
-// Anota quién dejó cada trabajo, para el historial público.
+// Motivo de cancelación del contrato (`CancelReason.PayeeCancelled`): cancela quien iba a trabajar tras acordar.
+const PAYEE_CANCELLED = 1;
+
+// Anota quién dejó cada trabajo, para el historial público: los abandonos de trabajos por hitos y las cancelaciones de quien trabajaba.
 export const abandonmentsHandler: EventHandler = (db: D1Database, events: StreamEvent[]) =>
   events
-    .filter((event) => event.name === "OrderAbandoned" && event.order_id !== null)
+    .filter((event) => event.order_id !== null && (event.name === "OrderAbandoned" || (event.name === "OrderCancelled" && payeeCancelled(event.args))))
     .map((event) =>
       db
         .prepare("INSERT OR IGNORE INTO abandonments (order_id, payee, block_number, log_index) SELECT order_id, payee, ?, ? FROM order_parties WHERE order_id = ? AND payee IS NOT NULL")
         .bind(event.block_number, event.log_index, event.order_id),
     );
+
+function payeeCancelled(args: string | null): boolean {
+  try {
+    return Number((args ? JSON.parse(args) : {}).reason) === PAYEE_CANCELLED;
+  } catch {
+    return false;
+  }
+}
 
 export async function abandonedCount(db: D1Database, address: string): Promise<number> {
   const row = await db.prepare("SELECT COUNT(*) AS n FROM abandonments WHERE payee = ?").bind(address).first<{ n: number }>();

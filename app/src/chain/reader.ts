@@ -37,6 +37,8 @@ export interface OrderState {
   deposited: bigint;
   evidenceHash: `0x${string}`;
   startsAt: number;
+  agreedAt: number;
+  cash: boolean;
   deadline: number;
   deliveredAt: number;
   checkedInAt: number;
@@ -71,6 +73,21 @@ export async function readParam(name: string): Promise<bigint> {
   return BigInt(await readContract(config(), { address: deployment.parameterRegistry, abi: registryAbi, functionName: "get", args: [keccak256(toBytes(name))] }));
 }
 
+// Reclamos chicos que la cuenta ya usó este mes, y cuántos permite el registro.
+export async function readSmallDisputeQuota(account: Address): Promise<{ used: number; max: number }> {
+  const [used, max] = await Promise.all([
+    readContract(config(), { address: deployment.escrow, abi: escrowAbi, functionName: "smallDisputesUsed", args: [account] }),
+    readParam("SMALL_DISPUTES_PER_ACCOUNT_MONTH"),
+  ]);
+  return { used: Number(used), max: Number(max) };
+}
+
+// Tamaño de un reclamo según el monto en disputa: 0 chico, 1 medio, 2 alto. En una changa con hitos es el monto del hito, no el total.
+export async function readSizeForAmount(amount: bigint): Promise<number> {
+  const limits = await readContract(config(), { address: deployment.escrow, abi: escrowAbi, functionName: "tokenConfig", args: [deployment.token] });
+  return amount <= limits.smallMax ? 0 : amount <= limits.mediumMax ? 1 : 2;
+}
+
 export async function readJurorFee(): Promise<bigint> {
   return (await readContract(config(), { address: deployment.escrow, abi: escrowAbi, functionName: "tokenConfig", args: [deployment.token] })).jurorFee;
 }
@@ -90,3 +107,25 @@ export async function readContributionRule(): Promise<{ minBps: bigint; maxBps: 
 
 export const readContributionOf = (orderId: number, account: Address): Promise<bigint> =>
   readContract(config(), { address: deployment.escrow, abi: groupAbi, functionName: "contributionOf", args: [BigInt(orderId), account] });
+
+export interface CancelRules {
+  noticeSeconds: number;
+  applicantBps: bigint;
+  agreedBps: bigint;
+  payeeShareBps: bigint;
+  minFee: bigint;
+  maxFee: bigint;
+}
+
+// Las reglas con las que el contrato cobra una cancelación: aviso mínimo, porcentajes, reparto y mínimo/tope del cobro.
+export async function readCancelRules(): Promise<CancelRules> {
+  const [notice, applicantBps, agreedBps, payeeShareBps, minFee, config_] = await Promise.all([
+    readParam("FREE_CANCEL_NOTICE"),
+    readParam("CANCEL_APPLICANT_BPS"),
+    readParam("CANCEL_FEE_AGREED_BPS"),
+    readParam("CANCEL_PAYEE_SHARE_BPS"),
+    readContract(config(), { address: deployment.escrow, abi: escrowAbi, functionName: "minCancelFee", args: [deployment.token] }),
+    readContract(config(), { address: deployment.escrow, abi: escrowAbi, functionName: "tokenConfig", args: [deployment.token] }),
+  ]);
+  return { noticeSeconds: Number(notice), applicantBps, agreedBps, payeeShareBps, minFee, maxFee: config_.reservationCap };
+}

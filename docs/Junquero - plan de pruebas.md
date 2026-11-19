@@ -8,6 +8,12 @@ Para probar a mano, con la app, el servidor y el panel, antes de la entrega del 
 
 **Actualizado el 15/11/2026.** Todos los botones de la app llevan ícono (probar al pasar por cada pantalla que sean coherentes). Se agregaron pruebas para lo que cambió desde la versión anterior (las marcas ya hechas no se tocaron): contraofertas más altas con suma de la diferencia en garantía (3.8 y 3.9) y planes de hitos con total distinto al publicado (3.7, 3.10 a 3.12), selección de varios adjuntos con vista previa (2.8), buscador de lugares (2.7), pedidos de evidencia (2.9), verificación que se actualiza sola (1.6), estado "Cancelando" (7.7), billetera desconectada (15.10) e indexado rápido (15.11). El contrato se volvió a desplegar el 14/11 con la misma moneda de prueba; ver la nota de 0.2.
 
+## Alcance
+
+**Dentro del alcance:** publicar y explorar, postulación y acuerdo, chat, hacer la changa y cobrar, hitos, cancelaciones, reclamo y jurado, perfil, panel de administración y casos transversales.
+
+**Fuera del alcance por ahora (implementación futura):** changa grupal (sección 9, la parte grupal de 2.11 y la prueba 7.10), votación de parámetros (sección 12 y la prueba 7.11) y pago en efectivo (sección 13 y la prueba 7.9). Siguen descriptas más abajo como referencia, sin casilleros para marcar y sin contar en el resumen. El jurado sí está dentro del alcance.
+
 ## 0. Preparación
 
 ### 0.1 Roles y cuentas
@@ -20,7 +26,7 @@ Cada rol es una billetera distinta. Los nombres son solo para este documento.
 | Beto | Se postula y trabaja (prestador) | 1 | Tiene que haber cerrado changas sin reclamo para algunas reglas |
 | J1, J2, J3 | Jurado | 3 (5 si se prueba una changa alta) | Cada una con la garantía de 10 USDC depositada |
 | J4, J5 | Jurado de reemplazo y apelación | 2 | La apelación suma jurados (2N+1) |
-| Gabi, Hugo, Ines | Aportantes de la changa grupal | 3 | Gabi publica, Hugo e Ines aportan |
+| Gabi, Hugo, Ines | 🛠 Futuro: aportantes de la changa grupal | 3 | Fuera del alcance por ahora |
 | Admin | Panel de administración | 1 | La cuenta `0x4E5e…6511`, la del despliegue |
 | Relayer | Paga el gas de las operaciones | 1 | No es una persona: tiene que tener ETH de Sepolia |
 
@@ -41,13 +47,12 @@ Antes de empezar:
 - [ x ] `GET /health` del servidor responde `ok` y `lastIndexedBlock` avanza (el cron está indexando).
 - [ x ] El relayer tiene ETH de Sepolia (ver saldo de su dirección).
 - [ x ] Las pruebas automáticas pasan: `cd app && npm test`, `cd backend && npm test`, `cd admin && npm test`.
-- [ ] Opcional: pruebas de punta a punta (`bash app/e2e/up.sh` y después `npx vitest run --config vitest.e2e.config.ts` en `/tmp/junquero-e2e/repo/app`), que cubren individual, hitos, grupal y reclamo con jurado contra una cadena local.
+- [ ] Opcional: pruebas de punta a punta (`bash app/e2e/up.sh` y después `npx vitest run --config vitest.e2e.config.ts` en `/tmp/junquero-e2e/repo/app`), que cubren individual, hitos y reclamo con jurado (también hay de grupal, fuera del alcance por ahora) contra una cadena local.
 
 ### 0.3 Fondos de prueba
 
 - [ x ] Ana tiene USDC de prueba suficiente (por lo menos 200 para cubrir la changa por hitos y la de jurado).
 - [ x ] Beto tiene USDC de prueba para la garantía de postulación.
-- [ x ] Hugo, Gabi e Ines tienen USDC para aportar.
 - [ x ] J1 a J5 tienen cada una 10 USDC de garantía depositada como jurado (ver 8.1). *Tras el redespliegue del 14/11 hay que volver a depositarla en el Arbitration nuevo (la anterior quedó en el contrato viejo).*
 - [ x ] Anotar los saldos iniciales de Ana y Beto para comprobar los movimientos de plata en cada prueba.
 
@@ -58,13 +63,13 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 | Qué | Valor en DEMO | ¿Se prueba en vivo? |
 | --- | --- | --- |
 | Responder un reclamo, aceptar la invitación de jurado, apelar, revelar la semilla, votar (commit) y revelar el voto | 5 minutos cada uno | Sí |
-| Votación de parámetros: espera previa, período de votación y espera del Timelock | 1, 10 y 5 minutos | Sí, cuando exista la pantalla (ver sección 12) |
+| Votación de parámetros: espera previa, período de votación y espera del Timelock | 1, 10 y 5 minutos | 🛠 Futuro (fuera del alcance, ver sección 12) |
 | Espera por no presentación | 20 minutos | Sí |
 | Liberación automática de una changa corta y de un hito | 24 h y 72 h (el mínimo permitido es 1 h) | No: ver abajo |
 | Vencimiento del acuerdo si una parte no firma | A verificar en el servidor (el diseño dice 24 h) | A verificar |
 
-- Las ventanas del jurado y de la votación son de minutos, así que el escenario C y la votación se pueden recorrer completos en una sola sesión.
-- La liberación automática (5.9 y 6.3) no se puede esperar. Hay dos caminos: la prueba de punta a punta, que avanza el reloj de una cadena local, o bajar el parámetro por votación una vez que exista la pantalla (la liberación automática admite hasta 1 hora).
+- Las ventanas del jurado son de minutos, así que el escenario C se puede recorrer completo en una sola sesión.
+- La liberación automática (5.9 y 6.3) no se puede esperar. Hay dos caminos: la prueba de punta a punta, que avanza el reloj de una cadena local, o, a futuro, bajar el parámetro por votación (la liberación automática admite hasta 1 hora). Por ahora la votación está fuera del alcance.
 
 ---
 
@@ -137,11 +142,11 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 - Observaciones: _
 
 **2.11 Pasos del asistente de publicar** · Rol: Ana
-- [ x ] Pasos: publicar una changa individual sin hitos, otra con hitos y una grupal, mirando el contador de pasos y la barra de avance.
-- Esperado: cada paso tiene una sola idea. Sin hitos son 7 pasos: qué necesitás, dónde y cuándo, fotos, cómo se paga, cuánto pagás, qué evidencia pedís (con una explicación) y revisar. "Cómo se paga" pregunta primero si se divide en hitos; con "Sí" se cargan los hitos y los materiales, con "No" no hay nada más que elegir (y en las grupales va también el plazo para juntar los aportes). "Cuánto pagás" viene después: sin hitos se escribe el monto o la meta; con hitos el total aparece fijo, calculado como la suma de los hitos (con un botón para volver a editarlos), y no se puede escribir. Si el monto es grande o el plazo largo y no se eligieron hitos, "Cuánto pagás" sugiere volver a dividirlos. Con hitos no hay paso de evidencia (cada hito pide la suya) y el total de pasos pasa a 6 en cuanto se elige "Sí". En el paso de evidencia no deja avanzar sin al menos una prueba, y se pueden agregar hasta 5 y quitarlas con el tacho.
+- [ x ] Pasos: publicar una changa individual sin hitos, y otra con hitos, mirando el contador de pasos y la barra de avance.
+- Esperado: cada paso tiene una sola idea. (La parte grupal, 🛠 futura, queda fuera del alcance por ahora.) Sin hitos son 7 pasos: qué necesitás, dónde y cuándo, fotos, cómo se paga, cuánto pagás, qué evidencia pedís (con una explicación) y revisar. "Cómo se paga" pregunta primero si se divide en hitos; con "Sí" se cargan los hitos y los materiales, con "No" no hay nada más que elegir (y en las grupales va también el plazo para juntar los aportes). "Cuánto pagás" viene después: sin hitos se escribe el monto o la meta; con hitos el total aparece fijo, calculado como la suma de los hitos (con un botón para volver a editarlos), y no se puede escribir. Si el monto es grande o el plazo largo y no se eligieron hitos, "Cuánto pagás" sugiere volver a dividirlos. Con hitos no hay paso de evidencia (cada hito pide la suya) y el total de pasos pasa a 6 en cuanto se elige "Sí". En el paso de evidencia no deja avanzar sin al menos una prueba, y se pueden agregar hasta 5 y quitarlas con el tacho.
 
 **2.10 Monto mínimo** · Rol: Ana
-- [ x ] Pasos: intentar publicar una changa de 4,99 USDC y otra de 5 USDC; repetir con una grupal y con una por hitos cuyo total sea menor.
+- [ x ] Pasos: intentar publicar una changa de 4,99 USDC y otra de 5 USDC; repetir con una por hitos cuyo total sea menor.
 - Esperado: por debajo de 5 USDC no deja avanzar y avisa "El monto mínimo es 5 USDC". El contrato también lo rechaza, aunque se intente publicar por afuera de la app.
 
 **2.9 Pedidos de evidencia al publicar** · Rol: Ana
@@ -365,7 +370,7 @@ Con la changa por hitos acordada (2.5 y 3.4).
 - Observaciones: el contrato no distingue el motivo ("sin causa" o "con causa"); anotar qué se ve en la app.
 
 **6.6 Abandono por parte del prestador** · Rol: Beto y Ana
-- [ ] Pasos: Beto renuncia explícitamente o queda inactivo pasada la fecha límite.
+- [ x ] Pasos: Beto renuncia explícitamente o queda inactivo pasada la fecha límite.
 - Esperado: se pagan los hitos verificados, se pierde el hito en curso y reputación, y Ana puede volver a publicar con el dinero restante.
 
 ---
@@ -374,17 +379,17 @@ Con la changa por hitos acordada (2.5 y 3.4).
 
 Cada fila es una prueba distinta; usar changas nuevas y anotar el costo real.
 
-- [ ] **7.1 Cancelar sin postulaciones:** gratis. (Es la 2.6.)
-- [ ] **7.2 Cancelar con postulaciones, antes de acordar:** 2% del monto (mínimo 0,50 USDC, máximo 10 USDC) al tesoro, aunque el postulante se haya bajado. Con la reserva firmada es lo mismo y el prestador reservado no cobra. (Es la 3.3.)
-- [ ] **7.3 Cancelar tras acordar con 24 horas o más de anticipación al comienzo:** el mismo 2% (mínimo 0,50, máximo 10) al tesoro. Ya no hay cupos de cancelación gratis: la tercera y la cuarta cuestan igual que la primera.
-- [ ] **7.4 Cancelar tras acordar con menos de 24 horas o ya comenzada:** 10% del monto bloqueado; el 80% va al prestador y el 20% al tesoro.
-- [ ] **7.5 Cancelar tras acordar una changa sin fecha de inicio (por ejemplo a distancia):** durante las primeras 24 horas desde el acuerdo cuesta el 2%; pasado ese tiempo, 10% con el reparto de 7.4.
-- [ ] **7.6 No presentación:** Beto no hace check-in en una changa con fecha fija. Esperado: compensación del 10% para Ana.
-- [ ] **7.7 Estado "Cancelando":** después de cancelar una changa (cualquiera de las anteriores), mientras el indexador la refleja. Esperado: en el detalle desaparecen los botones de cancelar, ver postulaciones y grupo, y se lee "Cancelando"; en Mis trabajos y en las tarjetas figura "Cancelando"; deja de aparecer en el mapa y en la lista. Pasados unos segundos queda como cancelada. Nadie puede postularse mientras tanto.
-- [ ] **7.8 Cancela el prestador:** Beto cancela tras acordar. Esperado: Ana recupera todo, sin costo para nadie; solo baja la reputación de Beto.
-- [ ] **7.9 Pago en efectivo:** cancelar tras acordar es gratis (no hay dinero bloqueado).
-- [ ] **7.10 Changa grupal:** con postulaciones y antes de acordar, cancelar cuesta el 2% (mínimo 0,50) y lo paga el coordinador de su parte, hasta el tope de lo que aportó: los demás aportantes recuperan todo. Si el coordinador no aportó, se reparte en proporción.
-- [ ] **7.11 Cobro apagado:** votar el parámetro del cobro por postulaciones en 0% y comprobar que cancelar con postulaciones vuelve a ser gratis (cuando exista la pantalla de votación).
+- [ x ] **7.1 Cancelar sin postulaciones:** gratis. (Es la 2.6.)
+- [ x ] **7.2 Cancelar con postulaciones, antes de acordar:** 2% del monto (mínimo 0,50 USDC, máximo 10 USDC) al tesoro, aunque el postulante se haya bajado. Con la reserva firmada es lo mismo y el prestador reservado no cobra. (Es la 3.3.)
+- [ x ] **7.3 Cancelar tras acordar con 24 horas o más de anticipación al comienzo:** el mismo 2% (mínimo 0,50, máximo 10) al tesoro. Ya no hay cupos de cancelación gratis: la tercera y la cuarta cuestan igual que la primera.
+- [ x ] **7.4 Cancelar tras acordar con menos de 24 horas o ya comenzada:** 10% del monto bloqueado; el 80% va al prestador y el 20% al tesoro.
+- [ x ] **7.5 Cancelar tras acordar una changa sin fecha de inicio (por ejemplo a distancia):** durante las primeras 24 horas desde el acuerdo cuesta el 2%; pasado ese tiempo, 10% con el reparto de 7.4.
+- [ x ] **7.6 No presentación de quien publicó:** Beto hace check-in en una changa presencial con fecha fija y Ana no confirma su llegada. Esperado: sin check-in, o antes de los 20 minutos de espera, el reclamo es rechazado; pasados los 20 minutos Beto reclama y cobra el 8% del monto, el tesoro el 2% y Ana recupera el 90%. Baja la reputación de Ana. (Cubierto por `app/e2e/noShow.e2e.ts`.)
+- [ x ] **7.7 Estado "Cancelando":** después de cancelar una changa (cualquiera de las anteriores), mientras el indexador la refleja. Esperado: en el detalle desaparecen los botones de cancelar, ver postulaciones y grupo, y se lee "Cancelando"; en Mis trabajos y en las tarjetas figura "Cancelando"; deja de aparecer en el mapa y en la lista. Pasados unos segundos queda como cancelada. Nadie puede postularse mientras tanto.
+- [ x ] **7.8 Cancela el prestador:** Beto cancela tras acordar. Esperado: Ana recupera todo, sin costo para nadie; solo baja la reputación de Beto.
+- 🛠 **7.9 Pago en efectivo (futuro, fuera del alcance):** cancelar tras acordar es gratis (no hay dinero bloqueado). La app todavía no ofrece el pago en efectivo (ver sección 13).
+- 🛠 **7.10 Changa grupal (futuro, fuera del alcance):** con postulaciones y antes de acordar, cancelar cuesta el 2% (mínimo 0,50) y lo paga el coordinador de su parte, hasta el tope de lo que aportó: los demás aportantes recuperan todo. Si el coordinador no aportó, se reparte en proporción.
+- 🛠 **7.11 Cobro apagado (futuro, fuera del alcance):** votar el parámetro del cobro por postulaciones en 0% y comprobar que cancelar con postulaciones vuelve a ser gratis. Depende de la votación de parámetros.
 
 Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámetros del contrato. Anotar montos.
 
@@ -394,20 +399,27 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 
 ### 8.1 Ser jurado
 **8.1.1 Depositar garantía y anotarse** · Rol: J1 a J5
-- [ ] Pasos: Perfil → Ser jurado → depositar la garantía (10 USDC) → "Anotarme".
+- [ x ] Pasos: Perfil → Ser jurado → depositar la garantía (10 USDC) → "Anotarme".
 - Esperado: la garantía aparece como depositada. Se puede retirar la parte libre. Las cuentas con menos de la garantía necesaria quedan sin poder anotarse, con un aviso de qué falta. (Tras el redespliegue del 14/11 hay que repetirlo para las cinco cuentas.)
 
 ### 8.2 Disputa chica (sin jurado)
 **8.2.1 Reclamo por un monto hasta 20 USDC** · Rol: Ana
-- [ ] Esperado: se reparte 50/50 sin jurado.
+- [ x ] Esperado: se reparte 50/50 sin jurado.
+
+**8.2.2 Tope de reclamos chicos por mes** · Rol: Ana
+- [ x ] Pasos: con un reclamo chico ya hecho este mes, abrir un segundo trabajo chico entregado por Beto y tocar "Tengo un problema".
+- Esperado: el tope es 1 por cuenta por mes. La pantalla avisa que ya usó su reclamo del mes y el botón queda deshabilitado; no se mueve plata. Le queda aprobar el trabajo. (En Sepolia se bajó de 3 a 1 el 18/11 con `contracts/script/SetParameter.s.sol`, antes del traspaso a gobernanza.)
+- 🛠 **Cambio futuro (comprobante):** cerrar en el contrato `Receipt` que un trabajo con reclamo chico no pueda reclamarlo (hoy solo lo oculta la app) y evaluar un comprobante de "gané la disputa" solo para las de jurado.
+- Además: el prestador recibe la notificación "Abrieron un reclamo" (reparto 50/50, sin jurado) y el chat dice que se resolvió al instante; en el trabajo, el relato se lee como texto y no hay comprobante (el trabajo terminó en reclamo chico). Requiere el backend desplegado.
+- 🛠 **Cambio futuro:** hoy, pasado el tope, no se puede reclamar y no hay jurado. Evaluar que los reclamos siguientes del mes pasen a jurado pagando el costo (3 USDC), o un árbitro de emergencia. Además, el 50/50 deja un incentivo a rechazar para pagar la mitad (ya señalado en confianza y economía); el tope en 1 lo acota pero no lo elimina.
 
 ### 8.3 Disputa con jurado (monto medio, 3 jurados)
 **8.3.1 Abrir reclamo** · Rol: Ana
-- [ ] Pasos: Beto entregó; Ana toca "Tengo un problema" → motivo, descripción, evidencia, mensajes a compartir → confirmar el costo del reclamo.
+- [ x ] Pasos: Beto entregó; Ana toca "Tengo un problema" → motivo, descripción, evidencia, mensajes a compartir → confirmar el costo del reclamo.
 - Esperado: el pago queda congelado. Beto recibe el aviso "Abrieron un reclamo".
 
 **8.3.2 Responder** · Rol: Beto
-- [ ] Pasos: abrir el reclamo → agregar su versión y evidencia.
+- [ x ] Pasos: abrir el reclamo → agregar su versión y evidencia.
 - Esperado: se ven las dos versiones.
 
 **8.3.3 Sorteo de jurado** · Rol: sistema, J1 a J3
@@ -450,7 +462,9 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 
 ---
 
-## 9. Changa grupal (escenario E)
+## 9. 🛠 Implementación futura: changa grupal (escenario E)
+
+**Fuera del alcance por ahora.** Se deja como referencia para cuando se retome; no se prueba ni cuenta en el resumen. Los casilleros quedan sin marcar.
 
 **9.1 Publicar grupal** · Rol: Gabi
 - [ ] Pasos: Publicar → Grupal → completar los pasos (cómo se paga con el plazo para juntar aportes, cuánto pagás con la meta total) → revisar → publicar. Después de que el grupo se confirme, abrir "Ver aportes".
@@ -502,22 +516,22 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 ## 10. Perfil, actividad y ajustes
 
 **10.1 Perfil propio** · Rol: Ana y Beto
-- [ ] Esperado: saldo de USDC, estado de verificación y "Tu actividad" (cobrado, pagado, por cobrar, en garantía), consistente con lo vivido en las pruebas.
+- [ x ] Esperado: saldo de USDC, estado de verificación y "Tu actividad" (cobrado, pagado, por cobrar, en garantía), consistente con lo vivido en las pruebas.
 
 **10.2 Perfil público y reporte** · Rol: Ana
-- [ ] Pasos: abrir el perfil de Beto desde una postulación → "Reportar usuario".
+- [ x ] Pasos: abrir el perfil de Beto desde una postulación → "Reportar usuario".
 - Esperado: el reporte llega al panel (sección Reportes).
 
 **10.3 Reportar una changa** · Rol: Beto
-- [ ] Pasos: reportar una changa o un adjunto.
+- [ x ] Pasos: reportar una changa o un adjunto.
 - Esperado: aparece en el panel y se puede bajar la oferta.
 
 **10.4 Ajustes** · Rol: cualquiera
-- [ ] Pasos: Perfil → Ajustes.
+- [ x ] Pasos: Perfil → Ajustes.
 - Esperado: muestra la billetera, versión, red (Sepolia, modo demostración) y servidor. El interruptor de notificaciones se oculta o aparece según el estado del proyecto de Expo. "Editar mis datos" y "Sacar selfie" abren sus pantallas.
 
 **10.5 Editar mis datos** · Rol: Ana
-- [ ] Pasos: cambiar nombre y zona.
+- [ x ] Pasos: cambiar nombre y zona.
 - Esperado: se guarda y se refleja en el perfil.
 
 ---
@@ -527,18 +541,18 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin.
 
 **11.1 Ingreso** · Rol: Admin
-- [ ] Pasos: conectar MetaMask → firmar.
+- [ x ] Pasos: conectar MetaMask → firmar.
 - Esperado: entra. Con otra cuenta, no entra. La pantalla de ingreso tiene la banda ladrillo con el logo y el título; dentro la barra lateral muestra el logo en blanco. Si el panel corre en `localhost:5173` contra el servidor de la nube, el servidor tiene que tener `ADMIN_ORIGINS` cargado; si no, el ingreso falla por CORS.
 
 **11.2 Resumen** · Rol: Admin
-- [ ] Esperado: changas por estado, volumen en garantía, reclamos abiertos y salud del indexador y del relayer, coherentes con lo hecho en las pruebas.
+- [ x ] Esperado: changas por estado, volumen en garantía, reclamos abiertos y salud del indexador y del relayer, coherentes con lo hecho en las pruebas.
 
 **11.3 Changas** · Rol: Admin
-- [ ] Pasos: ver el detalle de una changa → bajarla con motivo → restaurarla.
+- [ x ] Pasos: ver el detalle de una changa → bajarla con motivo → restaurarla.
 - Esperado: queda oculta y luego visible; el archivo y su hash no se borran. Queda en el registro.
 
 **11.4 Reportes** · Rol: Admin
-- [ ] Pasos: ver la cola de reportes de las pruebas 10.2 y 10.3.
+- [ x ] Pasos: ver la cola de reportes de las pruebas 10.2 y 10.3.
 - Esperado: se ve el reporte con vista previa y se puede resolver.
 
 **11.5 Usuarios** · Rol: Admin
@@ -546,7 +560,7 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 - 🛠 **POR DESARROLLAR: suspender y reactivar usuarios.** Cuando exista, probar: suspender a Beto → no puede postularse ni publicar y su perfil público muestra el aviso; reactivarlo lo devuelve a la normalidad; la acción queda en el registro con motivo.
 
 **11.6 Selfies** · Rol: Admin
-- [ ] Es la 1.3.
+- [ x ] Es la 1.3.
 
 **11.7 Reclamos de emergencia** · Rol: Admin
 - [ ] Pasos: con un reclamo sin jurados suficientes (8.3.10), resolver firmando como árbitro.
@@ -561,7 +575,9 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 
 ---
 
-## 12. 🛠 POR DESARROLLAR: votar un parámetro (escenario F)
+## 12. 🛠 Implementación futura: votar un parámetro (escenario F)
+
+**Fuera del alcance por ahora.** No se prueba ni cuenta en el resumen.
 
 Hoy la app y el panel no tienen pantalla para proponer ni votar. El contrato (Governor y Timelock) ya está en Sepolia y el control de parámetros ya pasó al Timelock. Las ventanas en DEMO son de minutos, así que el flujo completo se puede probar en una sesión.
 
@@ -572,11 +588,13 @@ Cuando se desarrolle, pruebas a agregar y marcar:
 - [ ] 12.4 Cierre de la votación y espera del Timelock (5 minutos en DEMO).
 - [ ] 12.5 Ejecución: el nuevo valor queda vigente y se refleja en las pantallas que lo usan.
 - [ ] 12.6 Propuesta rechazada o sin quórum: no cambia nada.
-- [ ] 12.7 Usarlo para bajar la liberación automática y así probar 5.9 y 6.3 en vivo, y para apagar el cobro por cancelar con postulaciones (7.11).
+- [ ] 12.7 Usarlo para bajar la liberación automática y así probar 5.9 y 6.3 en vivo, y para apagar el cobro por cancelar con postulaciones (7.11). Mientras tanto 5.9 y 6.3 se verifican con el e2e.
 
-Mientras tanto, el escenario se puede mostrar con un script de Foundry y explicarlo.
+Mientras tanto, si hiciera falta mostrarlo, se puede hacer con un script de Foundry.
 
-## 13. 🛠 POR DESARROLLAR: pago en efectivo (escenario B)
+## 13. 🛠 Implementación futura: pago en efectivo (escenario B)
+
+**Fuera del alcance por ahora.** No se prueba ni cuenta en el resumen.
 
 El contrato tiene la modalidad (tarifa de publicación de 1 USDC más 2% y menor reputación), pero la app no ofrece la opción al publicar. Cuando se desarrolle, pruebas a agregar:
 - [ ] 13.1 Publicar eligiendo pago en efectivo: se cobra la tarifa de publicación y no se deposita el monto.
@@ -593,14 +611,14 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 - [ ] 14.4 El testigo no puede ser una de las partes.
 - [ ] 14.5 Testigo que no responde: qué pasa con el plazo y el reclamo.
 
-## 14b. Resumen de lo que está por desarrollar
+## 14b. Resumen de lo que está por desarrollar o fuera del alcance
 
 | Qué | Dónde se prueba hoy | Sección |
 | --- | --- | --- |
-| Votar parámetros (F) | Solo por script | 12 |
-| Pago en efectivo (B) | No se puede | 13 |
+| Votar parámetros (F) | Fuera del alcance por ahora | 12 |
+| Pago en efectivo (B) | Fuera del alcance por ahora | 13 |
 | Testigo | No se puede | 14 |
-| Cambio de coordinador | Solo contrato | 9.10 |
+| Changa grupal (E) y cambio de coordinador | Fuera del alcance por ahora | 9, 9.10 |
 | Suspender usuarios en el panel | No se puede | 11.5 |
 | Fondo y parámetros en el panel | No se puede | 11.9 |
 | Métricas con exportación en el panel | No se puede | 11.9 |
@@ -610,45 +628,45 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 
 ## 15. Casos transversales
 
-**15.1 Sin conexión** · [ ] Cortar la red a mitad de una acción. Esperado: mensaje claro, "No se movió plata", y al volver se puede reintentar.
+**15.1 Sin conexión** · [ x ] Cortar la red a mitad de una acción. Esperado: mensaje claro, "No se movió plata", y al volver se puede reintentar.
 
-**15.2 Rechazar una firma** · [ ] Cancelar la firma en MetaMask en el depósito, el acuerdo y el QR. Esperado: no se ejecuta nada y se puede reintentar.
+**15.2 Rechazar una firma** · [ x ] Cancelar la firma en MetaMask en el depósito, el acuerdo y el QR. Esperado: no se ejecuta nada y se puede reintentar.
 
-**15.3 Saldo insuficiente** · [ ] Postularse o aportar sin saldo. Esperado: indica cuánto falta.
+**15.3 Saldo insuficiente** · [ x ] Postularse o aportar sin saldo. Esperado: indica cuánto falta.
 
-**15.4 Doble toque / reintento** · [ ] Tocar dos veces "Confirmar" o reenviar la misma firma. Esperado: no se duplica el movimiento de plata.
+**15.4 Doble toque / reintento** · [ x ] Tocar dos veces "Confirmar" o reenviar la misma firma. Esperado: no se duplica el movimiento de plata.
 
 **15.5 Relayer sin gas** · [ ] Vaciar el saldo de ETH del relayer. Esperado: la app muestra un error de servicio sin mover plata; el panel marca el problema en la salud. Volver a cargar y comprobar que se recupera.
 
-**15.6 Indexador atrasado** · [ ] Apagar el cron un rato y volver a prenderlo. Esperado: las pantallas se ponen al día sin perder eventos.
+**15.6 Indexador atrasado** · [ x ] Apagar el cron un rato y volver a prenderlo. Esperado: las pantallas se ponen al día sin perder eventos.
 
-**15.7 Permisos entre roles** · [ ] Con la cuenta de Beto, intentar abrir pantallas o acciones de Ana (aprobar un trabajo ajeno, generar el QR de otra changa) y viceversa. Esperado: no se puede.
+**15.7 Permisos entre roles** · [ x ] Con la cuenta de Beto, intentar abrir pantallas o acciones de Ana (aprobar un trabajo ajeno, generar el QR de otra changa) y viceversa. Esperado: no se puede.
 
-**15.8 Sesión vencida** · [ ] Usar un token vencido. Esperado: pide volver a ingresar sin perder datos.
+**15.8 Sesión vencida** · [ x ] Usar un token vencido. Esperado: pide volver a ingresar sin perder datos.
 
-**15.9 Dos dispositivos con la misma cuenta** · [ ] Entrar con la misma billetera en dos celulares. Esperado: ambos ven el mismo estado y el chat se descifra en los dos.
+**15.9 Dos dispositivos con la misma cuenta** · [ x ] Entrar con la misma billetera en dos celulares. Esperado: ambos ven el mismo estado y el chat se descifra en los dos.
 
-**15.10 Billetera desconectada** · [ ] Dejar que la sesión de WalletConnect venza o desconectarla desde MetaMask y después intentar firmar (cancelar una changa, publicar). Esperado: en vez de un error técnico, aparece el aviso de que la billetera se desconectó con el botón para reconectar; al reconectar se puede repetir la acción y no se movió plata antes.
+**15.10 Billetera desconectada** · [ x ] Dejar que la sesión de WalletConnect venza o desconectarla desde MetaMask y después intentar firmar (cancelar una changa, publicar). Esperado: en vez de un error técnico, aparece el aviso de que la billetera se desconectó con el botón para reconectar; al reconectar se puede repetir la acción y no se movió plata antes.
 
-**15.11 Indexado rápido** · [ ] Con el webhook de Alchemy configurado, hacer una acción en la cadena (publicar, aportar, cancelar) y mirar cuánto tarda en reflejarse en el mapa o en el detalle. Esperado: unos pocos segundos, sin esperar el minuto del reloj. Con el webhook apagado o con la clave de firma mal cargada, igual se refleja a más tardar al minuto.
+**15.11 Indexado rápido** · [ x ] Con el webhook de Alchemy configurado, hacer una acción en la cadena (publicar, aportar, cancelar) y mirar cuánto tarda en reflejarse en el mapa o en el detalle. Esperado: unos pocos segundos, sin esperar el minuto del reloj. Con el webhook apagado o con la clave de firma mal cargada, igual se refleja a más tardar al minuto.
 
-**15.12 Interfaz consistente** · [ ] Recorrer las pantallas con la guía de interfaz (`Junquero - guia de interfaz.md`) en la mano. Esperado: un solo botón principal por pantalla, ningún botón beige, todos los botones y filas con ícono; las acciones de detalle (compartir, retirar, perfil, ajustes, jurado) salen juntas en una tarjeta de filas con "Cerrar sesión" y las acciones que borran o retiran en rojo al final.
+**15.12 Interfaz consistente** · [ x ] Recorrer las pantallas con la guía de interfaz (`Junquero - guia de interfaz.md`) en la mano. Esperado: un solo botón principal por pantalla, ningún botón beige, todos los botones y filas con ícono; las acciones de detalle (compartir, retirar, perfil, ajustes, jurado) salen juntas en una tarjeta de filas con "Cerrar sesión" y las acciones que borran o retiran en rojo al final.
 
-**15.13 Confirmaciones con toast** · [ ] Aportar a un grupo, retirar el aporte, aprobar, cobrar, votar, depositar como jurado, proponer un proveedor, copiar la dirección y reportar. Esperado: aparece "Enviado, esperando confirmación…", y recién cuando la red confirma y los montos ya se actualizaron sale el toast de éxito con ícono (dura unos 7 segundos, se cierra tocándolo). Nunca se ve "Listo" con los montos viejos. Cancelar la firma muestra un toast informativo, no un error.
+**15.13 Confirmaciones con toast** · [ x ] Aprobar, cobrar, votar, depositar como jurado, proponer un proveedor, copiar la dirección y reportar. Esperado: aparece "Enviado, esperando confirmación…", y recién cuando la red confirma y los montos ya se actualizaron sale el toast de éxito con ícono (dura unos 7 segundos, se cierra tocándolo). Nunca se ve "Listo" con los montos viejos. Cancelar la firma muestra un toast informativo, no un error.
 
-**15.14 Elegir con confirmación y estados claros** · [ ] Como quien publicó: tocar "Elegir" (en la lista o desde el chat). Esperado: pregunta "¿Elegir a ...?" con el monto. Después la tarjeta marca "Propuesta enviada" y no deja elegir de nuevo. Como la otra persona: aceptar el acuerdo y ver el aviso "Lo estamos confirmando"; en "Mis postulaciones" la tarjeta dice "Aceptaste... confirmando" y a los segundos pasa a "Te eligieron".
+**15.14 Elegir con confirmación y estados claros** · [ x ] Como quien publicó: tocar "Elegir" (en la lista o desde el chat). Esperado: pregunta "¿Elegir a ...?" con el monto. Después la tarjeta marca "Propuesta enviada" y no deja elegir de nuevo. Como la otra persona: aceptar el acuerdo y ver el aviso "Lo estamos confirmando"; en "Mis postulaciones" la tarjeta dice "Aceptaste... confirmando" y a los segundos pasa a "Te eligieron".
 
-**15.15 Perfil con historial** · [ ] Desde una postulación y desde el menú del chat, tocar "Ver perfil e historial". Esperado: nombre, verificado, desde cuándo está, calificación promedio, trabajos hechos y cerrados, reclamos y rubros.
+**15.15 Perfil con historial** · [ x ] Desde una postulación y desde el menú del chat, tocar "Ver perfil e historial". Esperado: nombre, verificado, desde cuándo está, calificación promedio, trabajos hechos y cerrados, reclamos y rubros.
 
-**15.16 Campana de notificaciones** · [ ] Recibir una notificación con la app abierta en el mapa. Esperado: el globito de la campana aparece solo; al entrar a Notificaciones se apaga.
+**15.16 Campana de notificaciones** · [ x ] Recibir una notificación con la app abierta en el mapa. Esperado: el globito de la campana aparece solo; al entrar a Notificaciones se apaga.
 
-**15.17 Camino del trabajo** · [ ] Como quien trabaja y como quien publicó, abrir "Tu trabajo" (también un trabajo con hitos y uno grupal). Esperado: una tarjeta con los pasos (llegar, subir pruebas, terminar, esperar la aprobación / esperar, revisar, aprobar), el paso actual resaltado con su explicación y los hechos con tilde.
+**15.17 Camino del trabajo** · [ x ] Como quien trabaja y como quien publicó, abrir "Tu trabajo" (también un trabajo con hitos). Esperado: una tarjeta con los pasos (llegar, subir pruebas, terminar, esperar la aprobación / esperar, revisar, aprobar), el paso actual resaltado con su explicación y los hechos con tilde.
 
-**15.18 Pruebas por pedido** · [ ] Publicar una changa que pida dos pruebas (por ejemplo "Foto" y "Comprobante"), elegir a alguien y abrir "Tu trabajo" como esa persona. Esperado: primero solo aparece "Llegué" (si es presencial); después una tarjeta por cada prueba pedida con "Subir esta prueba"; al subir cada una se tilda como "Subida"; recién con todas tildadas aparece "Terminé". Quien publicó ve los archivos subidos.
+**15.18 Pruebas por pedido** · [ x ] Publicar una changa que pida dos pruebas (por ejemplo "Foto" y "Comprobante"), elegir a alguien y abrir "Tu trabajo" como esa persona. Esperado: primero solo aparece "Llegué" (si es presencial); después una tarjeta por cada prueba pedida con "Subir esta prueba"; al subir cada una se tilda como "Subida"; recién con todas tildadas aparece "Terminé". Quien publicó ve los archivos subidos.
 
-**15.19 Acuerdo y pasos desde el chat** · [ ] Elegir a alguien desde el chat. Esperado: en el chat de las dos personas aparece la tarjeta de propuesta (quien fue elegido acepta o rechaza; quien publicó espera o cancela). Al aceptar, aparece la tarjeta "Paso actual" con el mismo paso que el detalle del trabajo: "Llegué" (presencial), después "Ir a subir las pruebas", "Ir a terminar" y, para quien publicó, "Revisar y aprobar". Avanzar un paso en el chat se refleja en el detalle y al revés.
+**15.19 Acuerdo y pasos desde el chat** · [ x ] Elegir a alguien desde el chat. Esperado: en el chat de las dos personas aparece la tarjeta de propuesta (quien fue elegido acepta o rechaza; quien publicó espera o cancela). Al aceptar, aparece la tarjeta "Paso actual" con el mismo paso que el detalle del trabajo: "Llegué" (presencial), después "Ir a subir las pruebas", "Ir a terminar" y, para quien publicó, "Revisar y aprobar". Avanzar un paso en el chat se refleja en el detalle y al revés.
 
-**15.20 Historial en el chat** · [ ] Recorrer el flujo completo con dos cuentas y mirar el chat de cada una. Esperado: cada hecho aparece como una burbuja con ícono y hora (a la derecha si lo hiciste vos, a la izquierda si lo hizo la otra persona), mezclada con los mensajes por fecha:
+**15.20 Historial en el chat** · [ x ] Recorrer el flujo completo con dos cuentas y mirar el chat de cada una. Esperado: cada hecho aparece como una burbuja con ícono y hora (a la derecha si lo hiciste vos, a la izquierda si lo hizo la otra persona), mezclada con los mensajes por fecha:
 - **Postulación:** postularse, bajarse, volver a postularse, que quien publicó descarte (si además bloquea, el chat solo dice "descartó la postulación").
 - **Acuerdo:** mandar, rechazar, cancelar y aceptar la propuesta; una propuesta que venció; quedó acordado.
 - **Trabajo:** llegó, subió pruebas (con la cantidad), terminó, aprobó ("ya podés cobrar"), extendió la revisión, pidió cambios, se liberó el pago.
@@ -656,9 +674,9 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 - **Hitos:** hito entregado, avance reportado, hito pagado, terminó antes de tiempo, abandonó.
 Requiere el backend nuevo y las migraciones 0021 y 0022.
 
-**15.21 Avisos en vivo y consumo** · [ ] Con el chat de las dos cuentas abierto, hacer en una: proponer, aceptar, rechazar, bajarse, subir pruebas, llegar. Esperado: la otra cuenta lo ve en el chat al instante, sin refrescar. Cortar la red unos segundos y volver: el chat se pone al día solo. Mandar la app a segundo plano un rato y volver: se actualiza. En el log de Metro no debe haber un goteo constante de pedidos con la app quieta.
+**15.21 Avisos en vivo y consumo** · [ x ] Con el chat de las dos cuentas abierto, hacer en una: proponer, aceptar, rechazar, bajarse, subir pruebas, llegar. Esperado: la otra cuenta lo ve en el chat al instante, sin refrescar. Cortar la red unos segundos y volver: el chat se pone al día solo. Mandar la app a segundo plano un rato y volver: se actualiza. En el log de Metro no debe haber un goteo constante de pedidos con la app quieta.
 
-**15.22 Archivos vencidos y perfil** · [ ] Después del despliegue: el perfil de alguien con trabajos cerrados muestra calificación promedio (ahora se guarda de forma duradera). Los adjuntos del chat con más de 90 días y las pruebas de trabajos cerrados hace más de 180 días se borran de R2 (revisar el almacenamiento tras la limpieza diaria de las 03:00 UTC).
+**15.22 Archivos vencidos y perfil** · [ x ] Después del despliegue: el perfil de alguien con trabajos cerrados muestra calificación promedio (ahora se guarda de forma duradera). Los adjuntos del chat con más de 90 días y las pruebas de trabajos cerrados hace más de 180 días se borran de R2 (revisar el almacenamiento tras la limpieza diaria de las 03:00 UTC).
 
 ---
 
@@ -674,13 +692,12 @@ Completar al terminar cada sesión de pruebas.
 | 4. Chat y notificaciones | 14 | | | |
 | 5. Hacer la changa y cobrar | 10 | | | |
 | 6. Hitos | 6 | | | |
-| 7. Cancelaciones | 11 | | | |
+| 7. Cancelaciones | 8 (sin 7.9, 7.10 ni 7.11) | | | |
 | 8. Reclamo y jurado | 11 | | | |
-| 9. Grupal | 11 | | | |
 | 10. Perfil y ajustes | 5 | | | |
 | 11. Panel | 8 | | | |
 | 15. Transversales | 11 | | | |
-| 12 a 14 y 9.10, 11.5, 11.9, 4.4 (por desarrollar) | 🛠 | | | |
+| Futuro: 9, 12 y 13 (fuera del alcance); por desarrollar: 14, 11.5, 11.9, 4.4 | 🛠 | | | |
 
 **Fallas encontradas** (anotar acá y arreglar después):
 

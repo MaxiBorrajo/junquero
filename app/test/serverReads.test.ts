@@ -18,6 +18,8 @@ describe("lecturas que llegan del servidor", () => {
   it("los hitos y el caso mantienen sus tipos", () => {
     const board = milestonesFromServer({ milestones: [{ amount: "3", status: 1, deliveredAt: 2, evidenceHash: "0x3" }], plan: { next: 0, count: 1, paidTotal: "0" } });
     expect(board.milestones[0]).toMatchObject({ amount: 3n, status: 1 });
+    expect(board.started).toBe(false);
+    expect(milestonesFromServer({ milestones: [], plan: { next: 1, count: 2, paidTotal: "1", started: true } }).started).toBe(true);
     const c = caseFromServer({ case: { orderId: "4", payer: "0xa", payee: "0xb", claimant: "0xa", token: "0xc", fee: "9", jurors: 3, phase: 3, round: 1, revealedVotes: 0, payeeVotes: 0, payerVotes: 0, commitEnd: 1, revealEnd: 2, appealed: false, verdictPayee: false, appealEnd: 0, appellant: "0x0", appealFee: "0" }, jurors: ["0x1"] });
     expect(c.snapshot.orderId).toBe(4);
     expect(c.snapshot.fee).toBe(9n);

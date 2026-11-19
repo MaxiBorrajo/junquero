@@ -18,6 +18,8 @@ export function orderFromServer(raw: Raw): OrderState {
     deposited: big(raw.deposited),
     evidenceHash: raw.evidenceHash as `0x${string}`,
     startsAt: Number(raw.startsAt),
+    agreedAt: Number(raw.agreedAt ?? 0),
+    cash: Number(raw.mode ?? 0) === 1,
     deadline: Number(raw.deadline),
     deliveredAt: Number(raw.deliveredAt),
     checkedInAt: Number(raw.checkedInAt),
@@ -53,6 +55,7 @@ export function milestonesFromServer(raw: { milestones: Raw[]; plan: Raw }) {
     count: Number(raw.plan.count),
     paidTotal: big(raw.plan.paidTotal),
     progressBps: Number(raw.plan.progressBps ?? 0),
+    started: Boolean(raw.plan.started),
     disputing: Boolean(raw.plan.disputing),
     disputedIndex: Number(raw.plan.disputedIndex ?? 0),
   };

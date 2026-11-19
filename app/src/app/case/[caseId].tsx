@@ -24,6 +24,9 @@ import { useSession } from "../../session/SessionProvider";
 import { signTyped } from "../../wallet/sign";
 import { text } from "../../theme";
 
+// La transacción tarda unos segundos en entrar: si queda menos que esto, el plazo se da por vencido.
+const RESPOND_MARGIN_SECONDS = 15;
+
 export default function CaseScreen() {
   const { caseId } = useLocalSearchParams<{ caseId: string }>();
   const id = Number(caseId);
@@ -55,15 +58,17 @@ export default function CaseScreen() {
   const items = evidence.data ?? [];
 
   const refresh = [["case", id], ["evidence", orderId]] as const;
-  const run = (action: () => Promise<string | void>, failure: string, success: string, icon: string) =>
-    runAction(action, { success, successIcon: icon, failure, invalidate: refresh });
+  const run = (action: () => Promise<string | void>, failure: string, success: string, icon: string, mapError?: (error: unknown) => string | null) =>
+    runAction(action, { success, successIcon: icon, failure, invalidate: refresh, mapError });
 
   const respond = () =>
     run(async () => {
+      // El plazo corre en la cadena: se mira con la hora de ahora y no con la de cuando se abrió la pantalla, así no se sube un relato fuera de tiempo.
+      if (Math.floor(Date.now() / 1000) > snapshot.commitEnd - RESPOND_MARGIN_SECONDS) throw new Error("respond_late");
       const text = response.trim();
       await uploadStatement(api, address, counterpart, await ensure(), orderId, text);
       return sendViaRelay(relayDepsFor(api, address), encodeRespond(BigInt(id), reasonHash(text)), 1_500_000n, deployment.arbitration);
-    }, t.dispute.failed, t.caseScreen.respondDone, "send");
+    }, t.dispute.failed, t.caseScreen.respondDone, "send", (failure) => ((failure as Error).message === "respond_late" ? t.caseScreen.respondLate : null));
 
   const share = () =>
     run(async () => {

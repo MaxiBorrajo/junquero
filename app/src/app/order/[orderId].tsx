@@ -31,7 +31,9 @@ import { Stars } from "../../components/Stars";
 import { MilestoneBoard } from "../../components/MilestoneBoard";
 import { useChangaBySpec } from "../../data/useChangas";
 import { useMyCases } from "../../data/useCases";
+import { useClosing } from "../../data/useClosing";
 import { useOrder } from "../../data/useOrder";
+import { disputeOutcomeText } from "../../lib/disputeOutcome";
 import { OrderStatus } from "../../chain/orderAbi";
 import { EvidenceThumbnails, EvidenceUploader, RequirementList, useCoveredRequirements, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
@@ -87,6 +89,7 @@ export default function OrderScreen() {
   const state = order.data;
   const role = roleOf(state, address);
   const view = viewFor(state.status, role);
+  const closing = useClosing(id, view === "settled");
   // Si quien trabajaba dejó el trabajo, el contrato lo reabre sin precio ni prestador: se muestra lo que quedó en garantía.
   if (state.status === OrderStatus.Open) {
     const isOwner = state.payer.toLowerCase() === address.toLowerCase();
@@ -247,6 +250,10 @@ export default function OrderScreen() {
         <MilestoneBoard orderId={id} role={role} counterpart={counterpart} changa={changaForOrder.data ?? null} payee={state.payee} deadline={state.deadline} disputed={view === "disputed"} />
       ) : null}
 
+      {role === "payer" && view === "payer-waiting-work" && !state.hasMilestones && !state.isGroup && changaForOrder.data ? (
+        <DetailActions actions={[{ key: "cancel", label: t.detail.cancelChanga, icon: "close", danger: true, onPress: () => router.push({ pathname: "/cancel/[specHash]", params: { specHash: changaForOrder.data!.specHash } }) }]} />
+      ) : null}
+
       {!state.hasMilestones && view === "worker-working" ? (
         <>
           {arrivedOrRemote && requirements.length > 0 ? (
@@ -262,6 +269,9 @@ export default function OrderScreen() {
               <Secondary>{t.order.evidenceHint}</Secondary>
               <EvidenceUploader orderId={id} counterpart={counterpart} />
             </>
+          ) : null}
+          {role === "payee" && changaForOrder.data ? (
+            <DetailActions actions={[{ key: "cancel", label: t.cancelScreen.workerCancel, icon: "close", danger: true, hint: t.cancelScreen.workerCancelNote, onPress: () => router.push({ pathname: "/cancel/[specHash]", params: { specHash: changaForOrder.data!.specHash } }) }]} />
           ) : null}
         </>
       ) : null}
@@ -325,7 +335,13 @@ export default function OrderScreen() {
           {myCase ? <Button label={t.order.openCase} icon="scale" onPress={() => router.push({ pathname: "/case/[caseId]", params: { caseId: String(myCase.caseId) } })} /> : null}
         </>
       ) : null}
-      {settled ? <Banner tone="success" icon="check">{t.order.released}</Banner> : null}
+      {settled ? (
+        closing.data?.dispute && (role === "payer" || role === "payee") ? (
+          <Banner tone={(closing.data.dispute.payeeShareBps <= 0) === (role === "payer") ? "success" : "warning"} icon="scale">{disputeOutcomeText(closing.data.dispute, role, t.order.disputeOutcome)}</Banner>
+        ) : (
+          <Banner tone="success" icon="check">{t.order.released}</Banner>
+        )
+      ) : null}
       {failed ? <ErrorText>{failed}</ErrorText> : null}
     </Screen>
   );

@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useFocusedInterval } from "../../lib/useFocusedInterval";
 import { router } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import * as Notifications from "expo-notifications";
+import { useEffect, useState } from "react";
+import { AppState, StyleSheet, Text, View } from "react-native";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData, splitSignature } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
 import { CasePhase } from "../../chain/arbitrationAbi";
@@ -34,6 +35,15 @@ export default function JuryHub() {
   const account = useQuery({ queryKey: ["juror", address], enabled: Boolean(address), refetchInterval: useFocusedInterval(60_000), queryFn: () => readJurorAccount(juror) });
   const required = useQuery({ queryKey: ["param", "JUROR_STAKE"], queryFn: () => readParam("JUROR_STAKE"), staleTime: 5 * 60_000 });
   const reward = useQuery({ queryKey: ["reward", address], enabled: Boolean(address), queryFn: () => readReward(juror) });
+  const [minError, setMinError] = useState(false);
+  const [touched, setTouched] = useState(false);
+  // Monto en camino: el depósito sigue en segundo plano y la pantalla queda libre.
+  const [pending, setPending] = useState<string | null>(null);
+  const freeNow = account.data ? account.data.staked - account.data.locked : 0n;
+  const minDeposit = required.data !== undefined && account.data ? stakeNeeded(required.data, freeNow) : 0n;
+  useEffect(() => {
+    if (!touched && pending === null && minDeposit > 0n) setAmount(formatMicroPlain(minDeposit));
+  }, [minDeposit, touched, pending]);
 
   if (!address) return <Screen><Secondary>{t.mine.needAccount}</Secondary></Screen>;
 
@@ -41,17 +51,39 @@ export default function JuryHub() {
   const run = (action: () => Promise<string | void>, success: string, icon: string) =>
     runAction(action, { success, successIcon: icon, failure: t.jury.stepFailed, invalidate: refresh });
 
-  const deposit = () =>
-    run(async () => {
-      const value = toMicro(amount || "0");
+  const deposit = () => {
+    if (toMicro(amount || "0") < minDeposit) {
+      setMinError(true);
+      return;
+    }
+    setMinError(false);
+    const sent = amount.trim();
+    setPending(sent);
+    setTouched(false);
+    setAmount("");
+    void runAction(async () => {
+      const value = toMicro(sent || "0");
       if (value <= 0n || (await readTokenBalance(juror)) < value) throw new Error("amount");
       const deadline = BigInt(Math.floor(Date.now() / 1000) + PERMIT_VALIDITY_SECONDS);
       const signature = await signTyped(permitTypedData(deployment, juror, value, await readTokenNonce(juror), deadline, deployment.arbitration));
       const { v, r, s } = splitSignature(signature);
-      const hash = await sendViaRelay(relayDepsFor(api, address), encodeStakeWithPermit(value, deadline, v, r, s), 1_500_000n, deployment.arbitration);
-      setAmount("");
-      return hash;
-    }, t.jury.deposited, "wallet");
+      return sendViaRelay(relayDepsFor(api, address), encodeStakeWithPermit(value, deadline, v, r, s), 1_500_000n, deployment.arbitration);
+    }, {
+      success: t.jury.stakeReady.replace("{amount}", sent),
+      successIcon: "wallet",
+      failure: t.jury.stepFailed,
+      invalidate: refresh,
+      onSuccess: () => {
+        // Si la persona salió de la app, el aviso llega como notificación del teléfono.
+        if (AppState.currentState !== "active") {
+          void Notifications.scheduleNotificationAsync({ content: { title: t.jury.stakeReadyTitle, body: t.jury.stakeReady.replace("{amount}", sent), data: { kind: "jury_stake_ready", ref: "" } }, trigger: null }).catch(() => {});
+        }
+      },
+    }).then((ok) => {
+      setPending(null);
+      if (!ok) setAmount(sent);
+    });
+  };
 
   const free = account.data ? account.data.staked - account.data.locked : 0n;
   const withdraw = () => run(() => sendViaRelay(relayDepsFor(api, address), encodeUnstake(free), 1_500_000n, deployment.arbitration), t.jury.withdrawn, "logout");
@@ -74,8 +106,11 @@ export default function JuryHub() {
         <Row label={t.jury.required} value={required.data !== undefined ? formatAmount(required.data.toString()) : "-"} />
         {required.data !== undefined && account.data && stakeNeeded(required.data, free) > 0n ? <Secondary>{t.jury.needStake.replace("{amount}", formatAmount(stakeNeeded(required.data, free).toString()))}</Secondary> : null}
       </Card>
-      <Field label={t.jury.amountLabel} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
-      <Button label={t.jury.deposit} icon="wallet" onPress={deposit} loading={busy} disabled={amount.trim() === ""} />
+      <Field label={t.jury.amountLabel} value={amount} onChangeText={(v) => { setTouched(true); setMinError(false); setAmount(v); }} keyboardType="decimal-pad" />
+      {minDeposit > 0n && !minError ? <Secondary>{t.jury.minHint.replace("{amount}", formatAmount(minDeposit.toString()))}</Secondary> : null}
+      {minError ? <ErrorText>{t.jury.belowMin.replace("{amount}", formatAmount(minDeposit.toString()))}</ErrorText> : null}
+      <Button label={t.jury.deposit} icon="wallet" onPress={deposit} disabled={amount.trim() === "" || pending !== null} />
+      {pending !== null ? <Secondary>{t.jury.depositing.replace("{amount}", pending)}</Secondary> : null}
       <DetailActions
         actions={([
           ...(reward.data && reward.data > 0n ? [{ key: "claim", label: `${t.jury.claimRewards} (${formatAmount(reward.data.toString())} USDC)`, icon: "check", onPress: () => void claim() }] : []),
@@ -100,6 +135,12 @@ export default function JuryHub() {
       ))}
     </Screen>
   );
+}
+
+function formatMicroPlain(value: bigint): string {
+  const whole = value / 1_000_000n;
+  const fraction = (value % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+  return fraction ? `${whole},${fraction}` : whole.toString();
 }
 
 function Row({ label, value }: { label: string; value: string }) {

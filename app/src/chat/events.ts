@@ -4,7 +4,7 @@ export type ChatEventKind =
   | "applied" | "withdrawn" | "dismissed" | "offered" | "offer_rejected"
   | "agreed" | "checkedin" | "delivered" | "settled"
   | "evidence" | "approved" | "review_extended" | "changes_requested"
-  | "topped_up" | "order_cancelled" | "dispute_opened" | "dispute_resolved"
+  | "topped_up" | "order_cancelled" | "dispute_opened" | "dispute_small" | "dispute_resolved"
   | "milestone_delivered" | "milestone_paid" | "progress" | "terminated" | "abandoned";
 
 // Hechos que no hizo ninguna de las dos personas (los resuelve el sistema o el jurado): se ven siempre del lado de la otra persona.

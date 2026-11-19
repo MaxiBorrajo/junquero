@@ -57,6 +57,11 @@ export async function receiptsCount(db: D1Database, address: string): Promise<nu
 export interface Closing {
   ratings: { index: number | null; rating: number }[];
   receipt: { category: number; month: number } | null;
+  // El trabajo se cerró con un reclamo chico (reparto 50/50 sin jurado): no da comprobante.
+  smallDispute: boolean;
+  // Cómo se resolvió el reclamo que cerró el trabajo, si lo hubo: qué parte del pago fue a quien hizo el trabajo (0 a 10000) y si
+  // se resolvió porque quien debía responder no lo hizo a tiempo.
+  dispute: { payeeShareBps: number; byDefault: boolean } | null;
 }
 
 // Cómo se cerró un trabajo: la calificación (o las de cada hito) y si quien lo hizo reclamó su comprobante. Solo lo ven las dos partes.
@@ -66,9 +71,35 @@ export async function closingFor(db: D1Database, orderId: number, address: strin
   if (!parties || (parties.payer?.toLowerCase() !== me && parties.payee?.toLowerCase() !== me)) return { ok: false };
   const ratings = await db.prepare("SELECT idx, rating FROM payee_ratings WHERE order_id = ? ORDER BY idx").bind(orderId).all<{ idx: number; rating: number }>();
   const receipt = await db.prepare("SELECT category, month FROM receipts WHERE order_id = ?").bind(orderId).first<{ category: number; month: number }>();
+  // Solo cuenta el reclamo chico que cerró el trabajo: en una changa sin hitos, cualquiera; en una con hitos, el del último, que
+  // se reconoce porque cierra la changa en la misma transacción (OrderSettled). Un reclamo chico en un hito intermedio no quita el comprobante.
+  const small = await db
+    .prepare(
+      `SELECT 1 AS found FROM events d
+       WHERE d.order_id = ?1 AND d.name = 'DisputeOpened' AND CAST(json_extract(d.args, '$.caseId') AS INTEGER) = 0
+         AND (NOT EXISTS (SELECT 1 FROM events m WHERE m.order_id = d.order_id AND m.name = 'MilestonesAgreed')
+              OR EXISTS (SELECT 1 FROM events s WHERE s.order_id = d.order_id AND s.name = 'OrderSettled' AND s.tx_hash = d.tx_hash))
+       LIMIT 1`,
+    )
+    .bind(orderId)
+    .first<{ found: number }>();
+  const resolved = await db
+    .prepare(
+      `SELECT json_extract(d.args, '$.payeeShareBps') AS share,
+              EXISTS (SELECT 1 FROM events x WHERE x.name = 'ResolvedByDefault' AND x.tx_hash = d.tx_hash) AS by_default
+       FROM events d
+       WHERE d.order_id = ?1 AND d.name = 'DisputeResolved'
+         AND (NOT EXISTS (SELECT 1 FROM events m WHERE m.order_id = d.order_id AND m.name = 'MilestonesAgreed')
+              OR EXISTS (SELECT 1 FROM events s WHERE s.order_id = d.order_id AND s.name = 'OrderSettled' AND s.tx_hash = d.tx_hash))
+       ORDER BY d.block_number DESC, d.log_index DESC LIMIT 1`,
+    )
+    .bind(orderId)
+    .first<{ share: number | string | null; by_default: number }>();
   return {
     ok: true,
     closing: {
+      smallDispute: small !== null,
+      dispute: resolved && resolved.share !== null ? { payeeShareBps: Number(resolved.share), byDefault: resolved.by_default === 1 } : null,
       ratings: ratings.results.map((row) => ({ index: row.idx < 0 ? null : row.idx, rating: row.rating })),
       receipt: receipt ?? null,
     },

@@ -70,6 +70,17 @@ describe("trabajo que se reabre", () => {
     expect(row.spec.doneMilestones).toBeUndefined();
   });
 
+  it("si quien trabajaba cancela tras acordar, queda anotado en su historial; si cancela quien publicó, no", async () => {
+    const { ctx } = await agreed(three);
+    plainEvent(ctx.raw, "OrderCancelled", 1, 502, { by: owner.address, reason: 0, refunded: "100000000" });
+    await processEvents(ctx.db, handlers, 100);
+    expect(ctx.raw.prepare("SELECT COUNT(*) AS n FROM abandonments").get()).toEqual({ n: 0 });
+    const other = await agreed(three);
+    plainEvent(other.ctx.raw, "OrderCancelled", 1, 502, { by: stranger.address, reason: 1, refunded: "100000000" });
+    await processEvents(other.ctx.db, handlers, 100);
+    expect(other.ctx.raw.prepare("SELECT payee FROM abandonments").all()).toEqual([{ payee: stranger.address.toLowerCase() }]);
+  });
+
   it("quien dejó el trabajo no puede volver a postularse y queda anotado en su historial", async () => {
     const { ctx, changaId, worker } = await agreed(three);
     plainEvent(ctx.raw, "OrderAbandoned", 1, 502, { by: stranger.address, reopenedWith: "100000000" });

@@ -54,3 +54,7 @@ Con la regla nueva (hubo postulaciones, y hay un prestador acordado, así que si
 ## 6. Para evaluar más adelante
 
 - Calificación del prestador hacia quien publicó, dentro de la reputación del contrato. Detalle y motivos en "Junquero - plan a futuro", sección 4. No es parte de este cambio.
+- Reclamos de changa chica (50/50 sin jurado), decisiones del 18/11/2026. Ya hecho: el tope bajó a 1 por cuenta por mes (`SMALL_DISPUTES_PER_ACCOUNT_MONTH`, también en Sepolia con `contracts/script/SetParameter.s.sol`) y la app avisa cuando se llega al tope. Pendiente de contrato:
+  - Pasado el tope hoy no se puede reclamar y no hay jurado (`DisputeCapReached`). Evaluar que los reclamos siguientes del mes pasen a jurado pagando el costo (3 USDC) o a un árbitro de emergencia; toca `_openSmall` de `DisputeModule`.
+  - El 50/50 deja un incentivo a rechazar para pagar la mitad (ya señalado en "Junquero - confianza y economia"); el tope en 1 lo acota pero no lo elimina. Alternativas vistas: garantía chica para quien reclama, reparto asimétrico si hubo check-in y evidencia, jurado de uno solo.
+  - `Receipt.claim` solo mira que el trabajo esté liquidado y pagado, así que permite reclamar el comprobante de un trabajo que terminó en reclamo chico. Hoy solo lo oculta la app. Cerrarlo en el contrato consultando la disputa del Escrow.

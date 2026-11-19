@@ -51,7 +51,7 @@ contract DeployTest is Test {
         assertTrue(deployment.escrow.modulesLocked());
         assertEq(deployment.registry.get(ParameterKeys.JURY_SIZE_MEDIUM), 3);
         assertEq(deployment.registry.get(ParameterKeys.JURY_SIZE_LARGE), 5);
-        assertEq(deployment.registry.get(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH), 3);
+        assertEq(deployment.registry.get(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH), 1);
     }
 
     function test_arbitrationIsWiredToEscrowAndReputation() public view {

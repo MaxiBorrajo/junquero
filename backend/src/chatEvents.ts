@@ -6,7 +6,7 @@ export type ChatEventKind =
   | "applied" | "withdrawn" | "dismissed" | "offered" | "offer_rejected"
   | "agreed" | "checkedin" | "delivered" | "settled"
   | "evidence" | "approved" | "review_extended" | "changes_requested"
-  | "topped_up" | "order_cancelled" | "dispute_opened" | "dispute_resolved"
+  | "topped_up" | "order_cancelled" | "dispute_opened" | "dispute_small" | "dispute_resolved"
   | "milestone_delivered" | "milestone_paid" | "progress" | "terminated" | "abandoned";
 
 type Data = Record<string, string | number> | null;
@@ -54,7 +54,7 @@ type Actor = "payee" | "payer" | "system" | { address: string };
 
 // Qué hechos de la cadena se anotan en el chat, quién los hizo y qué datos chicos llevan.
 // `repeats`: pueden pasar varias veces en un mismo trabajo, así que cada uno se identifica por su bloque.
-const CHAIN: Record<string, { kind: ChatEventKind; actor: (args: Record<string, string> | null) => Actor; data?: (args: Record<string, string>) => Data; repeats?: boolean }> = {
+const CHAIN: Record<string, { kind: ChatEventKind | ((args: Record<string, string> | null) => ChatEventKind); actor: (args: Record<string, string> | null) => Actor; data?: (args: Record<string, string>) => Data; repeats?: boolean }> = {
   OrderCheckedIn: { kind: "checkedin", actor: () => "payee" },
   OrderDelivered: { kind: "delivered", actor: () => "payee" },
   OrderSettled: { kind: "settled", actor: () => "payee", data: (a) => ({ paid: a.paid ?? "0", rating: a.rating ?? "0" }) },
@@ -62,7 +62,8 @@ const CHAIN: Record<string, { kind: ChatEventKind; actor: (args: Record<string, 
   ChangesRequested: { kind: "changes_requested", actor: () => "payer", repeats: true },
   OrderToppedUp: { kind: "topped_up", actor: () => "payer", data: (a) => ({ added: a.added ?? "0" }), repeats: true },
   OrderCancelled: { kind: "order_cancelled", actor: (a) => (a?.by && isAddress(a.by) ? { address: a.by.toLowerCase() } : "system"), data: (a) => ({ refunded: a.refunded ?? "0" }) },
-  DisputeOpened: { kind: "dispute_opened", actor: (a) => (a?.claimant && isAddress(a.claimant) ? { address: a.claimant.toLowerCase() } : "system") },
+  // Un reclamo de una changa chica no abre caso (caseId 0): se resuelve al instante, sin jurado.
+  DisputeOpened: { kind: (a) => (a?.caseId !== undefined && Number(a.caseId) === 0 ? "dispute_small" : "dispute_opened"), actor: (a) => (a?.claimant && isAddress(a.claimant) ? { address: a.claimant.toLowerCase() } : "system") },
   DisputeResolved: { kind: "dispute_resolved", actor: () => "system", data: (a) => ({ payeeShareBps: a.payeeShareBps ?? "0" }) },
   MilestoneDelivered: { kind: "milestone_delivered", actor: () => "payee", data: (a) => ({ index: Number(a.index ?? 0) }), repeats: true },
   MilestonePaid: { kind: "milestone_paid", actor: () => "payer", data: (a) => ({ index: Number(a.index ?? 0), paid: a.paid ?? "0", rating: a.rating ?? "0" }), repeats: true },
@@ -95,7 +96,7 @@ export const chatEventsHandler: EventHandler = (db: D1Database, events: StreamEv
     const data = rule.data && args ? rule.data(args) : rule.data ? rule.data({}) : null;
     const ref = rule.repeats ? `${event.block_number}:${event.log_index}` : "";
     const actorSql = actor === "payee" ? "p.payee" : actor === "payer" ? "COALESCE(p.payer, '')" : actor === "system" ? "''" : "?";
-    const binds: (string | number | null)[] = [rule.kind];
+    const binds: (string | number | null)[] = [typeof rule.kind === "function" ? rule.kind(args) : rule.kind];
     if (typeof actor === "object") binds.push(actor.address);
     binds.push(ref, data ? JSON.stringify(data) : null, event.order_id);
     statements.push(

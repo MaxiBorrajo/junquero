@@ -29,6 +29,8 @@ export const TEMPLATES: Record<string, Template> = {
   checked_in: { title: "Llegó quien hace tu trabajo", body: "Avisó que llegó al lugar. Salí a recibirlo y abrí el trabajo para ver los detalles.", priority: "high" },
   evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
+  dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
+  dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste.", priority: "high" },
   dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Entrá al trabajo ahora.", priority: "high" },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para votar. Entrá al reclamo ahora.", priority: "high" },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito. Entrá al reclamo ahora.", priority: "high" },
@@ -57,15 +59,16 @@ const parse = <T>(args: string | null): T | null => {
   }
 };
 
-const insertFromChanga = (db: D1Database, kind: string, orderId: number, role: "owner" | "chosen", dueSql = "0") =>
+// `except` es quien hizo la acción: a esa persona no se le avisa de lo que acaba de hacer ella misma.
+const insertFromChanga = (db: D1Database, kind: string, orderId: number, role: "owner" | "chosen", dueSql = "0", except = "") =>
   db.prepare(
     role === "owner"
       ? `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
-         SELECT owner, ?, CAST(order_id AS TEXT), ${dueSql}, ${nowSql} FROM changas WHERE order_id = ?`
+         SELECT owner, ?, CAST(order_id AS TEXT), ${dueSql}, ${nowSql} FROM changas WHERE order_id = ? AND lower(owner) != ?`
       : `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
          SELECT a.applicant, ?, CAST(c.order_id AS TEXT), ${dueSql}, ${nowSql}
-         FROM applications a JOIN changas c ON c.id = a.changa_id WHERE c.order_id = ? AND a.status = 'chosen'`,
-  ).bind(kind, orderId);
+         FROM applications a JOIN changas c ON c.id = a.changa_id WHERE c.order_id = ? AND a.status = 'chosen' AND lower(a.applicant) != ?`,
+  ).bind(kind, orderId, except);
 
 const reminderDue = `json_extract(spec, '$.startsAt') - ${REMINDER_LEAD_SECONDS}`;
 
@@ -105,7 +108,8 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
     } else if (event.name === "OrderDelivered" && event.order_id !== null) {
       statements.push(insertFromChanga(db, "delivered", event.order_id, "owner"));
     } else if (event.name === "OrderCancelled" && event.order_id !== null) {
-      statements.push(insertFromChanga(db, "cancelled", event.order_id, "owner"), insertFromChanga(db, "cancelled", event.order_id, "chosen"));
+      const by = (parse<{ by?: string }>(event.args)?.by ?? "").toLowerCase();
+      statements.push(insertFromChanga(db, "cancelled", event.order_id, "owner", "0", by), insertFromChanga(db, "cancelled", event.order_id, "chosen", "0", by));
     } else if (event.name === "OrderAbandoned" && event.order_id !== null) {
       statements.push(insertFromChanga(db, "abandoned", event.order_id, "owner"));
     } else if (event.name === "OrderTerminated" && event.order_id !== null) {
@@ -124,6 +128,36 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
                FROM order_parties WHERE order_id = ?2 AND payer IS NOT NULL AND payee IS NOT NULL`,
             )
             .bind(claimant.toLowerCase(), event.order_id),
+        );
+      }
+    } else if (event.name === "DisputeResolved" && event.order_id !== null) {
+      // Un reclamo con jurado (o resuelto por falta de respuesta) tiene costo de arbitraje; el chico no. A las dos partes les avisa lo mismo
+      // porque el resultado se ve en el trabajo.
+      const cost = parse<{ arbitrationCost?: string | number }>(event.args)?.arbitrationCost;
+      if (cost !== undefined && BigInt(cost) > 0n) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+               SELECT party, 'dispute_resolved', CAST(CAST(?1 AS INTEGER) AS TEXT), 0, ${nowSql}
+               FROM (SELECT payer AS party FROM order_parties WHERE order_id = ?1 UNION SELECT payee FROM order_parties WHERE order_id = ?1)
+               WHERE party IS NOT NULL`,
+            )
+            .bind(event.order_id),
+        );
+      }
+    } else if (event.name === "DisputeOpened" && event.order_id !== null) {
+      // Los reclamos con jurado avisan con CaseOpened. El de una changa chica se resuelve en el mismo momento y no abre caso: caseId 0.
+      const args = parse<{ claimant?: string; caseId?: string | number }>(event.args);
+      if (args?.claimant && isAddress(args.claimant) && args.caseId !== undefined && Number(args.caseId) === 0) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+               SELECT CASE WHEN payer = ?1 THEN payee ELSE payer END, 'dispute_small', CAST(order_id AS TEXT), 0, ${nowSql}
+               FROM order_parties WHERE order_id = ?2 AND payer IS NOT NULL AND payee IS NOT NULL`,
+            )
+            .bind(args.claimant.toLowerCase(), event.order_id),
         );
       }
     } else if (event.name === "JuryDrawn" && event.case_id !== null) {

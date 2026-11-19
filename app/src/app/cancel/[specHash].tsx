@@ -1,11 +1,14 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { deployment } from "../../chain/deployment";
 import { encodeCancel, sendViaRelay } from "../../chain/orderActions";
-import { readForwarderNonce } from "../../chain/reader";
+import { readCancelRules, readForwarderNonce } from "../../chain/reader";
+import { OrderStatus } from "../../chain/orderAbi";
+import { fetchOrder } from "../../chain/serverReads";
+import { cancelAmounts, cancelCase } from "../../lib/cancelCost";
 import { Icon, type IconName } from "../../components/Icon";
 import { useToast } from "../../components/Toast";
 import { Button, ErrorText, Screen, Secondary, Title } from "../../components/ui";
@@ -38,8 +41,11 @@ export default function CancelChanga() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [stale, setStale] = useState(false);
+  const orderId = query.data?.orderId ?? null;
+  const order = useQuery({ queryKey: ["order", orderId], enabled: orderId !== null, queryFn: () => fetchOrder(api, orderId!) });
+  const rules = useQuery({ queryKey: ["cancel-rules"], queryFn: readCancelRules });
 
-  if (query.isLoading) {
+  if (query.isLoading || (orderId !== null && order.isLoading)) {
     return (
       <Screen>
         <ActivityIndicator color={colors.brick} />
@@ -55,7 +61,14 @@ export default function CancelChanga() {
     );
   }
   const isGroup = Boolean(changa.spec.group);
-  const orderId = changa.orderId;
+  const asWorker = order.data?.status === OrderStatus.Agreed && order.data.payee.toLowerCase() === (address ?? "").toLowerCase();
+
+  // Con un acuerdo hecho el costo depende de cuánto falta para el comienzo (o de cuánto pasó desde el acuerdo).
+  const agreed = order.data?.status === OrderStatus.Agreed;
+  const kind = agreed && order.data && rules.data ? cancelCase(order.data, Math.floor(Date.now() / 1000), rules.data.noticeSeconds) : null;
+  const amounts = kind && order.data && rules.data ? cancelAmounts(kind, order.data, rules.data) : null;
+  const dated = (order.data?.startsAt ?? 0) !== 0;
+  const agreedText = kind === "cash" ? t.cancelScreen.agreedCash : kind === "early" ? (dated ? t.cancelScreen.agreedEarly : t.cancelScreen.agreedEarlyNoDate) : kind === "late" ? (dated ? t.cancelScreen.agreedLate : t.cancelScreen.agreedLateNoDate) : t.common.loading;
 
   const cancel = async () => {
     if (!address) return;
@@ -64,7 +77,7 @@ export default function CancelChanga() {
     setFailed(false);
     setStale(false);
     try {
-      await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(orderId)));
+      await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(changa.orderId!)));
       markCancelling(changa.id);
       // Que el servidor se ponga al día ya, sin esperar al reloj de cada minuto. Si falla no importa: el reloj lo recoge.
       void api.send("POST", "/me/sync").catch(() => {});
@@ -89,7 +102,7 @@ export default function CancelChanga() {
         </View>
       }
     >
-      <Title>{t.detail.cancelChanga}</Title>
+      <Title>{asWorker ? t.cancelScreen.workerCancel : t.detail.cancelChanga}</Title>
       <Card gap="xs">
         <Text style={text.subtitle} numberOfLines={2}>
           {changa.spec.title}
@@ -97,9 +110,31 @@ export default function CancelChanga() {
         <Secondary>{`${isGroup ? t.cancelScreen.groupAmount : t.cancelScreen.amount}: ${formatUsdc(changa.amount)}`}</Secondary>
       </Card>
       <Text style={text.label}>{t.cancelScreen.whatHappens}</Text>
-      <Point icon="wallet">{isGroup ? t.cancelScreen.returnGroup : t.cancelScreen.returnSolo}</Point>
-      <Point icon="check">{t.cancelScreen.freeIfNone}</Point>
-      <Point icon="info">{isGroup ? t.cancelScreen.feeGroup : t.cancelScreen.feeSolo}</Point>
+      {asWorker ? (
+        <>
+          <Point icon="wallet">{t.cancelScreen.workerReturn}</Point>
+          <Point icon="info">{t.cancelScreen.workerReputation}</Point>
+        </>
+      ) : agreed ? (
+        <>
+          <Point icon="wallet">{t.cancelScreen.agreedReturn}</Point>
+          <Point icon={kind === "cash" ? "check" : "info"}>{agreedText}</Point>
+          {amounts ? (
+            <Card gap="xs">
+              <Secondary>{`${t.cancelScreen.youPay}: ${formatUsdc((amounts.toPayee + amounts.toTreasury).toString())}`}</Secondary>
+              {amounts.toPayee > 0n ? <Secondary>{`${t.cancelScreen.toWorker}: ${formatUsdc(amounts.toPayee.toString())}`}</Secondary> : null}
+              {amounts.toTreasury > 0n ? <Secondary>{`${t.cancelScreen.toTreasury}: ${formatUsdc(amounts.toTreasury.toString())}`}</Secondary> : null}
+              <Text style={text.subtitle}>{`${t.cancelScreen.youGetBack}: ${formatUsdc(amounts.refund.toString())}`}</Text>
+            </Card>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <Point icon="wallet">{isGroup ? t.cancelScreen.returnGroup : t.cancelScreen.returnSolo}</Point>
+          <Point icon="check">{t.cancelScreen.freeIfNone}</Point>
+          <Point icon="info">{isGroup ? t.cancelScreen.feeGroup : t.cancelScreen.feeSolo}</Point>
+        </>
+      )}
       {failed ? <ErrorText>{t.detail.cancelFailed}</ErrorText> : null}
       {stale ? (
         <>

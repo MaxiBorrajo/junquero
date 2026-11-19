@@ -119,6 +119,22 @@ describe("what triggers a notification", () => {
     );
   });
 
+  it("does not tell the person who cancelled; the other side still hears about it", async () => {
+    const byOwner = setup();
+    await agreedOrder(byOwner);
+    plainEvent(byOwner.raw, "OrderAgreed", 1, 500, { payee: stranger.address });
+    plainEvent(byOwner.raw, "OrderCancelled", 1, 501, { by: owner.address });
+    await processEvents(byOwner.db, handlers, 100);
+    expect(rows(byOwner).filter((r) => r.kind === "cancelled").map((r) => r.address)).toEqual([stranger.address.toLowerCase()]);
+
+    const byWorker = setup();
+    await agreedOrder(byWorker);
+    plainEvent(byWorker.raw, "OrderAgreed", 1, 500, { payee: stranger.address });
+    plainEvent(byWorker.raw, "OrderCancelled", 1, 501, { by: stranger.address });
+    await processEvents(byWorker.db, handlers, 100);
+    expect(rows(byWorker).filter((r) => r.kind === "cancelled").map((r) => r.address)).toEqual([owner.address.toLowerCase()]);
+  });
+
   it("tells the owner when the provider leaves and the provider when the payer ends the job", async () => {
     const ctx = setup();
     await agreedOrder(ctx);
@@ -165,6 +181,40 @@ describe("what triggers a notification", () => {
     ).run(JSON.stringify({ claimant: stranger.address }));
     await processEvents(reverse.db, handlers, 100);
     expect(rows(reverse).filter((r) => r.kind === "dispute_opened")).toMatchObject([{ address: owner.address.toLowerCase(), ref: "4" }]);
+  });
+
+  it("tells the other party when a small dispute is settled on the spot", async () => {
+    const ctx = setup();
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (5, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    ctx.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+       VALUES (22, 0, 1, '0x3', 'escrow', '0x', 'DisputeOpened', 5, NULL, ?)`,
+    ).run(JSON.stringify({ claimant: owner.address, caseId: "0", fee: "0" }));
+    // Un reclamo con jurado emite también DisputeOpened, pero con caseId: ese avisa por CaseOpened.
+    ctx.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+       VALUES (22, 1, 1, '0x3', 'escrow', '0x', 'DisputeOpened', 6, NULL, ?)`,
+    ).run(JSON.stringify({ claimant: owner.address, caseId: "9", fee: "3000000" }));
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).filter((r) => r.kind === "dispute_small")).toMatchObject([{ address: stranger.address.toLowerCase(), ref: "5" }]);
+  });
+
+  it("tells both parties when a dispute with a jury is resolved, but not a small one", async () => {
+    const ctx = setup();
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (7, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (8, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    const add = (order: number, log: number, cost: string) =>
+      ctx.raw
+        .prepare(
+          `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+           VALUES (30, ?, 1, '0x9', 'escrow', '0x', 'DisputeResolved', ?, NULL, ?)`,
+        )
+        .run(log, order, JSON.stringify({ payeeShareBps: 0, arbitrationCost: cost }));
+    add(7, 1, "3000000");
+    add(8, 2, "0");
+    await processEvents(ctx.db, handlers, 100);
+    const found = rows(ctx).filter((r) => r.kind === "dispute_resolved");
+    expect(found.map((r) => `${r.ref}:${r.address}`).sort()).toEqual([`7:${owner.address.toLowerCase()}`, `7:${stranger.address.toLowerCase()}`].sort());
   });
 
   it("notifies drawn jurors with reminders that vanish once they act or the case is decided", async () => {

@@ -75,7 +75,7 @@ describe("más hechos del flujo", () => {
     plainEvent(ctx.raw, "OrderToppedUp", 1, 302, { added: "2000000" });
     plainEvent(ctx.raw, "MilestoneDelivered", 1, 303, { index: "0" });
     plainEvent(ctx.raw, "MilestonePaid", 1, 304, { index: "0", paid: "3000000", rating: "5" });
-    plainEvent(ctx.raw, "DisputeOpened", 1, 305, { claimant: owner.address });
+    plainEvent(ctx.raw, "DisputeOpened", 1, 305, { claimant: owner.address, caseId: "9" });
     plainEvent(ctx.raw, "DisputeResolved", 1, 306, { payeeShareBps: "5000" });
     plainEvent(ctx.raw, "OrderCancelled", 1, 307, { by: owner.address, refunded: "1000000" });
     await processEvents(ctx.db, handlers, 100);
@@ -86,6 +86,14 @@ describe("más hechos del flujo", () => {
     expect(JSON.parse(rows[5].data as string)).toMatchObject({ index: 0, rating: "5" });
     expect(rows[6].actor).toBe(owner.address.toLowerCase());
     expect(rows[7].actor).toBe("");
+  });
+
+  it("anota el reclamo de una changa chica (sin caso) con su propio tipo", async () => {
+    const { ctx } = await chat();
+    plainEvent(ctx.raw, "OrderAgreed", 1, 300, { orderId: "1", payee: stranger.address });
+    plainEvent(ctx.raw, "DisputeOpened", 1, 305, { claimant: owner.address, caseId: "0", fee: "0" });
+    await processEvents(ctx.db, handlers, 100);
+    expect(rowsOf(ctx).map((row) => row.kind)).toEqual(["applied", "agreed", "dispute_small"]);
   });
 
   it("anota las pruebas y la aprobación, y la propuesta vencida", async () => {

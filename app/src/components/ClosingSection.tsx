@@ -67,7 +67,9 @@ export function ClosingSection({ orderId, role, items }: { orderId: number; role
         </>
       ) : null}
 
-      {closing.data ? (
+      {closing.data?.smallDispute ? (
+        <Secondary>{t.order.receiptNoneSmallDispute}</Secondary>
+      ) : closing.data ? (
         role === "payee" ? (
           claimed ? (
             <Card gap="xs">

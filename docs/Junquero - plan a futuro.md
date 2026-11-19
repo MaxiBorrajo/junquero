@@ -72,6 +72,8 @@ Decisión: la billetera dentro de la app es la opción ideal para quien no tiene
 - Pago en efectivo en la pantalla de publicar (el contrato ya lo tiene).
 - Testigo para changas de más de 300 USDC y votación de parámetros en pantalla (ver el plan de pruebas, secciones 12 a 14).
 - Mejor buscador de direcciones con número de puerta (cambiar de proveedor de mapas o sumar uno con datos de direcciones).
+- Panel de admin: lista de jurados con su garantía libre, su credencial y sus casos activos (nota del 18/11/2026). El contrato no tiene contador ni lista de jurados: se arma con los eventos `Staked` que ya indexa el servidor y con `availableStake` de cada cuenta.
+- Billeteras que no sean MetaMask: la conexión por WalletConnect ya funciona con cualquier billetera común (de clave propia, EOA). Pendiente: el enlace para abrir la billetera al firmar está fijo en `metamask://` (`app/src/wallet/sign.ts`); tendría que usar el de la billetera conectada. Las billeteras de contrato (Safe, billeteras inteligentes) no sirven hoy, porque el permiso del depósito y el reenviador de firmas verifican firmas de cuenta común. Probar con una segunda billetera antes de prometerlo.
 
 ## 4. Comentarios y calificación en los dos sentidos
 
@@ -99,3 +101,4 @@ Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simpl
 - **Imagen generada:** puede armarse al vuelo en el servidor (SVG por rubro y mes) para no guardar un archivo por comprobante.
 - **En la app:** la medalla pasa a mostrar esa imagen, con la opción de compartirla.
 - Decidir si el título del trabajo aparece en la imagen: hoy se muestra en la app porque es el título público de la publicación, pero no está en la cadena.
+- **Qué comprobante da una disputa (idea del 18/11/2026, sin decidir):** un trabajo que terminó en reclamo chico (50/50) no da comprobante; hoy lo oculta la app y falta cerrarlo en el contrato (ver "Junquero - cambios de contrato pendientes"). Evaluar un comprobante de "gané la disputa" solo para las que se resolvieron con jurado, es decir, de monto grande. Encaja con el cambio del rating como NFT intransferible.

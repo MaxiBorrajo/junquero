@@ -61,7 +61,7 @@ const EVENT_ICON: Record<ChatEventKind, IconName> = {
   applied: "send", withdrawn: "logout", dismissed: "close", offered: "edit", offer_rejected: "close",
   agreed: "check", checkedin: "pin", delivered: "check", settled: "wallet",
   evidence: "camera", approved: "check", review_extended: "clock", changes_requested: "edit",
-  topped_up: "wallet", order_cancelled: "close", dispute_opened: "flag", dispute_resolved: "scale",
+  topped_up: "wallet", order_cancelled: "close", dispute_opened: "flag", dispute_small: "flag", dispute_resolved: "scale",
   milestone_delivered: "check", milestone_paid: "wallet", progress: "clock", terminated: "close", abandoned: "logout",
 };
 const EVENT_COLOR: Record<ChatEventKind, string> = {
@@ -69,7 +69,7 @@ const EVENT_COLOR: Record<ChatEventKind, string> = {
   applied: colors.brick, withdrawn: colors.muted, dismissed: colors.error, offered: colors.brick, offer_rejected: colors.error,
   agreed: colors.success, checkedin: colors.brick, delivered: colors.brick, settled: colors.success,
   evidence: colors.brick, approved: colors.success, review_extended: colors.muted, changes_requested: colors.brick,
-  topped_up: colors.brick, order_cancelled: colors.error, dispute_opened: colors.error, dispute_resolved: colors.brick,
+  topped_up: colors.brick, order_cancelled: colors.error, dispute_opened: colors.error, dispute_small: colors.error, dispute_resolved: colors.brick,
   milestone_delivered: colors.brick, milestone_paid: colors.success, progress: colors.brick, terminated: colors.error, abandoned: colors.error,
 };
 

@@ -35,7 +35,7 @@ function Login() {
       const text = String((failure as { message?: string })?.message ?? failure).toLowerCase();
       setError(
         failure instanceof NoWalletError
-          ? "No encontramos MetaMask en este navegador."
+          ? "No encontramos una billetera en este navegador."
           : text.includes("reject") || text.includes("denied")
             ? "Cancelaste la firma."
             : "No pudimos ingresar. Probá de nuevo.",
@@ -56,7 +56,7 @@ function Login() {
           <div>Panel de administración. Ingresá con la billetera autorizada y firmá el mensaje para confirmar que sos vos.</div>
           {error ? <div className="error">{error}</div> : null}
           <button className="btn" disabled={busy} onClick={enter}>
-            {busy ? "Esperando la billetera…" : "Ingresar con MetaMask"}
+            {busy ? "Esperando la billetera…" : "Ingresar con la billetera"}
           </button>
         </div>
       </div>

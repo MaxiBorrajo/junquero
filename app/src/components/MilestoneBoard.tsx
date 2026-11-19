@@ -83,7 +83,16 @@ export function MilestoneBoard({ orderId, role, counterpart, changa, payee, dead
       {allPaid(state.milestones) ? <Body>{t.milestonesBoard.allPaid}</Body> : null}
 
       {!frozen && role === "payer" && state.next < state.count && current?.status !== MilestoneStatus.Delivered ? (
-        <Button label={t.milestonesBoard.terminate} icon="close" variant="ghost" onPress={() => goExit("terminated")} />
+        <>
+          {/* Si todavía no se pagó ningún hito se puede cancelar como un trabajo común (más barato que terminar). */}
+          {!state.started && changa ? (
+            <>
+              <Secondary>{t.milestonesBoard.cancelNote}</Secondary>
+              <Button label={t.detail.cancelChanga} icon="close" variant="outline" onPress={() => router.push({ pathname: "/cancel/[specHash]", params: { specHash: changa.specHash } })} />
+            </>
+          ) : null}
+          <Button label={t.milestonesBoard.terminate} icon="close" variant="ghost" onPress={() => goExit("terminated")} />
+        </>
       ) : null}
       {!frozen && role === "payer" && deadline > 0 && Math.floor(Date.now() / 1000) > deadline && current?.status === MilestoneStatus.Pending ? (
         <Button label={`${t.milestonesBoard.declareAbandoned} (${formatDate(deadline)})`} icon="info" variant="ghost" onPress={() => run(send(encodeDeclareAbandoned(BigInt(orderId))), t.milestonesBoard.abandonedDeclared, "check")} disabled={busy} />

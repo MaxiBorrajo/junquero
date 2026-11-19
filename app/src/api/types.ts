@@ -156,6 +156,8 @@ export interface ReceiptItem {
 export interface Closing {
   ratings: { index: number | null; rating: number }[];
   receipt: { category: number; month: number } | null;
+  smallDispute?: boolean;
+  dispute?: { payeeShareBps: number; byDefault: boolean } | null;
 }
 
 export interface Milestone {

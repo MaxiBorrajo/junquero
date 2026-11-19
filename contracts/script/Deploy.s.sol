@@ -239,7 +239,7 @@ contract Deploy is Script {
         registry.defineParameter(ParameterKeys.TERMINATION_COMP_BPS, 0, 2000, 1000);
         registry.defineParameter(ParameterKeys.JURY_SIZE_MEDIUM, 1, 15, 3);
         registry.defineParameter(ParameterKeys.JURY_SIZE_LARGE, 1, 15, 5);
-        registry.defineParameter(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH, 0, 20, 3);
+        registry.defineParameter(ParameterKeys.SMALL_DISPUTES_PER_ACCOUNT_MONTH, 0, 20, 1);
         registry.defineParameter(ParameterKeys.REPUTATION_PAIR_CAP, 1, 10, 2);
         registry.defineParameter(ParameterKeys.AUTO_RELEASE_SHORT, 1 hours, 7 days, 24 hours);
         registry.defineParameter(ParameterKeys.CASH_FEE_BPS, 0, 1000, 200);

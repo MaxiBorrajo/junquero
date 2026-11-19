@@ -316,6 +316,15 @@ function EvidenceTile({ orderId, item, onOpen }: { orderId: number; item: Eviden
     const data = file.data?.uri ? file.data : await read(item, true).catch(() => null);
     if (data?.uri && data.meta) onOpen({ uri: data.uri, mime: data.meta.mime, name: data.meta.name });
   };
+  // Un texto (por ejemplo el relato de un reclamo) se lee ahí mismo, no hace falta abrirlo como archivo.
+  if (file.data?.body != null && meta) {
+    return (
+      <View style={styles.textCard}>
+        <Text style={text.secondary}>{meta.name === "relato.txt" ? t.dispute.statementLabel : meta.name}</Text>
+        <Text style={text.body} selectable>{file.data.body}</Text>
+      </View>
+    );
+  }
   return <AttachmentTile name={meta?.name ?? t.chat.unreadable} mime={meta?.mime ?? "application/octet-stream"} uri={file.data?.uri ?? undefined} onOpen={() => void open()} />;
 }
 
@@ -323,6 +332,7 @@ const styles = StyleSheet.create({
   box: { gap: spacing.sm },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   card: { gap: spacing.xs },
+  textCard: { width: "100%", gap: spacing.xs, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
   photo: { width: "100%", aspectRatio: 4 / 3, borderRadius: radius.md },
   placeholder: { backgroundColor: colors.map },
   requirement: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

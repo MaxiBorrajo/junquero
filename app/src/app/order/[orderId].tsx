@@ -77,6 +77,9 @@ export default function OrderScreen() {
     queryFn: async () => (await api.get<{ release: RemoteRelease | null }>(`/me/orders/${id}/release`)).release,
   });
 
+  // Cómo se cerró el trabajo (resultado de un reclamo, comprobante): va antes de los `return` para no cambiar la cantidad de hooks.
+  const closing = useClosing(id, order.data?.status === OrderStatus.Settled);
+
   if (order.isLoading || !order.data || !address) {
     return (
       <Screen>
@@ -89,7 +92,6 @@ export default function OrderScreen() {
   const state = order.data;
   const role = roleOf(state, address);
   const view = viewFor(state.status, role);
-  const closing = useClosing(id, view === "settled");
   // Si quien trabajaba dejó el trabajo, el contrato lo reabre sin precio ni prestador: se muestra lo que quedó en garantía.
   if (state.status === OrderStatus.Open) {
     const isOwner = state.payer.toLowerCase() === address.toLowerCase();

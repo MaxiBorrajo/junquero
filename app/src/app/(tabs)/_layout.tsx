@@ -2,7 +2,11 @@ import type { ColorValue } from "react-native";
 import { Tabs } from "expo-router";
 import { Icon, type IconName } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
+import { useQueries } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { seedNeedsAction } from "../../jury/seedAction";
+import { seedQueryOptions } from "../../jury/seedState";
+import { useSession } from "../../session/SessionProvider";
 import { useSummary } from "../../data/useSummary";
 import { useMyCases } from "../../data/useCases";
 import { loadViewMode, useViewMode } from "../../session/viewMode";
@@ -17,7 +21,14 @@ const tab = (title: string, icon: IconName) => ({
 export default function TabsLayout() {
   const unreadChats = useSummary().data?.unreadChats ?? 0;
   const mode = useViewMode();
-  const openForJury = useMyCases().data?.openForJury.length ?? 0;
+  const { api, address } = useSession();
+  const openCases = useMyCases().data?.openForJury ?? [];
+  // El número de Reclamos cuenta solo los que hay algo para hacer ahora (anotarse o revelar), no todos los que siguen sin sorteo.
+  const seeds = useQueries({
+    queries: openCases.map((item) => ({ ...seedQueryOptions(api, address as `0x${string}`, item.caseId), enabled: Boolean(address), staleTime: 30_000 })),
+  });
+  const now = Math.floor(Date.now() / 1000);
+  const openForJury = seeds.filter((query) => seedNeedsAction(query.data, now)).length;
   useEffect(() => {
     void loadViewMode();
   }, []);

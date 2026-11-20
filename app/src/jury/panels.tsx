@@ -26,6 +26,7 @@ import { useSession } from "../session/SessionProvider";
 import { colors, text } from "../theme";
 import { signTyped } from "../wallet/sign";
 import { loadSeed, saveSeed } from "./secrets";
+import { seedQueryOptions } from "./seedState";
 import { secureSecretStorage } from "./secureStorage";
 
 // Título de cada pestaña de la vista de jurado, con la campanita: las notificaciones son las mismas que en la vista de Junquero.
@@ -233,22 +234,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
   const { api } = useSession();
   const { run, busy, error } = useRunAction();
-  const state = useQuery({
-    queryKey: ["seed", item.caseId, juror],
-    refetchInterval: useFocusedInterval(60_000),
-    queryFn: async () => {
-      const { snapshot } = await fetchCase(api, item.caseId);
-      if (snapshot.phase !== CasePhase.Seed) return null;
-      const [eligible, committers, revealers, secret] = await Promise.all([
-        readIsEligible(item.caseId, juror),
-        readCommitters(item.caseId, snapshot.round),
-        readRevealers(item.caseId, snapshot.round),
-        loadSeed(secureSecretStorage, juror, item.caseId, snapshot.round),
-      ]);
-      const lower = (list: readonly string[]) => list.map((a) => a.toLowerCase());
-      return { snapshot, eligible, committed: lower(committers).includes(juror.toLowerCase()), revealed: lower(revealers).includes(juror.toLowerCase()), hasSecret: secret !== null };
-    },
-  });
+  const state = useQuery({ ...seedQueryOptions(api, juror, item.caseId), refetchInterval: useFocusedInterval(60_000) });
 
   if (!state.data) return null;
   const { snapshot, eligible, committed, revealed, hasSecret } = state.data;

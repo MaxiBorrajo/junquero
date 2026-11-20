@@ -154,11 +154,11 @@ Las pruebas 8.3.1 a 8.3.4 y 8.3.14 ya están hechas: ver `Junquero - pruebas rea
 - Observaciones: _
 
 **8.3.6 Avance del sorteo visible a las partes** · Rol: Ana, Beto
-- [ ] Pasos: abrir el reclamo mientras se busca jurados.
-- Esperado: se ve "Sorteo de jurados · ronda N de hasta 4", los plazos, cuántos se anotaron y cuántos revelaron sobre los necesarios, y qué pasa si no alcanzan. Se actualiza solo. Nunca se ve quiénes son los jurados. Una vez sorteados, a las partes les llega "Ya hay jurados" y, al abrir el reclamo, la app comparte sus pruebas cifradas con cada jurado sin tocar nada (si algún jurado todavía no tiene su clave publicada, reintenta cada 30 segundos mientras la pantalla está abierta; queda el botón "Compartir mis pruebas con el jurado" de respaldo).
+- [ x ] Pasos: abrir el reclamo mientras se busca jurados.
+- Esperado: se ve "Sorteo de jurados · ronda N de hasta 4", los plazos, cuántos se anotaron y cuántos revelaron sobre los necesarios, y qué pasa si no alcanzan. Se actualiza solo. Nunca se ve quiénes son los jurados. Una vez sorteados, a las partes les llega "Ya hay jurados" y, al abrir el reclamo, la app comparte sus pruebas cifradas con cada jurado sin tocar nada (si algún jurado todavía no tiene su clave publicada, reintenta cada 30 segundos mientras la pantalla está abierta; no hay botón manual para compartir).
 
 **8.3.7 Revisar el caso** · Rol: J1 a J3
-- [ ] Pasos: Mis casos → abrir el caso.
+- [ x ] Pasos: Mis casos → abrir el caso.
 - Esperado: se ven las pruebas separadas en "Evidencias del trabajo", "Parte A (publicó): su versión y sus pruebas" y "Parte B (hizo el trabajo): su versión y sus pruebas", sin identidades. El relato se lee en una tarjeta; los archivos son miniaturas que se abren al tocarlas; con más de 6 archivos por bloque hay "Ver los N archivos". Si una parte todavía no compartió, su bloque lo dice. Se ve el plazo con el tiempo que queda. (Hoy el jurado no ve el acuerdo completo ni el chat, solo lo que las partes comparten.)
 - Observaciones: _
 

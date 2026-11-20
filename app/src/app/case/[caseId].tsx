@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
+import { StatusChip } from "../../components/StatusChip";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData, splitSignature } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
 import { appealCost, canAppeal, canRespond, encodeAppealWithPermit, encodeRespond, partyRole, phaseView, reasonHash } from "../../chain/jury";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readJurorFee, readTokenBalance, readTokenNonce } from "../../chain/reader";
 import { Card } from "../../components/Card";
-import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useChatKey } from "../../chat/ChatKeyProvider";
 import { DrawProgress } from "../../jury/DrawProgress";
@@ -27,7 +27,7 @@ import { relayDepsFor } from "../../lib/relayHelpers";
 import { useRunAction } from "../../lib/useRunAction";
 import { useSession } from "../../session/SessionProvider";
 import { signTyped } from "../../wallet/sign";
-import { text } from "../../theme";
+import { spacing, text } from "../../theme";
 
 // La transacción tarda unos segundos en entrar: si queda menos que esto, el plazo se da por vencido.
 const RESPOND_MARGIN_SECONDS = 15;
@@ -98,13 +98,6 @@ export default function CaseScreen() {
       return sendViaRelay(relayDepsFor(api, address), encodeRespond(BigInt(id), reasonHash(text)), 1_500_000n, deployment.arbitration);
     }, t.dispute.failed, t.caseScreen.respondDone, "send", (failure) => ((failure as Error).message === "respond_late" ? t.caseScreen.respondLate : null));
 
-  const share = () =>
-    run(async () => {
-      const mine = await ensure();
-      const sent = await shareWithJurors({ api, address, mine, orderId, items, jurors: jurors.map((j) => j.toLowerCase()) });
-      if (sent === 0) throw new Error("nothing");
-    }, t.caseScreen.shareFailed, t.caseScreen.shared, "file");
-
   const appeal = () =>
     run(async () => {
       const account = address as `0x${string}`;
@@ -122,8 +115,10 @@ export default function CaseScreen() {
 
   return (
     <Screen>
-      <Title>{t.caseScreen.title}</Title>
-      <Body>{phaseText}</Body>
+      <View style={{ gap: spacing.xs }}>
+        <Title>{t.caseScreen.title}</Title>
+        <StatusChip label={phaseText} warn={view === "emergency"} />
+      </View>
       <Card gap="xs">
         <Text style={text.label}>{t.order.amount}</Text>
         <Text style={text.subtitle}>{formatUsdc(snapshot.fee.toString())}</Text>
@@ -143,10 +138,6 @@ export default function CaseScreen() {
         </>
       ) : null}
       {view === "waiting-response" && role === "claimant" ? <Secondary>{t.caseScreen.responseNoReply}</Secondary> : null}
-
-      {isParty && (view.startsWith("vote") || view === "verdict-appealable" || view === "verdict-final") && jurors.length > 0 ? (
-        <DetailActions actions={[{ key: "share", label: t.caseScreen.shareEvidence, icon: "file", onPress: () => void share() }]} />
-      ) : null}
 
       {view.startsWith("verdict") || view === "resolved" ? (
         <Body>{`${t.caseScreen.verdictFor} ${snapshot.verdictPayee ? t.caseScreen.forPayee : t.caseScreen.forPayer}.`}</Body>

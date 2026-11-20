@@ -1,7 +1,7 @@
 import { phaseView } from "../chain/jury";
 import type { SeedState } from "./seedState";
 
-// ¿Hay algo para hacer ahora en este reclamo? Anotarse (si puede y el plazo sigue abierto) o revelar su aporte (si ya se anotó).
+// ¿Hay algo para hacer ahora en este reclamo? Anotarse (si puede y el plazo sigue abierto) o revelar su número del sorteo (si ya se anotó).
 export function seedNeedsAction(state: SeedState | null | undefined, nowSeconds: number): boolean {
   if (!state) return false;
   const view = phaseView(state.snapshot, nowSeconds);

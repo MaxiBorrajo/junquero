@@ -61,7 +61,7 @@ La pregunta es: ¿qué le pasó a la persona?
 - **Historial en el chat**: los hechos del flujo (postularse, bajarse, proponer, aceptar, llegar, subir pruebas, aprobar, cobrar, reclamos, hitos) se anotan como burbujas de evento con ícono: a la derecha si los hizo quien mira, a la izquierda si los hizo la otra persona o el sistema. No guardan nada privado.
 - **Estado de algo** (en curso, juntando aportes, en revisión, cancelada): siempre en una pastilla (`StatusChip`) al lado del título. Nunca como texto suelto en el cuerpo de la pantalla. Lo que sigue vigente y pide acción va en un `Banner`.
 - **Etiqueta de pertenencia**: "Publicaste este trabajo" o "Hacés este trabajo" va arriba del título (`OwnerTag`), igual en todas las pantallas de un trabajo (detalle, orden, grupo). Nunca como texto debajo del título.
-- **Adjuntos**: siempre como miniatura (`AttachmentTile`): foto con vista previa o ícono y nombre para otros archivos, con una X para quitarlo. Si son varios van en una fila con desplazamiento horizontal y aire arriba y abajo. Tocar una miniatura la abre en grande (visor de imágenes, video o documento), igual en el chat, las postulaciones, la evidencia y la publicación.
+- **Adjuntos**: siempre como miniatura (`AttachmentTile`), en cualquier momento de su vida: recién elegidos y todavía sin subir (`StagedFiles`), en el resumen previo a enviar y ya subidos (chat, postulaciones, evidencia, reclamos, publicación). Foto con vista previa o ícono y nombre para otros archivos, con una X para quitarlo solo mientras se puede editar (no en el resumen ni cuando ya se subió). Los textos subidos como prueba (el relato de un reclamo) se leen en una tarjeta, no como archivo. Si son varios van en una fila que se acomoda en renglones, o con desplazamiento horizontal en las listas largas. **Tocar una miniatura siempre la abre**: foto en grande, video con el reproductor y documento con la app del teléfono. Nunca se muestra una cantidad ("3 archivos") sin las miniaturas.
 - **Hojas de opciones** (`ChoiceSheet`): para elegir entre acciones que no entran en la pantalla (sacar foto, elegir de la galería, menú de tres puntos).
 
 ## 5. Íconos
@@ -78,7 +78,8 @@ La pregunta es: ¿qué le pasó a la persona?
 ## 7. Pantallas
 - Una idea por pantalla o por paso. Si algo necesita explicación, la pantalla tiene un texto corto arriba.
 - Título arriba, contenido en tarjetas, acción principal en el pie.
-- Los pasos de un asistente (publicar) llevan barra de avance y "Paso X de N".
+- Los pasos de un asistente (publicar, abrir un reclamo) llevan barra de avance y "Paso X de N", se arman con `StepFrame` y tienen el botón principal en el pie. El botón de atrás vuelve al paso anterior y no a la pantalla anterior.
+- **Un trámite con varias decisiones va en pasos** y termina siempre en un **resumen de lo que se va a enviar** (el texto, las miniaturas de lo que se va a subir y qué pasa al confirmar), con la acción final en el pie. Los pasos opcionales se pueden saltar ("Seguir sin pruebas"). Primero se explica cómo sigue el trámite, antes de pedir nada. Ejemplo: abrir un reclamo = 1. Cómo sigue el reclamo, 2. Contá qué pasó, 3. Sumá pruebas (opcional), 4. Revisá y abrí el reclamo.
 - Las acciones que no se pueden hacer se apagan y explican por qué.
 
 - **Camino feliz** (`Journey`): las pantallas de un trabajo en curso muestran los pasos que faltan hasta cobrar o liberar el pago, con el paso actual resaltado y una línea que dice qué hacer ahora. Nunca hay botones sueltos sin contexto.

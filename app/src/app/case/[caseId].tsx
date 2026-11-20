@@ -12,6 +12,9 @@ import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useChatKey } from "../../chat/ChatKeyProvider";
 import { DrawProgress } from "../../jury/DrawProgress";
+import { EvidenceUploader } from "../../evidence/EvidenceSection";
+import { EvidencePicker } from "../../evidence/EvidencePicker";
+import type { PickedFile } from "../../lib/pick";
 import { useCaseState } from "../../data/useCases";
 import { EvidenceThumbnails, useEvidence } from "../../evidence/EvidenceSection";
 import { shareWithJurors } from "../../evidence/share";
@@ -37,6 +40,7 @@ export default function CaseScreen() {
   const orderId = state.data?.snapshot.orderId ?? 0;
   const evidence = useEvidence(orderId);
   const [response, setResponse] = useState("");
+  const [responseFiles, setResponseFiles] = useState<PickedFile[]>([]);
   const { run: runAction, busy, error } = useRunAction();
 
   const fee = useQuery({ queryKey: ["jurorFee"], queryFn: readJurorFee, staleTime: 5 * 60_000 });
@@ -67,7 +71,7 @@ export default function CaseScreen() {
       // El plazo corre en la cadena: se mira con la hora de ahora y no con la de cuando se abrió la pantalla, así no se sube un relato fuera de tiempo.
       if (Math.floor(Date.now() / 1000) > snapshot.commitEnd - RESPOND_MARGIN_SECONDS) throw new Error("respond_late");
       const text = response.trim();
-      await uploadStatement(api, address, counterpart, await ensure(), orderId, text);
+      await uploadStatement(api, address, counterpart, await ensure(), orderId, text, responseFiles);
       return sendViaRelay(relayDepsFor(api, address), encodeRespond(BigInt(id), reasonHash(text)), 1_500_000n, deployment.arbitration);
     }, t.dispute.failed, t.caseScreen.respondDone, "send", (failure) => ((failure as Error).message === "respond_late" ? t.caseScreen.respondLate : null));
 
@@ -111,6 +115,7 @@ export default function CaseScreen() {
       {canRespond(snapshot, address, now) ? (
         <>
           <Field label={t.caseScreen.responseLabel} value={response} onChangeText={setResponse} multiline maxLength={1500} />
+          <EvidencePicker files={responseFiles} onChange={setResponseFiles} />
           <Button label={t.caseScreen.respond} icon="send" onPress={respond} loading={busy} disabled={response.trim().length < 10} />
         </>
       ) : null}
@@ -135,6 +140,13 @@ export default function CaseScreen() {
         <>
           <Text style={text.subtitle}>{t.caseScreen.evidence}</Text>
           <EvidenceThumbnails orderId={orderId} items={items} />
+        </>
+      ) : null}
+      {isParty && view !== "resolved" && view !== "verdict-final" ? (
+        <>
+          <Text style={text.subtitle}>{t.caseScreen.addEvidence}</Text>
+          <Secondary>{t.caseScreen.addEvidenceHint}</Secondary>
+          <EvidenceUploader orderId={orderId} counterpart={counterpart} />
         </>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}

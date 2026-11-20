@@ -6,7 +6,7 @@ export const MAX_ATTEMPTS = 5;
 export const MAX_TOKENS_PER_ADDRESS = 5;
 const REMINDER_LEAD_SECONDS = 3600;
 const JURY_LEAD_SECONDS = 7200;
-// Aviso de "revelá antes de que termine" para el aporte al sorteo: los plazos son cortos, así que va más cerca del cierre.
+// Aviso de "revelá antes de que termine" para el número del sorteo: los plazos son cortos, así que va más cerca del cierre.
 const REVEAL_LEAD_SECONDS = 600;
 
 interface Template {
@@ -31,8 +31,8 @@ export const TEMPLATES: Record<string, Template> = {
   checked_in: { title: "Llegó quien hace tu trabajo", body: "Avisó que llegó al lugar. Salí a recibirlo y abrí el trabajo para ver los detalles.", priority: "high" },
   evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
-  jury_reveal: { title: "Revelá tu aporte al sorteo", body: "Ya podés revelar tu aporte al sorteo de jurados. Entrá a Reclamos y tocá Revelar antes de que termine el plazo: si no, quedás afuera.", priority: "high" },
-  jury_not_drawn: { title: "No te tocó en este reclamo", body: "Revelaste tu aporte pero no resultaste elegido en el sorteo. Tu garantía queda libre. Gracias por anotarte.", priority: "default" },
+  jury_reveal: { title: "Revelá tu número del sorteo", body: "Ya podés revelar tu número del sorteo de jurados. Entrá a Reclamos y tocá Revelar antes de que termine el plazo: si no, quedás afuera.", priority: "high" },
+  jury_not_drawn: { title: "No te tocó en este reclamo", body: "Revelaste tu número del sorteo pero no resultaste elegido en el sorteo. Tu garantía queda libre. Gracias por anotarte.", priority: "default" },
   jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate.", priority: "default" },
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
   dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste.", priority: "high" },
@@ -184,7 +184,7 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
         );
       }
     } else if (event.name === "SeedCommitted" && event.case_id !== null) {
-      // Quien se anota tiene que volver a revelar su aporte cuando cierra la anotación. Se le avisa justo en ese momento, y otra vez
+      // Quien se anota tiene que volver a revelar su número del sorteo cuando cierra la anotación. Se le avisa justo en ese momento, y otra vez
       // antes de que termine el plazo de revelar. Los datos de la ronda salen de su último SeedRoundStarted.
       const juror = parse<{ juror?: string }>(event.args)?.juror;
       if (juror && isAddress(juror)) {
@@ -225,7 +225,7 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
         if (Number.isFinite(commitEnd)) statements.push(queueNotification(db, juror, "jury_deadline", `${caseId}:commit`, commitEnd - JURY_LEAD_SECONDS));
         if (Number.isFinite(revealEnd)) statements.push(queueNotification(db, juror, "jury_deadline", `${caseId}:reveal`, revealEnd - JURY_LEAD_SECONDS));
       }
-      // A quienes revelaron su aporte en esta ronda y no quedaron entre los elegidos se les avisa que no les tocó, para que no se queden esperando.
+      // A quienes revelaron su número del sorteo en esta ronda y no quedaron entre los elegidos se les avisa que no les tocó, para que no se queden esperando.
       if (event.args) {
         statements.push(
           db

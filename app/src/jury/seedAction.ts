@@ -29,3 +29,29 @@ export function voteNeedsAction(view: string, juror: { voteCommit: string; vote:
   if (view === "vote-reveal") return juror.voteCommit !== ZERO_HASH && juror.vote === 0;
   return false;
 }
+
+export type JurorTag = "waiting" | "seed" | "toVote" | "voteSaved" | "toReveal" | "revealed" | "missed" | "counting" | "emergency" | "done";
+
+// En qué etapa está un caso para el jurado que fue elegido y de cuál plazo hay que avisarle ("commit" para votar, "reveal" para mostrar).
+export function jurorStage(view: string, juror?: { voteCommit: string; vote: number }): { tag: JurorTag; deadline: "commit" | "reveal" | null } {
+  const sealed = juror !== undefined && juror.voteCommit !== ZERO_HASH;
+  switch (view) {
+    case "waiting-response":
+      return { tag: "waiting", deadline: null };
+    case "seed-commit":
+    case "seed-reveal":
+    case "seed-draw":
+      return { tag: "seed", deadline: null };
+    case "vote-commit":
+      return { tag: sealed ? "voteSaved" : "toVote", deadline: "commit" };
+    case "vote-reveal":
+      if (!sealed) return { tag: "missed", deadline: null };
+      return juror!.vote !== 0 ? { tag: "revealed", deadline: null } : { tag: "toReveal", deadline: "reveal" };
+    case "vote-wait":
+      return { tag: sealed ? "counting" : "missed", deadline: null };
+    case "emergency":
+      return { tag: "emergency", deadline: null };
+    default:
+      return { tag: "done", deadline: null };
+  }
+}

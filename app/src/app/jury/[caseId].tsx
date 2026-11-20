@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useFocusedInterval } from "../../lib/useFocusedInterval";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import { useEffect } from "react";
 import { Text, View } from "react-native";
+import { useChatKey } from "../../chat/ChatKeyProvider";
 import { deployment } from "../../chain/deployment";
 import { VOTE_PAYEE, VOTE_PAYER } from "../../chain/arbitrationAbi";
 import { encodeCommitVote, encodeRevealVote, jurorAction, phaseView, randomHex32, voteCommitment } from "../../chain/jury";
@@ -18,7 +20,10 @@ import { formatDate } from "../../lib/format";
 import { relayDepsFor } from "../../lib/relayHelpers";
 import { useRunAction } from "../../lib/useRunAction";
 import { useSession } from "../../session/SessionProvider";
-import { text } from "../../theme";
+import { spacing, text } from "../../theme";
+import { deadlineText } from "../../jury/panels";
+import { CaseEvidence } from "../../jury/CaseEvidence";
+import { useNow } from "../../lib/useNow";
 
 export default function JurorCase() {
   const { caseId } = useLocalSearchParams<{ caseId: string }>();
@@ -31,6 +36,11 @@ export default function JurorCase() {
   const mine = useQuery({ queryKey: ["jurorCase", id, address], enabled: Boolean(address), refetchInterval: useFocusedInterval(30_000), queryFn: () => readJurorCase(id, juror) });
   const [choice, setChoice] = useState<number | null>(null);
   const { run, busy, error } = useRunAction();
+  const tick = useNow();
+  const { ensure } = useChatKey();
+  useEffect(() => {
+    void ensure().catch(() => {});
+  }, [ensure]);
 
   if (!state.data || !mine.data || !address) {
     return (
@@ -80,13 +90,21 @@ export default function JurorCase() {
 
   return (
     <Screen>
-      <Title>{`${t.caseScreen.title} #${id}`}</Title>
-      <Secondary>{t.jury.sealedHint}</Secondary>
-      {view === "vote-commit" ? <Secondary>{`${t.jury.windowCommit}: ${formatDate(snapshot.commitEnd)}`}</Secondary> : null}
-      {view === "vote-reveal" ? <Secondary>{`${t.jury.windowReveal}: ${formatDate(snapshot.revealEnd)}`}</Secondary> : null}
+      <View style={{ gap: spacing.xs }}>
+        <Title>{`${t.caseScreen.title} #${id}`}</Title>
+        <Secondary>{t.jury.sealedHint}</Secondary>
+        {view === "vote-commit" ? <Text style={text.label}>{deadlineText("commit", snapshot.commitEnd, tick)}</Text> : null}
+        {view === "vote-reveal" ? <Text style={text.label}>{deadlineText("reveal", snapshot.revealEnd, tick)}</Text> : null}
+      </View>
 
-      <Text style={text.subtitle}>{t.jury.statements}</Text>
-      {(evidence.data ?? []).length === 0 ? <Secondary>{t.jury.noEvidence}</Secondary> : <EvidenceThumbnails orderId={orderId} items={evidence.data ?? []} />}
+      {(evidence.data ?? []).length === 0 ? (
+        <>
+          <Text style={text.subtitle}>{t.jury.statements}</Text>
+          <Secondary>{t.jury.noEvidence}</Secondary>
+        </>
+      ) : (
+        <CaseEvidence orderId={orderId} items={evidence.data ?? []} payer={snapshot.payer} payee={snapshot.payee} />
+      )}
 
       {action === "commit-vote" ? (
         <>

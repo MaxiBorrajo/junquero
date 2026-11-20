@@ -32,6 +32,7 @@ export const TEMPLATES: Record<string, Template> = {
   evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
   jury_reveal: { title: "Revelá tu número del sorteo", body: "Ya podés revelar tu número del sorteo de jurados. Entrá a Reclamos y tocá Revelar antes de que termine el plazo: si no, quedás afuera.", priority: "high" },
+  case_evidence: { title: "Ya hay jurados", body: "Se sortearon los jurados de tu reclamo. Abrilo para compartirles tus pruebas.", priority: "high" },
   jury_not_drawn: { title: "No te tocó en este reclamo", body: "Revelaste tu número del sorteo pero no resultaste elegido en el sorteo. Tu garantía queda libre. Gracias por anotarte.", priority: "default" },
   jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate.", priority: "default" },
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
@@ -225,6 +226,18 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
         if (Number.isFinite(commitEnd)) statements.push(queueNotification(db, juror, "jury_deadline", `${caseId}:commit`, commitEnd - JURY_LEAD_SECONDS));
         if (Number.isFinite(revealEnd)) statements.push(queueNotification(db, juror, "jury_deadline", `${caseId}:reveal`, revealEnd - JURY_LEAD_SECONDS));
       }
+      // A las partes se les avisa que ya hay jurados: al abrir el reclamo la app les comparte sus pruebas (van cifradas para cada jurado).
+      statements.push(
+        db
+          .prepare(
+            `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+             SELECT party, 'case_evidence', CAST(CAST(?1 AS INTEGER) AS TEXT), 0, ${nowSql}
+             FROM (SELECT p.payer AS party FROM order_cases oc JOIN order_parties p ON p.order_id = oc.order_id WHERE oc.case_id = ?1
+                   UNION SELECT p.payee FROM order_cases oc JOIN order_parties p ON p.order_id = oc.order_id WHERE oc.case_id = ?1)
+             WHERE party IS NOT NULL`,
+          )
+          .bind(caseId),
+      );
       // A quienes revelaron su número del sorteo en esta ronda y no quedaron entre los elegidos se les avisa que no les tocó, para que no se queden esperando.
       if (event.args) {
         statements.push(

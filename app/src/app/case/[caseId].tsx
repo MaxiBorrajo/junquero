@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text } from "react-native";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData, splitSignature } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
@@ -12,9 +12,10 @@ import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useChatKey } from "../../chat/ChatKeyProvider";
 import { DrawProgress } from "../../jury/DrawProgress";
-import { EvidenceUploader } from "../../evidence/EvidenceSection";
+import { CaseEvidence } from "../../jury/CaseEvidence";
 import { EvidencePicker } from "../../evidence/EvidencePicker";
 import type { PickedFile } from "../../lib/pick";
+import { useNow } from "../../lib/useNow";
 import { useCaseState } from "../../data/useCases";
 import { EvidenceThumbnails, useEvidence } from "../../evidence/EvidenceSection";
 import { shareWithJurors } from "../../evidence/share";
@@ -42,6 +43,28 @@ export default function CaseScreen() {
   const [response, setResponse] = useState("");
   const [responseFiles, setResponseFiles] = useState<PickedFile[]>([]);
   const { run: runAction, busy, error } = useRunAction();
+  // Las pruebas se comparten solas con los jurados apenas hay sorteo (y de nuevo si se suben más): la persona no tiene que acordarse.
+  const sharedKey = useRef("");
+  // Si a algún jurado todavía le falta su clave, se vuelve a intentar cada tanto mientras la pantalla está abierta.
+  const retry = useNow(30_000);
+  useEffect(() => {
+    const data = state.data;
+    if (!data || !address || !evidence.data) return;
+    const lower = address.toLowerCase();
+    const isPartyHere = data.snapshot.payer.toLowerCase() === lower || data.snapshot.payee.toLowerCase() === lower;
+    const own = evidence.data.filter((item) => item.uploader.toLowerCase() === lower && item.wrappedKey);
+    if (!isPartyHere || data.jurors.length === 0 || own.length === 0) return;
+    const key = `${data.jurors.length}:${own.map((item) => item.hash).join(",")}`;
+    if (sharedKey.current === key) return;
+    void (async () => {
+      try {
+        const mine = await ensure();
+        const sent = await shareWithJurors({ api, address, mine, orderId: data.snapshot.orderId, items: evidence.data!, jurors: data.jurors.map((j) => j.toLowerCase()) });
+        // Si algún jurado todavía no tiene su clave publicada no se da por hecho: se vuelve a intentar en la próxima lectura.
+        if (sent >= own.length * data.jurors.length) sharedKey.current = key;
+      } catch {}
+    })();
+  }, [state.data, evidence.data, address, api, ensure, retry]);
 
   const fee = useQuery({ queryKey: ["jurorFee"], queryFn: readJurorFee, staleTime: 5 * 60_000 });
 
@@ -136,19 +159,7 @@ export default function CaseScreen() {
         </>
       ) : null}
 
-      {isParty && items.length > 0 ? (
-        <>
-          <Text style={text.subtitle}>{t.caseScreen.evidence}</Text>
-          <EvidenceThumbnails orderId={orderId} items={items} />
-        </>
-      ) : null}
-      {isParty && view !== "resolved" && view !== "verdict-final" ? (
-        <>
-          <Text style={text.subtitle}>{t.caseScreen.addEvidence}</Text>
-          <Secondary>{t.caseScreen.addEvidenceHint}</Secondary>
-          <EvidenceUploader orderId={orderId} counterpart={counterpart} />
-        </>
-      ) : null}
+      {isParty && items.length > 0 ? <CaseEvidence orderId={orderId} items={items} payer={snapshot.payer} payee={snapshot.payee} /> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>
   );

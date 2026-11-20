@@ -248,12 +248,15 @@ describe("what triggers a notification", () => {
         )
         .run(log, name, JSON.stringify(args));
     const [chosen, left] = ["0x" + "c".repeat(40), "0x" + "d".repeat(40)];
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (20, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    ctx.raw.prepare("INSERT INTO order_cases (case_id, order_id) VALUES (8, 20)").run();
     insert("SeedRoundStarted", 1, { caseId: "8", round: 0, commitEnd: 100, revealEnd: 200 });
     insert("SeedRevealed", 2, { caseId: "8", juror: chosen });
     insert("SeedRevealed", 3, { caseId: "8", juror: left });
     insert("JuryDrawn", 4, { caseId: "8", jurors: [chosen], commitEnd: 300, revealEnd: 400 });
     await processEvents(ctx.db, handlers, 100);
     expect(rows(ctx).filter((r) => r.kind === "jury_not_drawn").map((r) => r.address)).toEqual([left]);
+    expect(rows(ctx).filter((r) => r.kind === "case_evidence").map((r) => r.address).sort()).toEqual([owner.address.toLowerCase(), stranger.address.toLowerCase()].sort());
     expect(rows(ctx).filter((r) => r.kind === "jury_drawn").map((r) => r.address)).toEqual([chosen]);
   });
 

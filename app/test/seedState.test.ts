@@ -45,3 +45,19 @@ describe("filtros de reclamos para jurados", () => {
     expect(voteNeedsAction("verdict-final", { voteCommit: sealed, vote: 1 })).toBe(false);
   });
 });
+
+import { jurorStage } from "../src/jury/seedAction";
+
+describe("etapa de un caso para el jurado elegido", () => {
+  const zero = `0x${"0".repeat(64)}`;
+  const sealed = `0x${"1".repeat(64)}`;
+  it("dice qué le toca hacer y de cuál plazo hay que avisarle", () => {
+    expect(jurorStage("vote-commit", { voteCommit: zero, vote: 0 })).toEqual({ tag: "toVote", deadline: "commit" });
+    expect(jurorStage("vote-commit", { voteCommit: sealed, vote: 0 })).toEqual({ tag: "voteSaved", deadline: "commit" });
+    expect(jurorStage("vote-reveal", { voteCommit: sealed, vote: 0 })).toEqual({ tag: "toReveal", deadline: "reveal" });
+    expect(jurorStage("vote-reveal", { voteCommit: sealed, vote: 2 })).toEqual({ tag: "revealed", deadline: null });
+    expect(jurorStage("vote-reveal", { voteCommit: zero, vote: 0 })).toEqual({ tag: "missed", deadline: null });
+    expect(jurorStage("verdict-final")).toEqual({ tag: "done", deadline: null });
+    expect(jurorStage("seed-reveal")).toEqual({ tag: "seed", deadline: null });
+  });
+});

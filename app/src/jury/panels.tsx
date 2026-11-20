@@ -9,7 +9,7 @@ import { CasePhase } from "../chain/arbitrationAbi";
 import { encodeCommitSeed, encodeRevealSeed, encodeStakeWithPermit, encodeUnstake, encodeWithdrawReward, phaseView, randomHex32, seedCommitment, stakeNeeded, type CaseView } from "../chain/jury";
 import { sendViaRelay } from "../chain/orderActions";
 import { fetchCase } from "../chain/serverReads";
-import { readCommitters, readIsEligible, readJurorAccount, readParam, readReward, readRevealers, readTokenBalance, readTokenNonce } from "../chain/reader";
+import { readCommitters, readIsEligible, readJurorAccount, readJurorCase, readParam, readReward, readRevealers, readTokenBalance, readTokenNonce } from "../chain/reader";
 import { Card } from "../components/Card";
 import { DetailActions, type DetailAction } from "../components/DetailActions";
 import { Icon, type IconName } from "../components/Icon";
@@ -22,13 +22,16 @@ import { formatDate } from "../lib/format";
 import { formatAmount, toMicro } from "../lib/money";
 import { relayDepsFor } from "../lib/relayHelpers";
 import { useFocusedInterval } from "../lib/useFocusedInterval";
+import { useNow } from "../lib/useNow";
+import { spokenDuration } from "../lib/duration";
 import { useRunAction } from "../lib/useRunAction";
+import { useChatKey } from "../chat/ChatKeyProvider";
 import { useSession } from "../session/SessionProvider";
 import { colors, spacing, text } from "../theme";
 import { signTyped } from "../wallet/sign";
 import { CaseAmount, CaseSummary } from "./CaseSummary";
 import { loadSeed, saveSeed } from "./secrets";
-import { seedGroups, type SeedFilter } from "./seedAction";
+import { jurorStage, seedGroups, type SeedFilter } from "./seedAction";
 import { seedQueryOptions } from "./seedState";
 import { secureSecretStorage } from "./secureStorage";
 
@@ -125,9 +128,18 @@ export function StakePanel() {
       <Card>
         <Row label={t.jury.stake} value={account.data ? formatAmount(account.data.staked.toString()) : "-"} />
         <Row label={t.jury.locked} value={account.data ? formatAmount(account.data.locked.toString()) : "-"} />
+        <Row label={t.jury.free} value={account.data ? formatAmount(free.toString()) : "-"} />
         <Row label={t.jury.active} value={account.data ? String(account.data.active) : "-"} />
         <Row label={t.jury.required} value={required.data !== undefined ? formatAmount(required.data.toString()) : "-"} />
-        {minDeposit > 0n ? <Secondary>{t.jury.needStake.replace("{amount}", formatAmount(minDeposit.toString()))}</Secondary> : <Secondary>{t.jury.stakeOk}</Secondary>}
+        {minDeposit > 0n ? (
+          <Secondary>
+            {account.data && account.data.locked > 0n
+              ? t.jury.stakeNeedInUse.replace("{required}", formatAmount((required.data ?? 0n).toString())).replace("{amount}", formatAmount(minDeposit.toString()))
+              : t.jury.needStake.replace("{amount}", formatAmount(minDeposit.toString()))}
+          </Secondary>
+        ) : (
+          <Secondary>{t.jury.stakeOk}</Secondary>
+        )}
       </Card>
       <Field label={t.jury.amountLabel} value={amount} onChangeText={(v) => { setTouched(true); setMinError(false); setAmount(v); }} keyboardType="decimal-pad" />
       {minDeposit > 0n && !minError ? <Secondary>{t.jury.minHint.replace("{amount}", formatAmount(minDeposit.toString()))}</Secondary> : null}
@@ -155,7 +167,7 @@ export function StakePanel() {
 export function OpenCasesPanel() {
   const { api, address } = useSession();
   const cases = useMyCases();
-  const { missing } = useJurorAccount();
+  const { account, required, missing } = useJurorAccount();
   const [filter, setFilter] = useState<SeedFilter>("all");
   const open = cases.data?.openForJury ?? [];
   // Las mismas consultas que usa cada tarjeta: sirven para clasificar los reclamos sin pedir nada de más.
@@ -173,7 +185,7 @@ export function OpenCasesPanel() {
       <Secondary>{t.jury.openIntro}</Secondary>
       {missing > 0n ? (
         <Card gap="sm">
-          <Body>{t.jury.needStakeFirst.replace("{amount}", formatAmount(missing.toString()))}</Body>
+          <Body>{(account.data && account.data.locked > 0n ? t.jury.needStakeInUse.replace("{required}", formatAmount((required.data ?? 0n).toString())) : t.jury.needStakeFirst).replace("{amount}", formatAmount(missing.toString()))}</Body>
           <Button label={t.jury.goToStake} icon="wallet" variant="outline" onPress={() => router.navigate("/jury-stake")} />
         </Card>
       ) : null}
@@ -219,7 +231,13 @@ const PHASE_KEY: Record<CaseView, keyof typeof t.jury.phase> = {
 // Pestaña "Mis casos": los casos en los que me sortearon, con en qué etapa están y qué me toca hacer.
 export function MyCasesPanel() {
   const { address } = useSession();
+  const { ensure } = useChatKey();
   const cases = useMyCases();
+  const mineCount = cases.data?.asJuror.length ?? 0;
+  // Quien fue elegido tiene que tener su clave de cifrado publicada: con ella las partes le comparten sus pruebas. Se activa sola al abrir.
+  useEffect(() => {
+    if (mineCount > 0) void ensure().catch(() => {});
+  }, [mineCount, ensure]);
   if (!address) return <Secondary>{t.mine.needAccount}</Secondary>;
   const mine = cases.data?.asJuror ?? [];
   return (
@@ -234,21 +252,39 @@ export function MyCasesPanel() {
 }
 
 function MyCaseCard({ item }: { item: CaseRef }) {
+  const { address } = useSession();
   const state = useCaseState(item.caseId);
-  const view = state.data ? phaseView(state.data.snapshot, Math.floor(Date.now() / 1000)) : null;
-  const key = view ? PHASE_KEY[view] : null;
+  const mine = useQuery({ queryKey: ["jurorCase", item.caseId, address], enabled: Boolean(address), refetchInterval: useFocusedInterval(30_000), queryFn: () => readJurorCase(item.caseId, address as `0x${string}`) });
+  const now = useNow();
+  const snapshot = state.data?.snapshot;
+  const view = snapshot ? phaseView(snapshot, now) : null;
+  const stage = view ? jurorStage(view, mine.data) : null;
+  const endsAt = snapshot && stage?.deadline ? (stage.deadline === "commit" ? snapshot.commitEnd : snapshot.revealEnd) : null;
+  const deadline = endsAt !== null && stage?.deadline ? deadlineText(stage.deadline, endsAt, now) : null;
   return (
     <Card onPress={() => router.push({ pathname: "/jury/[caseId]", params: { caseId: String(item.caseId) } })} gap="sm">
       <View style={styles.titleRow}>
         <Text style={[text.subtitle, { flex: 1 }]}>{`${t.jury.caseLabel} #${item.caseId}`}</Text>
-        {state.data ? <CaseAmount orderId={state.data.snapshot.orderId} /> : null}
+        {snapshot ? <CaseAmount orderId={snapshot.orderId} /> : null}
       </View>
-      <View style={styles.tagRow}>
-        {key ? <StatusChip label={t.jury.phaseTag[key]} warn={key === "vote" || key === "reveal"} /> : null}
-      </View>
-      <Secondary>{key ? t.jury.phase[key] : t.common.loading}</Secondary>
+      {stage ? (
+        <View style={styles.tagRow}>
+          <StatusChip label={t.jury.stage[stage.tag]} warn={stage.tag === "toVote" || stage.tag === "toReveal"} />
+          {snapshot ? <StatusChip label={`${snapshot.jurors} ${t.caseScreen.jurors}`} /> : null}
+        </View>
+      ) : null}
+      <Secondary>{stage ? t.jury.stageText[stage.tag] : t.common.loading}</Secondary>
+      {deadline ? <Text style={text.label}>{deadline}</Text> : null}
     </Card>
   );
+}
+
+// "Votá hasta el vie, 20 nov, 2:28 a. m. (quedan 27 minutos)".
+export function deadlineText(kind: "commit" | "reveal", endsAt: number, now: number): string {
+  const left = endsAt - now;
+  const date = formatDate(endsAt);
+  const remaining = left > 0 ? spokenDuration(Math.max(60, Math.round(left / 60) * 60)) : t.jury.leftNone;
+  return (kind === "commit" ? t.jury.deadlineVote : t.jury.deadlineReveal).replace("{date}", date).replace("{left}", remaining);
 }
 
 function formatMicroPlain(value: bigint): string {
@@ -268,6 +304,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
   const { api } = useSession();
+  const { ensure } = useChatKey();
   const { run, busy, error } = useRunAction();
   const state = useQuery({ ...seedQueryOptions(api, juror, item.caseId), refetchInterval: useFocusedInterval(60_000) });
 
@@ -281,6 +318,8 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
 
   const join = () =>
     act(async () => {
+      // La clave de cifrado tiene que estar publicada antes del sorteo: con ella las partes le comparten sus pruebas si resulta elegido.
+      await ensure();
       const secret = randomHex32((n) => crypto.getRandomValues(new Uint8Array(n)));
       await saveSeed(secureSecretStorage, juror, item.caseId, snapshot.round, secret);
       return sendViaRelay(relayDepsFor(api, juror), encodeCommitSeed(BigInt(item.caseId), seedCommitment(BigInt(item.caseId), juror, secret)), 1_500_000n, deployment.arbitration);

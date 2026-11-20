@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusedInterval } from "../lib/useFocusedInterval";
 import * as Location from "expo-location";
 import { Image } from "expo-image";
@@ -281,6 +281,27 @@ function useEvidenceFile(orderId: number, item: EvidenceItem) {
     retry: 1,
     queryFn: () => read(item),
   });
+}
+
+// Los nombres de las pruebas ya descifrados, por hash: sirven para saber cuál es el relato de un reclamo. Comparten caché con cada miniatura.
+export function useEvidenceNames(orderId: number, items: EvidenceItem[]): Record<string, string | undefined> {
+  const { address } = useSession();
+  const read = useEvidenceReader(orderId);
+  const results = useQueries({
+    queries: items.map((item) => ({
+      queryKey: ["evidence-file", orderId, item.hash] as const,
+      enabled: Boolean(item.wrappedKey && address),
+      staleTime: Infinity,
+      gcTime: 10 * 60_000,
+      retry: 1,
+      queryFn: () => read(item),
+    })),
+  });
+  const names: Record<string, string | undefined> = {};
+  items.forEach((item, index) => {
+    names[item.hash] = results[index]?.data?.meta?.name;
+  });
+  return names;
 }
 
 function EvidenceCard({ orderId, item }: { orderId: number; item: EvidenceItem }) {

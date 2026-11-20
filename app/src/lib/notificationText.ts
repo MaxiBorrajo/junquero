@@ -18,6 +18,7 @@ const TEXTS: Record<string, { title: string; body: string }> = {
   jury_reveal: { title: "Revelá tu número del sorteo", body: "Ya podés revelar tu número del sorteo de jurados. Entrá a Reclamos y tocá Revelar antes de que termine el plazo: si no, quedás afuera." },
   jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate." },
   jury_not_drawn: { title: "No te tocó en este reclamo", body: "Revelaste tu número del sorteo pero no resultaste elegido en el sorteo. Tu garantía queda libre. Gracias por anotarte." },
+  case_evidence: { title: "Ya hay jurados", body: "Se sortearon los jurados de tu reclamo. Abrilo para compartirles tus pruebas." },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para votar. Entrá al reclamo ahora." },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito. Entrá al reclamo ahora." },
   selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a trabajos. Buscá uno en el mapa." },

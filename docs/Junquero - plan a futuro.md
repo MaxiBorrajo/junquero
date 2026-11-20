@@ -102,3 +102,18 @@ Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simpl
 - **En la app:** la medalla pasa a mostrar esa imagen, con la opción de compartirla.
 - Decidir si el título del trabajo aparece en la imagen: hoy se muestra en la app porque es el título público de la publicación, pero no está en la cadena.
 - **Qué comprobante da una disputa (idea del 18/11/2026, sin decidir):** un trabajo que terminó en reclamo chico (50/50) no da comprobante; hoy lo oculta la app y falta cerrarlo en el contrato (ver "Junquero - cambios de contrato pendientes"). Evaluar un comprobante de "gané la disputa" solo para las que se resolvieron con jurado, es decir, de monto grande. Encaja con el cambio del rating como NFT intransferible.
+
+## 6. Jurados: acuerdo entre jurados y sorteo sin elegir caso (nota del 18/11/2026)
+
+**Hoy.** El jurado se anota a cada reclamo y el contrato sortea entre quienes se anotan y revelan su aporte (`commitSeed` y `revealSeed`). Antes de anotarse ve un resumen corto del caso: rubro, modalidad, monto en disputa y los criterios que las partes acordaron antes del trabajo. No ve el título, los relatos, las pruebas ni quiénes son las partes: eso solo lo ven los sorteados.
+
+**Riesgo que quedó abierto.** Una parte puede avisarle a conocidos de un caso puntual para que se anoten y voten igual. Esto ya era posible antes del resumen, porque la lista de reclamos que buscan jurados la ve cualquier jurado habilitado. Lo que lo frena hoy es el costo de entrar (garantía, credencial de nivel mínimo, trabajos cerrados sin reclamos o jurado de arranque), que el sorteo es entre los anotados (hay que ser mayoría entre ellos), la pérdida de garantía por votar en minoría y la apelación con más jurados. Nada de eso alcanza con un grupo chico: con tres jurados de demo cualquier regla es frágil.
+
+**Camino a evaluar: grupo de jurados disponibles.**
+- Cada jurado se anota una sola vez como disponible, sin elegir caso, y el sorteo toma del grupo al azar. Nadie sabe de antemano a qué caso va a ir, así que no se puede reclutar para uno puntual.
+- Cambia el contrato: hace falta una lista de jurados disponibles que se pueda recorrer y definir qué pasa con quien no responde (hoy quien no vota pierde toda la garantía del caso, lo cual es duro si no se enteró). Redespliegue.
+- Idea para el no responder: ventana de aceptación corta con reemplazo automático, sin castigo si se rechaza a tiempo.
+- Mientras tanto, conviene medir cuántos jurados reales hay: con menos de unas decenas de jurados el riesgo de acuerdo no se resuelve con ninguna regla.
+
+**Descartado por ahora: sorteo automático entre todos los que dejaron garantía, sin anotarse.** El contrato no tiene lista de jurados y el castigo por no votar es total.
+

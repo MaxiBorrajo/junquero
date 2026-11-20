@@ -32,6 +32,7 @@ export const TEMPLATES: Record<string, Template> = {
   evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
   jury_reveal: { title: "Revelá tu aporte al sorteo", body: "Ya podés revelar tu aporte al sorteo de jurados. Entrá a Reclamos y tocá Revelar antes de que termine el plazo: si no, quedás afuera.", priority: "high" },
+  jury_not_drawn: { title: "No te tocó en este reclamo", body: "Revelaste tu aporte pero no resultaste elegido en el sorteo. Tu garantía queda libre. Gracias por anotarte.", priority: "default" },
   jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate.", priority: "default" },
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
   dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste.", priority: "high" },
@@ -223,6 +224,21 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
         statements.push(queueNotification(db, juror, "jury_drawn", String(caseId)));
         if (Number.isFinite(commitEnd)) statements.push(queueNotification(db, juror, "jury_deadline", `${caseId}:commit`, commitEnd - JURY_LEAD_SECONDS));
         if (Number.isFinite(revealEnd)) statements.push(queueNotification(db, juror, "jury_deadline", `${caseId}:reveal`, revealEnd - JURY_LEAD_SECONDS));
+      }
+      // A quienes revelaron su aporte en esta ronda y no quedaron entre los elegidos se les avisa que no les tocó, para que no se queden esperando.
+      if (event.args) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+               SELECT DISTINCT lower(json_extract(e.args, '$.juror')), 'jury_not_drawn', CAST(CAST(?1 AS INTEGER) AS TEXT), 0, ${nowSql}
+               FROM events e
+               WHERE e.name = 'SeedRevealed' AND e.case_id = ?1 AND json_extract(e.args, '$.juror') IS NOT NULL
+                 AND NOT (e.block_number < COALESCE((SELECT r.block_number FROM events r WHERE r.name = 'SeedRoundStarted' AND r.case_id = ?1 ORDER BY r.block_number DESC, r.log_index DESC LIMIT 1), 0))
+                 AND lower(json_extract(e.args, '$.juror')) NOT IN (SELECT lower(value) FROM json_each(?2, '$.jurors'))`,
+            )
+            .bind(caseId, event.args),
+        );
       }
     } else if ((event.name === "VoteCommitted" || event.name === "VoteRevealed") && event.case_id !== null) {
       const juror = parse<{ juror?: string }>(event.args)?.juror;

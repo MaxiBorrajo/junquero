@@ -3,6 +3,6 @@ import { setViewMode } from "../../session/viewMode";
 
 // La pantalla única de jurado se separó en pestañas (vista de jurado). Los enlaces viejos a /jury entran por acá.
 export default function JuryEntry() {
-  setViewMode("jury");
+  setViewMode("jury", false);
   return <Redirect href="/jury-open" />;
 }

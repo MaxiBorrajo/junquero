@@ -6,6 +6,6 @@ import { routeForNotification } from "./routes";
 export const isJuryKind = (kind: string): boolean => kind.startsWith("jury_");
 
 export function openNotification(kind: string, ref: string): void {
-  if (isJuryKind(kind)) setViewMode("jury");
+  if (isJuryKind(kind)) setViewMode("jury", false);
   router.push(routeForNotification(kind, ref) as never);
 }

@@ -1,5 +1,5 @@
 import * as Notifications from "expo-notifications";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
@@ -12,8 +12,9 @@ import { fetchCase } from "../chain/serverReads";
 import { readCommitters, readIsEligible, readJurorAccount, readParam, readReward, readRevealers, readTokenBalance, readTokenNonce } from "../chain/reader";
 import { Card } from "../components/Card";
 import { DetailActions, type DetailAction } from "../components/DetailActions";
-import { Icon } from "../components/Icon";
-import { Body, Button, ErrorText, Field, Secondary, Title } from "../components/ui";
+import { Icon, type IconName } from "../components/Icon";
+import { StatusChip } from "../components/StatusChip";
+import { Body, Button, Chip, ErrorText, Field, Row as ChipRow, Secondary, Title } from "../components/ui";
 import { useCaseState, useMyCases, type CaseRef } from "../data/useCases";
 import { useSummary } from "../data/useSummary";
 import { t } from "../i18n";
@@ -23,9 +24,11 @@ import { relayDepsFor } from "../lib/relayHelpers";
 import { useFocusedInterval } from "../lib/useFocusedInterval";
 import { useRunAction } from "../lib/useRunAction";
 import { useSession } from "../session/SessionProvider";
-import { colors, text } from "../theme";
+import { colors, spacing, text } from "../theme";
 import { signTyped } from "../wallet/sign";
+import { CaseAmount, CaseSummary } from "./CaseSummary";
 import { loadSeed, saveSeed } from "./secrets";
+import { seedGroups, type SeedFilter } from "./seedAction";
 import { seedQueryOptions } from "./seedState";
 import { secureSecretStorage } from "./secureStorage";
 
@@ -150,12 +153,21 @@ export function StakePanel() {
 
 // Pestaña "Reclamos": los que buscan jurados, con el estado de cada uno para esta persona.
 export function OpenCasesPanel() {
-  const { address } = useSession();
+  const { api, address } = useSession();
   const cases = useMyCases();
   const { missing } = useJurorAccount();
+  const [filter, setFilter] = useState<SeedFilter>("all");
+  const open = cases.data?.openForJury ?? [];
+  // Las mismas consultas que usa cada tarjeta: sirven para clasificar los reclamos sin pedir nada de más.
+  const seeds = useQueries({
+    queries: open.map((item) => ({ ...seedQueryOptions(api, address as `0x${string}`, item.caseId), enabled: Boolean(address), staleTime: 30_000 })),
+  });
   if (!address) return <Secondary>{t.mine.needAccount}</Secondary>;
   const juror = address as `0x${string}`;
-  const open = cases.data?.openForJury ?? [];
+  const now = Math.floor(Date.now() / 1000);
+  const visible = open.filter((_item, index) => filter === "all" || seedGroups(seeds[index]?.data, now).includes(filter));
+  const options: SeedFilter[] = ["all", "toJoin", "toReveal", "joined", "notJoined"];
+  const countOf = (option: SeedFilter) => (option === "all" ? open.length : open.filter((_item, index) => seedGroups(seeds[index]?.data, now).includes(option)).length);
   return (
     <>
       <Secondary>{t.jury.openIntro}</Secondary>
@@ -165,13 +177,30 @@ export function OpenCasesPanel() {
           <Button label={t.jury.goToStake} icon="wallet" variant="outline" onPress={() => router.navigate("/jury-stake")} />
         </Card>
       ) : null}
+      {open.length > 0 ? (
+        <ChipRow>
+          {options.map((option) => (
+            <Chip
+              key={option}
+              icon={FILTER_ICON[option]}
+              label={t.jury.filter[option]}
+              badge={option === "toJoin" || option === "toReveal" ? countOf(option) : undefined}
+              selected={filter === option}
+              onPress={() => setFilter(option)}
+            />
+          ))}
+        </ChipRow>
+      ) : null}
       {open.length === 0 ? <Secondary>{t.jury.noOpen}</Secondary> : null}
-      {open.map((item) => (
+      {open.length > 0 && visible.length === 0 ? <Secondary>{t.jury.filter.empty}</Secondary> : null}
+      {visible.map((item) => (
         <SeedCard key={item.caseId} item={item} juror={juror} />
       ))}
     </>
   );
 }
+
+const FILTER_ICON: Record<SeedFilter, IconName> = { all: "list", toJoin: "send", toReveal: "clock", joined: "check", notJoined: "close" };
 
 const PHASE_KEY: Record<CaseView, keyof typeof t.jury.phase> = {
   "waiting-response": "waiting",
@@ -209,8 +238,14 @@ function MyCaseCard({ item }: { item: CaseRef }) {
   const view = state.data ? phaseView(state.data.snapshot, Math.floor(Date.now() / 1000)) : null;
   const key = view ? PHASE_KEY[view] : null;
   return (
-    <Card onPress={() => router.push({ pathname: "/jury/[caseId]", params: { caseId: String(item.caseId) } })} gap="xs">
-      <Body>{`${t.jury.caseLabel} #${item.caseId}`}</Body>
+    <Card onPress={() => router.push({ pathname: "/jury/[caseId]", params: { caseId: String(item.caseId) } })} gap="sm">
+      <View style={styles.titleRow}>
+        <Text style={[text.subtitle, { flex: 1 }]}>{`${t.jury.caseLabel} #${item.caseId}`}</Text>
+        {state.data ? <CaseAmount orderId={state.data.snapshot.orderId} /> : null}
+      </View>
+      <View style={styles.tagRow}>
+        {key ? <StatusChip label={t.jury.phaseTag[key]} warn={key === "vote" || key === "reveal"} /> : null}
+      </View>
       <Secondary>{key ? t.jury.phase[key] : t.common.loading}</Secondary>
     </Card>
   );
@@ -259,20 +294,34 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
     }, t.jury.revealedDone);
 
   // Un solo estado claro por reclamo: qué pasó con mi anotación y qué me toca ahora.
+  const end = formatDate(snapshot.revealEnd);
   const status =
-    revealed ? t.jury.statusRevealed
-    : committed && view === "seed-reveal" ? (hasSecret ? t.jury.statusRevealNow : t.jury.lostSecret)
-    : committed ? t.jury.statusJoined.replace("{date}", formatDate(snapshot.commitEnd))
+    revealed ? t.jury.statusRevealed.replace("{end}", end)
+    : committed && view === "seed-reveal" ? (hasSecret ? t.jury.statusRevealNow.replace("{end}", end) : t.jury.lostSecret)
+    : committed ? t.jury.statusJoined.replace("{date}", formatDate(snapshot.commitEnd)).replace("{end}", end)
     : !eligible ? t.jury.notEligible
     : view === "seed-commit" ? t.jury.statusCanJoin.replace("{date}", formatDate(snapshot.commitEnd))
     : t.jury.statusClosed;
 
+  // La misma forma que las tarjetas de Mis trabajos: título y monto, y el estado en pastillas.
+  const canJoin = eligible && !committed && view === "seed-commit";
+  const mustReveal = committed && !revealed && view === "seed-reveal" && hasSecret;
+  const tag = revealed ? t.jury.tag.revealed : committed ? (mustReveal ? t.jury.tag.toReveal : t.jury.tag.joined) : !eligible ? t.jury.tag.notEligible : canJoin ? t.jury.tag.toJoin : t.jury.tag.closed;
+
   return (
     <Card gap="sm">
-      <Body>{`${t.jury.caseLabel} #${item.caseId} · ${snapshot.jurors} ${t.caseScreen.jurors}`}</Body>
+      <View style={styles.titleRow}>
+        <Text style={[text.subtitle, { flex: 1 }]}>{`${t.jury.caseLabel} #${item.caseId}`}</Text>
+        <CaseAmount orderId={snapshot.orderId} />
+      </View>
+      <View style={styles.tagRow}>
+        <StatusChip label={tag} warn={canJoin || mustReveal} />
+        <StatusChip label={`${snapshot.jurors} ${t.caseScreen.jurors}`} />
+      </View>
       <Secondary>{status}</Secondary>
-      {eligible && !committed && view === "seed-commit" ? <Button label={t.jury.join} icon="check" onPress={join} loading={busy} /> : null}
-      {committed && !revealed && view === "seed-reveal" && hasSecret ? <Button label={t.jury.reveal} icon="check" onPress={reveal} loading={busy} /> : null}
+      <CaseSummary orderId={snapshot.orderId} />
+      {canJoin ? <Button label={t.jury.join} icon="check" onPress={join} loading={busy} /> : null}
+      {mustReveal ? <Button label={t.jury.reveal} icon="check" onPress={reveal} loading={busy} /> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Card>
   );
@@ -280,6 +329,8 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between" },
+  titleRow: { flexDirection: "row", gap: spacing.sm },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingRight: 56 },
   bell: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   dot: { position: "absolute", top: 2, right: 0, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.brick, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },

@@ -4,7 +4,10 @@ import { Icon, type IconName } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
 import { useQueries } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { seedNeedsAction } from "../../jury/seedAction";
+import { phaseView } from "../../chain/jury";
+import { readJurorCase } from "../../chain/reader";
+import { fetchCase } from "../../chain/serverReads";
+import { seedNeedsAction, voteNeedsAction } from "../../jury/seedAction";
 import { seedQueryOptions } from "../../jury/seedState";
 import { useSession } from "../../session/SessionProvider";
 import { useSummary } from "../../data/useSummary";
@@ -28,10 +31,25 @@ export default function TabsLayout() {
     queries: openCases.map((item) => ({ ...seedQueryOptions(api, address as `0x${string}`, item.caseId), enabled: Boolean(address), staleTime: 30_000 })),
   });
   const now = Math.floor(Date.now() / 1000);
+  // El número de Mis casos cuenta los casos donde me sortearon y me toca votar o mostrar mi voto ahora.
+  const mine = useQueries({
+    queries: (useMyCases().data?.asJuror ?? []).map((item) => ({
+      queryKey: ["jury-todo", item.caseId, address] as const,
+      enabled: Boolean(address),
+      staleTime: 30_000,
+      refetchInterval: 60_000,
+      queryFn: async () => {
+        const { snapshot } = await fetchCase(api, item.caseId);
+        const juror = await readJurorCase(item.caseId, address as `0x${string}`);
+        return voteNeedsAction(phaseView(snapshot, Math.floor(Date.now() / 1000)), juror);
+      },
+    })),
+  });
+  const myCasesTodo = mine.filter((query) => query.data === true).length;
   const openForJury = seeds.filter((query) => seedNeedsAction(query.data, now)).length;
   useEffect(() => {
-    void loadViewMode();
-  }, []);
+    void loadViewMode(address);
+  }, [address]);
   // Una sola barra con las pestañas de las dos vistas: las de la vista que no se usa quedan ocultas (href: null).
   const hide = (visible: boolean) => (visible ? {} : { href: null });
   const asJury = mode === "jury";
@@ -55,7 +73,10 @@ export default function TabsLayout() {
         name="jury-open"
         options={{ ...tab(t.tabs.juryOpen, "scale"), ...hide(asJury), tabBarBadge: openForJury > 0 ? openForJury : undefined, tabBarBadgeStyle: { backgroundColor: colors.brick, color: colors.white, fontFamily: fonts.bold } }}
       />
-      <Tabs.Screen name="jury-mine" options={{ ...tab(t.tabs.juryMine, "briefcase"), ...hide(asJury) }} />
+      <Tabs.Screen
+        name="jury-mine"
+        options={{ ...tab(t.tabs.juryMine, "briefcase"), ...hide(asJury), tabBarBadge: myCasesTodo > 0 ? myCasesTodo : undefined, tabBarBadgeStyle: { backgroundColor: colors.brick, color: colors.white, fontFamily: fonts.bold } }}
+      />
       <Tabs.Screen name="jury-stake" options={{ ...tab(t.tabs.juryStake, "wallet"), ...hide(asJury) }} />
       <Tabs.Screen name="profile" options={{ title: t.tabs.profile, tabBarIcon: ({ focused }) => <Logo size={30} outline={!focused} color={focused ? colors.brick : colors.muted} /> }} />
     </Tabs>

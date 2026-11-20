@@ -74,6 +74,7 @@ export function caseFromServer(raw: { case: Raw; jurors: string[] }): { snapshot
       jurors: Number(c.jurors),
       phase: Number(c.phase) as CaseSnapshot["phase"],
       round: Number(c.round),
+      roundBase: Number(c.roundBase ?? 0),
       revealedVotes: Number(c.revealedVotes),
       payeeVotes: Number(c.payeeVotes),
       payerVotes: Number(c.payerVotes),

@@ -23,3 +23,25 @@ describe("reclamos con algo para hacer", () => {
     expect(seedNeedsAction(base({ committed: true, revealed: true }), 1500)).toBe(false);
   });
 });
+
+import { seedGroups, voteNeedsAction } from "../src/jury/seedAction";
+
+describe("filtros de reclamos para jurados", () => {
+  it("separa los que puedo anotar, los que tengo que revelar, los anotados y los no anotados", () => {
+    expect(seedGroups(base({}), 500)).toEqual(["notJoined", "toJoin"]);
+    expect(seedGroups(base({ eligible: false }), 500)).toEqual(["notJoined"]);
+    expect(seedGroups(base({ committed: true }), 1500)).toEqual(["joined", "toReveal"]);
+    expect(seedGroups(base({ committed: true, revealed: true }), 1500)).toEqual(["joined"]);
+    expect(seedGroups(null, 500)).toEqual([]);
+  });
+
+  it("detecta si me toca votar o mostrar mi voto", () => {
+    const zero = `0x${"0".repeat(64)}`;
+    const sealed = `0x${"1".repeat(64)}`;
+    expect(voteNeedsAction("vote-commit", { voteCommit: zero, vote: 0 })).toBe(true);
+    expect(voteNeedsAction("vote-commit", { voteCommit: sealed, vote: 0 })).toBe(false);
+    expect(voteNeedsAction("vote-reveal", { voteCommit: sealed, vote: 0 })).toBe(true);
+    expect(voteNeedsAction("vote-reveal", { voteCommit: sealed, vote: 1 })).toBe(false);
+    expect(voteNeedsAction("verdict-final", { voteCommit: sealed, vote: 1 })).toBe(false);
+  });
+});

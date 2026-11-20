@@ -238,6 +238,25 @@ describe("what triggers a notification", () => {
     expect(rows(ctx).filter((r) => r.kind === "jury_reveal")).toEqual([]);
   });
 
+  it("tells who revealed but was not chosen that the draw did not pick them", async () => {
+    const ctx = setup();
+    const insert = (name: string, log: number, args: object) =>
+      ctx.raw
+        .prepare(
+          `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+           VALUES (60, ?, 1, '0x6', 'arbitration', '0x', ?, NULL, 8, ?)`,
+        )
+        .run(log, name, JSON.stringify(args));
+    const [chosen, left] = ["0x" + "c".repeat(40), "0x" + "d".repeat(40)];
+    insert("SeedRoundStarted", 1, { caseId: "8", round: 0, commitEnd: 100, revealEnd: 200 });
+    insert("SeedRevealed", 2, { caseId: "8", juror: chosen });
+    insert("SeedRevealed", 3, { caseId: "8", juror: left });
+    insert("JuryDrawn", 4, { caseId: "8", jurors: [chosen], commitEnd: 300, revealEnd: 400 });
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).filter((r) => r.kind === "jury_not_drawn").map((r) => r.address)).toEqual([left]);
+    expect(rows(ctx).filter((r) => r.kind === "jury_drawn").map((r) => r.address)).toEqual([chosen]);
+  });
+
   it("tells both parties when a dispute with a jury is resolved, but not a small one", async () => {
     const ctx = setup();
     ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (7, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());

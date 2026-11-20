@@ -33,6 +33,8 @@ export interface CaseSnapshot {
   jurors: number;
   phase: CasePhase;
   round: number;
+  // Ronda desde la que cuenta el límite de reemplazos (cambia al apelar).
+  roundBase?: number;
   revealedVotes: number;
   payeeVotes: number;
   payerVotes: number;

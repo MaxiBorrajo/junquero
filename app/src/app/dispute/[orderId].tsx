@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useActivity } from "../../components/Activity";
+import { DisputeFlow } from "../../jury/DisputeFlow";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
 import { disputeCost, reasonHash } from "../../chain/jury";
@@ -131,6 +132,7 @@ export default function OpenDispute() {
       {small ? <Body>{t.dispute.explanationSmall}</Body> : null}
       {small ? <Secondary>{(state.hasMilestones ? t.dispute.explanationSmallAmountsMilestone : t.dispute.explanationSmallAmounts).replace("{amount}", formatAmount(scope.data.amount.toString())).replace(/\{half\}/g, formatAmount((scope.data.amount / 2n).toString()))}</Secondary> : null}
       {small && quota.data ? <Secondary>{t.dispute.smallQuota.replace(/\{max\}/g, String(quota.data.max)).replace("{used}", String(quota.data.used))}</Secondary> : null}
+      {small ? null : <DisputeFlow size={scope.data.size} />}
       {small ? null : <Body>{t.dispute.explanationJury.replace("{amount}", formatAmount(cost.data.toString()))}</Body>}
       <Secondary>{t.dispute.window}</Secondary>
       <Field label={t.dispute.reasonLabel} value={reason} onChangeText={setReason} multiline maxLength={1500} hint={small ? t.dispute.reasonHintSmall : t.dispute.reasonHint} error={touched && !valid ? t.dispute.reasonError : null} />

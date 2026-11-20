@@ -11,6 +11,7 @@ import { Card } from "../../components/Card";
 import { DetailActions } from "../../components/DetailActions";
 import { Body, Button, ErrorText, Field, Screen, Secondary, Title } from "../../components/ui";
 import { useChatKey } from "../../chat/ChatKeyProvider";
+import { DrawProgress } from "../../jury/DrawProgress";
 import { useCaseState } from "../../data/useCases";
 import { EvidenceThumbnails, useEvidence } from "../../evidence/EvidenceSection";
 import { shareWithJurors } from "../../evidence/share";
@@ -101,6 +102,8 @@ export default function CaseScreen() {
         <Text style={text.subtitle}>{formatUsdc(snapshot.fee.toString())}</Text>
         <Secondary>{`${snapshot.jurors} ${t.caseScreen.jurors}`}</Secondary>
       </Card>
+
+      {isParty ? <DrawProgress caseId={id} snapshot={snapshot} /> : null}
 
       {view === "waiting-response" ? (
         <Secondary>{`${t.caseScreen.responseDeadline}: ${formatDate(snapshot.commitEnd)}`}</Secondary>

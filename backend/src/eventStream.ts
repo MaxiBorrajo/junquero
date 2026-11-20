@@ -37,7 +37,7 @@ export async function processEvents(db: D1Database, handlers: EventHandler[], sc
   const { results } = await db
     .prepare(
       `SELECT block_number, log_index, name, order_id, case_id,
-              CASE WHEN name IN ('OrderCreated', 'OrderToppedUp', 'OrderAgreed', 'OrderSettled', 'JuryDrawn', 'VoteCommitted', 'VoteRevealed', 'OrderReserved', 'CaseOpened', 'GroupCreated', 'CoordinatorChanged', 'Contributed', 'ContributionWithdrawn', 'OrderCancelled', 'DisputeOpened', 'DisputeResolved', 'MilestoneDelivered', 'MilestonePaid', 'ProgressReported', 'OrderTerminated', 'OrderAbandoned', 'ReceiptClaimed') THEN args END AS args
+              CASE WHEN name IN ('OrderCreated', 'OrderToppedUp', 'OrderAgreed', 'OrderSettled', 'JuryDrawn', 'SeedCommitted', 'SeedRevealed', 'VoteCommitted', 'VoteRevealed', 'OrderReserved', 'CaseOpened', 'GroupCreated', 'CoordinatorChanged', 'Contributed', 'ContributionWithdrawn', 'OrderCancelled', 'DisputeOpened', 'DisputeResolved', 'MilestoneDelivered', 'MilestonePaid', 'ProgressReported', 'OrderTerminated', 'OrderAbandoned', 'ReceiptClaimed') THEN args END AS args
        FROM events
        WHERE (block_number, log_index) > (?, ?)
        ORDER BY block_number, log_index LIMIT ?`,

@@ -217,6 +217,27 @@ describe("what triggers a notification", () => {
     expect(rows(ctx).filter((r) => r.kind === "jury_open").map((r) => `${r.ref}:${r.address}`)).toEqual([`5:${juror}`]);
   });
 
+  it("reminds who joined the draw to reveal, once the sign-up closes and before the reveal ends, and stops once they do", async () => {
+    const ctx = setup();
+    const insert = (name: string, log: number, args: object) =>
+      ctx.raw
+        .prepare(
+          `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+           VALUES (50, ?, 1, '0x7', 'arbitration', '0x', ?, NULL, 6, ?)`,
+        )
+        .run(log, name, JSON.stringify(args));
+    const juror = "0x" + "b".repeat(40);
+    insert("SeedRoundStarted", 1, { caseId: "6", round: 0, commitEnd: 5000, revealEnd: 6800 });
+    insert("SeedCommitted", 2, { caseId: "6", juror });
+    await processEvents(ctx.db, handlers, 100);
+    const pending = rows(ctx).filter((r) => r.kind === "jury_reveal").map((r) => `${r.ref}@${(r as any).due_at}`).sort();
+    expect(pending).toEqual(["6:end@6200", "6:start@5000"]);
+
+    insert("SeedRevealed", 3, { caseId: "6", juror });
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).filter((r) => r.kind === "jury_reveal")).toEqual([]);
+  });
+
   it("tells both parties when a dispute with a jury is resolved, but not a small one", async () => {
     const ctx = setup();
     ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (7, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());

@@ -6,6 +6,8 @@ export const MAX_ATTEMPTS = 5;
 export const MAX_TOKENS_PER_ADDRESS = 5;
 const REMINDER_LEAD_SECONDS = 3600;
 const JURY_LEAD_SECONDS = 7200;
+// Aviso de "revelá antes de que termine" para el aporte al sorteo: los plazos son cortos, así que va más cerca del cierre.
+const REVEAL_LEAD_SECONDS = 600;
 
 interface Template {
   title: string;
@@ -29,6 +31,7 @@ export const TEMPLATES: Record<string, Template> = {
   checked_in: { title: "Llegó quien hace tu trabajo", body: "Avisó que llegó al lugar. Salí a recibirlo y abrí el trabajo para ver los detalles.", priority: "high" },
   evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
+  jury_reveal: { title: "Revelá tu aporte al sorteo", body: "Ya podés revelar tu aporte al sorteo de jurados. Entrá a Reclamos y tocá Revelar antes de que termine el plazo: si no, quedás afuera.", priority: "high" },
   jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate.", priority: "default" },
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
   dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste.", priority: "high" },
@@ -177,6 +180,37 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
                FROM order_parties WHERE order_id = ?2 AND payer IS NOT NULL AND payee IS NOT NULL`,
             )
             .bind(args.claimant.toLowerCase(), event.order_id),
+        );
+      }
+    } else if (event.name === "SeedCommitted" && event.case_id !== null) {
+      // Quien se anota tiene que volver a revelar su aporte cuando cierra la anotación. Se le avisa justo en ese momento, y otra vez
+      // antes de que termine el plazo de revelar. Los datos de la ronda salen de su último SeedRoundStarted.
+      const juror = parse<{ juror?: string }>(event.args)?.juror;
+      if (juror && isAddress(juror)) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+               SELECT ?1, 'jury_reveal', CAST(CAST(?2 AS INTEGER) AS TEXT) || ':start', CAST(json_extract(r.args, '$.commitEnd') AS INTEGER), ${nowSql}
+               FROM events r WHERE r.name = 'SeedRoundStarted' AND r.case_id = ?2 ORDER BY r.block_number DESC, r.log_index DESC LIMIT 1`,
+            )
+            .bind(juror.toLowerCase(), event.case_id),
+          db
+            .prepare(
+              `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+               SELECT ?1, 'jury_reveal', CAST(CAST(?2 AS INTEGER) AS TEXT) || ':end', MAX(CAST(json_extract(r.args, '$.commitEnd') AS INTEGER), CAST(json_extract(r.args, '$.revealEnd') AS INTEGER) - ${REVEAL_LEAD_SECONDS}), ${nowSql}
+               FROM events r WHERE r.name = 'SeedRoundStarted' AND r.case_id = ?2 ORDER BY r.block_number DESC, r.log_index DESC LIMIT 1`,
+            )
+            .bind(juror.toLowerCase(), event.case_id),
+        );
+      }
+    } else if (event.name === "SeedRevealed" && event.case_id !== null) {
+      const juror = parse<{ juror?: string }>(event.args)?.juror;
+      if (juror && isAddress(juror)) {
+        statements.push(
+          db
+            .prepare("DELETE FROM notifications WHERE address = ? AND kind = 'jury_reveal' AND ref LIKE ? AND sent_at IS NULL")
+            .bind(juror.toLowerCase(), `${event.case_id}:%`),
         );
       }
     } else if (event.name === "JuryDrawn" && event.case_id !== null) {

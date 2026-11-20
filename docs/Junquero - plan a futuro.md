@@ -141,3 +141,14 @@ Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simpl
 - Reputación: un reclamo cerrado por acuerdo debería contarse distinto a uno perdido ante un jurado.
 - Aplica a changas medianas y altas; en las chicas (50/50 automático) no tiene sentido salvo que se quiera permitir igual, a definir.
 
+## 8. Casos que pasan al administrador sin plazo (nota del 19/11/2026)
+
+**Hoy.** Cuando un reclamo con jurado no llega a un veredicto (empate, nadie muestra su voto o no hay jurados suficientes tras las rondas de sorteo), pasa a `NeedsEmergency` y solo lo resuelve el administrador con `resolveEmergency`. El contrato no guarda ninguna fecha límite ni resuelve nada solo: si el administrador no firma, el pago de las partes queda congelado indefinidamente y el costo del reclamo no se devuelve. Tampoco hay aviso: el administrador solo lo ve en el panel (sección Reclamos, con un número), y las partes ven "Lo resuelve el administrador".
+
+**A evaluar (de menor a mayor esfuerzo):**
+- **Avisar al administrador** (notificación o correo) cuando entra un caso, y un recordatorio cada cierto tiempo si sigue sin resolver. Solo servidor y panel.
+- **Más información para las partes:** en la pantalla del reclamo, desde cuándo está en manos del administrador y qué pasa si tarda.
+- **Plazo máximo con resolución automática**, por ejemplo 7 días: si el administrador no resuelve, el pago se reparte 50/50 o se devuelve a quien pagó, y se devuelve el costo a quien reclamó. Cambia el contrato (guardar la fecha en que entró a emergencia y una función que cualquiera pueda llamar al vencer) y exige redesplegar.
+
+**Decisiones pendientes:** cuánto dura el plazo, qué reparto es el justo por defecto, y si el administrador puede prorrogarlo una vez con motivo. Para producción conviene además que el rol de emergencia lo tenga más de una persona, o un multisig, para que no dependa de una sola billetera.
+

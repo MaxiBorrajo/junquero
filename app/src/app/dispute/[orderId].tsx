@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useActivity } from "../../components/Activity";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
 import { disputeCost, reasonHash } from "../../chain/jury";
@@ -27,6 +28,7 @@ export default function OpenDispute() {
   const { api, address } = useSession();
   const { ensure } = useChatKey();
   const queryClient = useQueryClient();
+  const track = useActivity();
   const order = useOrder(id);
   const [reason, setReason] = useState("");
   const [touched, setTouched] = useState(false);
@@ -84,29 +86,35 @@ export default function OpenDispute() {
     setError(null);
     const account = address as `0x${string}`;
     try {
-      setStep("statement");
-      await uploadStatement(api, address, counterpart, await ensure(), id, reason.trim());
+      await track(t.dispute.steps.statement, async (activity) => {
+        const go = (next: Step) => {
+          setStep(next);
+          activity.update(t.dispute.steps[next]);
+        };
+        go("statement");
+        await uploadStatement(api, address, counterpart, await ensure(), id, reason.trim());
 
-      let auth = NO_AUTH;
-      if (cost.data! > 0n) {
-        setStep("balance");
-        const balance = await readTokenBalance(account);
-        if (balance < cost.data!) {
-          setStep(null);
-          setError(t.dispute.insufficient.replace("{amount}", formatAmount((cost.data! - balance).toString())));
-          return;
+        let auth = NO_AUTH;
+        if (cost.data! > 0n) {
+          go("balance");
+          const balance = await readTokenBalance(account);
+          if (balance < cost.data!) {
+            setStep(null);
+            setError(t.dispute.insufficient.replace("{amount}", formatAmount((cost.data! - balance).toString())));
+            return;
+          }
+          go("permit");
+          const deadline = BigInt(Math.floor(Date.now() / 1000) + PERMIT_VALIDITY_SECONDS);
+          const signature = await signTyped(permitTypedData(deployment, account, cost.data!, await readTokenNonce(account), deadline));
+          auth = { method: 0, nonce: 0n, deadline, signature };
         }
-        setStep("permit");
-        const deadline = BigInt(Math.floor(Date.now() / 1000) + PERMIT_VALIDITY_SECONDS);
-        const signature = await signTyped(permitTypedData(deployment, account, cost.data!, await readTokenNonce(account), deadline));
-        auth = { method: 0, nonce: 0n, deadline, signature };
-      }
-      setStep("forward");
-      await sendViaRelay(relayDepsFor(api, address), encodeOpenDispute(BigInt(id), reasonHash(reason), auth));
-      setStep("relay");
-      await queryClient.invalidateQueries({ queryKey: ["order", id] });
-      await queryClient.invalidateQueries({ queryKey: ["cases"] });
-      router.replace({ pathname: "/order/[orderId]", params: { orderId: String(id) } });
+        go("forward");
+        await sendViaRelay(relayDepsFor(api, address), encodeOpenDispute(BigInt(id), reasonHash(reason), auth));
+        go("relay");
+        await queryClient.invalidateQueries({ queryKey: ["order", id] });
+        await queryClient.invalidateQueries({ queryKey: ["cases"] });
+        router.replace({ pathname: "/order/[orderId]", params: { orderId: String(id) } });
+      });
     } catch (failure) {
       setStep(null);
       if (isRejection(failure)) setError(t.order.signCancelled);
@@ -126,7 +134,6 @@ export default function OpenDispute() {
       {small ? null : <Body>{t.dispute.explanationJury.replace("{amount}", formatAmount(cost.data.toString()))}</Body>}
       <Secondary>{t.dispute.window}</Secondary>
       <Field label={t.dispute.reasonLabel} value={reason} onChangeText={setReason} multiline maxLength={1500} hint={small ? t.dispute.reasonHintSmall : t.dispute.reasonHint} error={touched && !valid ? t.dispute.reasonError : null} />
-      {step ? <Body>{t.dispute.steps[step]}</Body> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
     </Screen>
   );

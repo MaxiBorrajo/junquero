@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActivity } from "../../components/Activity";
 import { Card } from "../../components/Card";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -38,6 +39,7 @@ export default function CancelChanga() {
   const toast = useToast();
   const switchAccount = useSwitchAccount();
   const query = useChangaBySpec(String(specHash));
+  const track = useActivity();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [stale, setStale] = useState(false);
@@ -77,7 +79,7 @@ export default function CancelChanga() {
     setFailed(false);
     setStale(false);
     try {
-      await sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(changa.orderId!)));
+      await track(t.detail.cancellingWork, () => sendViaRelay({ api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped }, encodeCancel(BigInt(changa.orderId!))));
       markCancelling(changa.id);
       // Que el servidor se ponga al día ya, sin esperar al reloj de cada minuto. Si falla no importa: el reloj lo recoge.
       void api.send("POST", "/me/sync").catch(() => {});

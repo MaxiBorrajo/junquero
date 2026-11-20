@@ -199,6 +199,24 @@ describe("what triggers a notification", () => {
     expect(rows(ctx).filter((r) => r.kind === "dispute_small")).toMatchObject([{ address: stranger.address.toLowerCase(), ref: "5" }]);
   });
 
+  it("tells people who already staked that a case is looking for jurors, but not the parties", async () => {
+    const ctx = setup();
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (11, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    const juror = "0x" + "a".repeat(40);
+    const insert = (name: string, log: number, order: number | null, caseId: number | null, args: object) =>
+      ctx.raw
+        .prepare(
+          `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+           VALUES (40, ?, 1, '0x8', 'arbitration', '0x', ?, ?, ?, ?)`,
+        )
+        .run(log, name, order, caseId, JSON.stringify(args));
+    insert("Staked", 1, null, null, { juror, amount: "10000000" });
+    insert("Staked", 2, null, null, { juror: stranger.address, amount: "10000000" });
+    insert("CaseOpened", 3, 11, 5, { claimant: owner.address });
+    await processEvents(ctx.db, handlers, 100);
+    expect(rows(ctx).filter((r) => r.kind === "jury_open").map((r) => `${r.ref}:${r.address}`)).toEqual([`5:${juror}`]);
+  });
+
   it("tells both parties when a dispute with a jury is resolved, but not a small one", async () => {
     const ctx = setup();
     ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (7, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());

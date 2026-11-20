@@ -11,7 +11,7 @@ import { notificationText } from "../lib/notificationText";
 import { formatDate } from "../lib/format";
 import { usePullGesture } from "../lib/usePullGesture";
 import { useManualRefresh } from "../lib/useManualRefresh";
-import { routeForNotification } from "../push/routes";
+import { openNotification } from "../push/openNotification";
 import { colors, spacing, text } from "../theme";
 
 export default function Notifications() {
@@ -50,7 +50,7 @@ export default function Notifications() {
 function Row({ item, isNew }: { item: NotificationItem; isNew: boolean }) {
   const copy = notificationText(item.kind);
   return (
-    <Card onPress={() => router.push(routeForNotification(item.kind, item.ref) as never)} style={styles.row}>
+    <Card onPress={() => openNotification(item.kind, item.ref)} style={styles.row}>
       {isNew ? <View style={styles.dot} /> : <View style={styles.dotSpace} />}
       <View style={styles.body}>
         <Text style={text.subtitle}>{copy.title}</Text>

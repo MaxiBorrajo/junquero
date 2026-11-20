@@ -29,6 +29,7 @@ export const TEMPLATES: Record<string, Template> = {
   checked_in: { title: "Llegó quien hace tu trabajo", body: "Avisó que llegó al lugar. Salí a recibirlo y abrí el trabajo para ver los detalles.", priority: "high" },
   evidence_uploaded: { title: "Subieron pruebas", body: "Subieron pruebas de tu trabajo. Entrá a revisarlas.", priority: "default" },
   release_ready: { title: "Aprobaron tu trabajo", body: "Ya podés cobrar. Abrí el trabajo y confirmá el cobro.", priority: "high" },
+  jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate.", priority: "default" },
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
   dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste.", priority: "high" },
   dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Entrá al trabajo ahora.", priority: "high" },
@@ -129,6 +130,24 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
             )
             .bind(claimant.toLowerCase(), event.order_id),
         );
+        // A quienes ya depositaron garantía (salvo las partes) se les avisa que hay un reclamo buscando jurados. Si cumplen o no
+        // los requisitos lo ve cada uno en la pantalla de Reclamos.
+        const caseId = event.case_id ?? Number(parse<{ caseId?: string }>(event.args)?.caseId);
+        if (Number.isFinite(caseId)) {
+          statements.push(
+            db
+              .prepare(
+                `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+                 SELECT DISTINCT lower(json_extract(e.args, '$.juror')), 'jury_open', CAST(CAST(?1 AS INTEGER) AS TEXT), 0, ${nowSql}
+                 FROM events e
+                 WHERE e.name = 'Staked' AND json_extract(e.args, '$.juror') IS NOT NULL
+                   AND lower(json_extract(e.args, '$.juror')) NOT IN (
+                     SELECT lower(payer) FROM order_parties WHERE order_id = ?2 AND payer IS NOT NULL
+                     UNION SELECT lower(payee) FROM order_parties WHERE order_id = ?2 AND payee IS NOT NULL)`,
+              )
+              .bind(caseId, event.order_id),
+          );
+        }
       }
     } else if (event.name === "DisputeResolved" && event.order_id !== null) {
       // Un reclamo con jurado (o resuelto por falta de respuesta) tiene costo de arbitraje; el chico no. A las dos partes les avisa lo mismo

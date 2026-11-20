@@ -1,11 +1,10 @@
 import * as Notifications from "expo-notifications";
 import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
 import { useEffect } from "react";
 import { useSession } from "../session/SessionProvider";
 import { pushEnabledByUser } from "./preference";
 import { registerForPush } from "./register";
-import { routeForNotification } from "./routes";
+import { openNotification } from "./openNotification";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
@@ -14,7 +13,7 @@ Notifications.setNotificationHandler({
 function open(data: Record<string, unknown> | undefined) {
   const kind = typeof data?.kind === "string" ? data.kind : "";
   const ref = typeof data?.ref === "string" || typeof data?.ref === "number" ? String(data.ref) : "";
-  router.push(routeForNotification(kind, ref) as never);
+  openNotification(kind, ref);
 }
 
 export function PushHandler() {

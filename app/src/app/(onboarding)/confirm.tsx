@@ -1,4 +1,5 @@
 import { useAccount } from "@reown/appkit-react-native";
+import { useActivity } from "../../components/Activity";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Body, Button, ErrorText, Screen, Title } from "../../components/ui";
@@ -16,6 +17,7 @@ export default function Confirm() {
   const { address } = useAccount();
   const { signIn } = useSession();
   const switchAccount = useSwitchAccount();
+  const track = useActivity();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +29,7 @@ export default function Confirm() {
     setBusy(true);
     setError(null);
     try {
-      await signIn(address, signText);
+      await track(t.confirm.working, () => signIn(address, signText));
       router.replace("/");
     } catch (failure) {
       setError(isUserRejection(failure) ? t.confirm.cancelled : t.confirm.failed);

@@ -15,6 +15,7 @@ const TEXTS: Record<string, { title: string; body: string }> = {
   dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Entrá al trabajo ahora." },
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago." },
   dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste." },
+  jury_open: { title: "Reclamo buscando jurados", body: "Hay un reclamo que busca jurados. Si cumplís los requisitos, entrá a Reclamos y anotate." },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para votar. Entrá al reclamo ahora." },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito. Entrá al reclamo ahora." },
   selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a trabajos. Buscá uno en el mapa." },

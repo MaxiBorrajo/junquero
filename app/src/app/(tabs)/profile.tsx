@@ -23,6 +23,7 @@ import { useSummary } from "../../data/useSummary";
 import { useManualRefresh } from "../../lib/useManualRefresh";
 import { unregisterPush } from "../../push/register";
 import { useSession } from "../../session/SessionProvider";
+import { setViewMode, useViewMode } from "../../session/viewMode";
 import { colors, fonts, radius, spacing, text } from "../../theme";
 
 const SELFIE_BADGE = {
@@ -117,17 +118,40 @@ export default function Profile() {
         <Body>{`${address.slice(0, 8)}…${address.slice(-6)}`}</Body>
         <Button label={t.me.copyAddress} variant="ghost" icon="copy" onPress={copy} />
       </Card>
+      <ViewSwitch />
       <DetailActions
         actions={[
           ...(selfie === "rejected" || selfie === "none" ? [{ key: "selfie", label: t.me.retakeSelfie, icon: "camera" as const, onPress: () => router.push("/selfie") }] : []),
           { key: "notifications", label: t.notifications.title, icon: "bell", badge: unread > 0 ? unread : undefined, onPress: () => router.push("/notifications") },
-          { key: "jury", label: t.jury.title, icon: "scale", onPress: () => router.push("/jury") },
           { key: "edit", label: t.me.edit, icon: "edit", onPress: () => router.push("/profile-setup") },
           { key: "settings", label: t.settings.open, icon: "settings", onPress: () => router.push("/settings") },
           { key: "logout", label: t.me.logout, icon: "logout", danger: true, onPress: () => void leave() },
         ]}
       />
     </Screen>
+  );
+}
+
+// Cambia entre la vista de Junquero (mapa, trabajos, mensajes) y la de jurado (reclamos, casos y garantía).
+function ViewSwitch() {
+  const mode = useViewMode();
+  const pick = (next: "junquero" | "jury") => {
+    setViewMode(next);
+    router.navigate(next === "jury" ? "/jury-open" : "/map");
+  };
+  return (
+    <Card gap="sm">
+      <Text style={text.label}>{t.viewMode.title}</Text>
+      <View style={{ flexDirection: "row", gap: spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <Button label={t.viewMode.junquero} icon="map" variant={mode === "junquero" ? "primary" : "outline"} onPress={() => pick("junquero")} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button label={t.viewMode.jury} icon="scale" variant={mode === "jury" ? "primary" : "outline"} onPress={() => pick("jury")} />
+        </View>
+      </View>
+      <Secondary>{mode === "jury" ? t.viewMode.hintJury : t.viewMode.hintJunquero}</Secondary>
+    </Card>
   );
 }
 

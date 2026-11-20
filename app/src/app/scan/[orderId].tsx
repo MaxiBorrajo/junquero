@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useActivity } from "../../components/Activity";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
@@ -19,6 +20,8 @@ export default function Scan() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { api, address } = useSession();
   const queryClient = useQueryClient();
+  const track = useActivity();
+  const send: typeof sendViaRelay = (...args) => track(t.order.releasing, () => sendViaRelay(...args));
   const [permission, requestPermission] = useCameraPermissions();
   const handled = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -42,7 +45,7 @@ export default function Scan() {
       }
       handled.current = true;
       const account = address as `0x${string}`;
-      await sendViaRelay(
+      await send(
         { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped },
         releaseCall(found.orderId, found.release),
       );
@@ -72,7 +75,7 @@ export default function Scan() {
       setError(null);
       try {
         const account = address as `0x${string}`;
-        await sendViaRelay(
+        await send(
           { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped },
           encodeReleaseMilestone(milestone.data, milestone.signature),
         );
@@ -105,7 +108,7 @@ export default function Scan() {
     setError(null);
     try {
       const account = address as `0x${string}`;
-      await sendViaRelay(
+      await send(
         { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped },
         encodeRelease(parsed.data, parsed.signature),
       );

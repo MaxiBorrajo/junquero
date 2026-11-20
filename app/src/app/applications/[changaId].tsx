@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useActivity } from "../../components/Activity";
 import { Card } from "../../components/Card";
-import { Banner } from "../../components/Banner";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
@@ -33,6 +33,7 @@ export default function ReceivedApplications() {
   const mine = useMyChangas();
   const agreements = useMyAgreements();
   const changa = (mine.data ?? []).find((item) => item.id === id) ?? null;
+  const track = useActivity();
   const [busy, setBusy] = useState<number | null>(null);
   const toast = useToast();
   const [failed, setFailed] = useState(false);
@@ -48,7 +49,7 @@ export default function ReceivedApplications() {
     setBusy(application.id);
     setFailed(false);
     try {
-      await sendViaRelay(relayDepsFor(api, address as string), encodeProposeProvider(BigInt(target.orderId), application.applicant as `0x${string}`));
+      await track(t.common.working, () => sendViaRelay(relayDepsFor(api, address as string), encodeProposeProvider(BigInt(target.orderId!), application.applicant as `0x${string}`)));
       toast({ text: t.group.proposeDone, icon: "users" });
     } catch (error) {
       if (isRejection(error)) toast({ text: t.received.cancelled, tone: "info" });
@@ -78,9 +79,6 @@ export default function ReceivedApplications() {
         ListHeaderComponent={
           <View style={{ gap: spacing.sm }}>
             <Title>{t.received.title}</Title>
-            {proposal ? (
-              <Banner icon="clock" action={{ label: t.received.cancelProposal, onPress: () => void cancelProposal() }}>{t.received.pendingTitle}</Banner>
-            ) : null}
             {failed || chooseFailed ? <ErrorText>{t.received.chooseFailed}</ErrorText> : null}
           </View>
         }
@@ -144,6 +142,12 @@ export default function ReceivedApplications() {
                   </Pressable>
                 ) : null}
               </View>
+              {sentToThis ? (
+                <Pressable accessibilityRole="button" onPress={() => void cancelProposal()} style={[styles.small, styles.smallOutline]}>
+                  <Icon name="close" size={16} color={colors.brick} />
+                  <Text style={[styles.smallLabel, { color: colors.brick }]}>{t.received.cancelProposal}</Text>
+                </Pressable>
+              ) : null}
               {hasOffer ? (
                 <Pressable accessibilityRole="button" onPress={() => rejectOffer(item.id, name)} style={[styles.small, styles.smallOutline]}>
                   <Icon name="close" size={16} color={colors.brick} />

@@ -117,3 +117,27 @@ Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simpl
 
 **Descartado por ahora: sorteo automático entre todos los que dejaron garantía, sin anotarse.** El contrato no tiene lista de jurados y el castigo por no votar es total.
 
+## 7. Acuerdo entre las partes durante un reclamo (nota del 19/11/2026)
+
+**Idea.** Hoy un reclamo solo termina de tres maneras: el reparto 50/50 automático (changa chica), la falta de respuesta o el veredicto de un jurado. Falta una cuarta: que las dos partes se pongan de acuerdo por su cuenta, sin llegar al jurado, o en cualquier momento antes de que el jurado decida. Ejemplo: me hicieron una changa, digo que quedó mal y abro el reclamo; en vez de esperar el sorteo, quien trabajó y yo arreglamos.
+
+**Formas de arreglo que tendría que permitir:**
+- **Pagar menos a quien trabajó.** Quien pagó propone un porcentaje o un monto menor y quien trabajó acepta.
+- **Pagar más a quien trabajó.** Si el que reclamó es quien trabajó (por ejemplo, el pago no se liberó), puede aceptar menos de lo que pidió o quien pagó puede sumar algo.
+- **Una changa derivada para corregir la anterior**, sin costo o con poco costo: se publica y se acuerda una changa nueva ligada a la original, con su propio pago en garantía, y el reclamo se cierra cuando esa changa se completa.
+- **Retiro de común acuerdo**: quien reclamó retira el reclamo y el pago sigue su curso normal.
+
+**Cómo podría funcionar.**
+- Una propuesta de acuerdo dentro de la pantalla del reclamo, con respuesta de la otra parte (aceptar, rechazar o contraproponer), por el mismo chat que ya existe y con un resumen claro de qué se paga a quién.
+- El acuerdo se confirma con la firma de las dos partes. Al confirmarse se cancela el caso, se frena el sorteo si estaba en curso y se reparte el pago según lo acordado.
+- Mientras se negocia, los plazos del reclamo siguen corriendo (para no usarlo como demora), o hay una pausa corta y única, a definir.
+- Qué pasa con el costo del reclamo y con la garantía de los jurados anotados (se devuelven o no, y quién los pone) es una decisión de diseño pendiente.
+
+**Cambios de contrato.** Hace falta una resolución por acuerdo en el Escrow (hoy `resolveDispute` solo la ejecuta el módulo de arbitraje) que acepte el reparto firmado por las dos partes, y para la changa derivada, un campo que ligue una orden a la que corrige. Eso implica redesplegar. La parte de propuestas, el chat y las pantallas se puede construir en la app y el servidor.
+
+**Cosas a cuidar.**
+- Presión sobre la otra parte ("firmá o te dejo sin pago"): el acuerdo siempre es opcional, con la opción de seguir al jurado a la vista, y nunca cierra el reclamo sin las dos firmas.
+- Que no se use para demorar: plazo máximo para negociar.
+- Reputación: un reclamo cerrado por acuerdo debería contarse distinto a uno perdido ante un jurado.
+- Aplica a changas medianas y altas; en las chicas (50/50 automático) no tiene sentido salvo que se quiera permitir igual, a definir.
+

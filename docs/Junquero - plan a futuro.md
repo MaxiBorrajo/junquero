@@ -70,7 +70,7 @@ Decisión: la billetera dentro de la app es la opción ideal para quien no tiene
 
 - Módulos del contrato reemplazables en modo demo para no redesplegar todo en cada cambio (ver el chat del 15/11): despliegue sin bloquear los módulos y una función de administrador para cambiar un módulo manteniendo los datos.
 - Pago en efectivo en la pantalla de publicar (el contrato ya lo tiene).
-- Testigo para changas de más de 300 USDC y votación de parámetros en pantalla (ver el plan de pruebas, secciones 12 a 14).
+- Testigo para changas de más de 300 USDC y votación de parámetros en pantalla (ver `Junquero - pruebas de implementacion futura.md`, secciones 12 a 14).
 - Mejor buscador de direcciones con número de puerta (cambiar de proveedor de mapas o sumar uno con datos de direcciones).
 - Panel de admin: lista de jurados con su garantía libre, su credencial y sus casos activos (nota del 18/11/2026). El contrato no tiene contador ni lista de jurados: se arma con los eventos `Staked` que ya indexa el servidor y con `availableStake` de cada cuenta.
 - Billeteras que no sean MetaMask: la conexión por WalletConnect ya funciona con cualquier billetera común (de clave propia, EOA). Pendiente: el enlace para abrir la billetera al firmar está fijo en `metamask://` (`app/src/wallet/sign.ts`); tendría que usar el de la billetera conectada. Las billeteras de contrato (Safe, billeteras inteligentes) no sirven hoy, porque el permiso del depósito y el reenviador de firmas verifican firmas de cuenta común. Probar con una segunda billetera antes de prometerlo.

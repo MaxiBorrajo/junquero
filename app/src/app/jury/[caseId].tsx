@@ -22,6 +22,8 @@ import { useRunAction } from "../../lib/useRunAction";
 import { useSession } from "../../session/SessionProvider";
 import { spacing, text } from "../../theme";
 import { deadlineText } from "../../jury/panels";
+import { jurorStage } from "../../jury/seedAction";
+import { Banner } from "../../components/Banner";
 import { CaseEvidence } from "../../jury/CaseEvidence";
 import { useNow } from "../../lib/useNow";
 
@@ -55,6 +57,7 @@ export default function JurorCase() {
   const now = Math.floor(Date.now() / 1000);
   const view = phaseView(snapshot, now);
   const action = jurorAction(view, mine.data, true);
+  const stage = jurorStage(view, mine.data);
 
   const refresh = [["jurorCase", id], ["case", id]] as const;
 
@@ -92,10 +95,11 @@ export default function JurorCase() {
     <Screen>
       <View style={{ gap: spacing.xs }}>
         <Title>{`${t.caseScreen.title} #${id}`}</Title>
-        <Secondary>{t.jury.sealedHint}</Secondary>
-        {view === "vote-commit" ? <Text style={text.label}>{deadlineText("commit", snapshot.commitEnd, tick)}</Text> : null}
-        {view === "vote-reveal" ? <Text style={text.label}>{deadlineText("reveal", snapshot.revealEnd, tick)}</Text> : null}
+        {stage.tag === "missed" ? null : <Secondary>{stage.tag === "toVote" ? t.jury.sealedHint : t.jury.stageText[stage.tag]}</Secondary>}
+        {stage.deadline === "commit" ? <Text style={text.label}>{deadlineText("commit", snapshot.commitEnd, tick)}</Text> : null}
+        {stage.deadline === "reveal" ? <Text style={text.label}>{deadlineText("reveal", snapshot.revealEnd, tick)}</Text> : null}
       </View>
+      {stage.tag === "missed" ? <Banner tone="warning" icon="alert">{t.jury.missedBanner}</Banner> : null}
 
       {(evidence.data ?? []).length === 0 ? (
         <>
@@ -120,7 +124,7 @@ export default function JurorCase() {
       {action === "reveal-vote" ? <Button label={t.jury.revealVote} icon="check" onPress={reveal} loading={busy} /> : null}
       {view === "vote-commit" && action === "wait" && mine.data.voteCommit !== `0x${"0".repeat(64)}` ? <Secondary>{t.jury.waitReveal}</Secondary> : null}
       {action === "done" ? <Secondary>{t.jury.voteRevealed}</Secondary> : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && (action === "commit-vote" || action === "reveal-vote") ? <ErrorText>{error}</ErrorText> : null}
     </Screen>
   );
 }

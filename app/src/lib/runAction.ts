@@ -60,6 +60,8 @@ export async function runAction(deps: RunActionDeps, action: () => Promise<strin
       deps.toast({ text: deps.messages.cancelled, tone: "info" });
       return { ok: false, error: null };
     }
+    // El cartel de pantalla es genérico; el motivo real queda en el registro para poder buscarlo.
+    console.warn("acción fallida:", (error as Error)?.message ?? error, (error as { status?: number })?.status ?? "");
     return { ok: false, error: options.mapError?.(error) ?? options.failure ?? deps.messages.failed };
   }
 }

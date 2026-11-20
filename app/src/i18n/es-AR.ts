@@ -1042,6 +1042,7 @@ export const esAR = {
       emergency: "En revisión especial.",
       done: "Terminado.",
     },
+    missedBanner: "Se te pasó el plazo para guardar o mostrar tu voto. Ya no se puede votar en este caso y perdés la garantía que tenías en uso en él. Podés volver a depositar para anotarte a otros reclamos.",
     stage: {
       waiting: "Esperando respuesta",
       seed: "Sorteo",

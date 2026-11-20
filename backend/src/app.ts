@@ -185,7 +185,12 @@ app.post("/relay", limitBy((env) => env.RELAY_LIMITER), async (c) => {
   if (!c.env.RELAYER_KEY) return c.json({ error: "relayer not configured" }, 503);
   const chain = createRelayChain(c.env.RPC_URL, c.env.RELAYER_KEY, relayerLock(c.env));
   const result = await relay(c.env.DB, chain, relayPolicy, body, nowSeconds());
-  if (!result.ok) return c.json({ error: result.error }, result.status as 400 | 403 | 422 | 429 | 503);
+  if (!result.ok) {
+    // Queda en el registro del servidor por qué se rechazó un envío (sin datos sensibles): quién, a qué contrato y qué función.
+    const sent = body as { from?: string; to?: string; data?: string; deadline?: number | string };
+    console.warn("relay rechazado", result.status, result.error, sent.from, sent.to, typeof sent.data === "string" ? sent.data.slice(0, 10) : "", sent.deadline, nowSeconds());
+    return c.json({ error: result.error }, result.status as 400 | 403 | 422 | 429 | 503);
+  }
   return c.json({ txHash: result.txHash });
 });
 

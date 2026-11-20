@@ -415,50 +415,74 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 
 ### 8.3 Disputa con jurado (monto medio, 3 jurados)
 **8.3.1 Abrir reclamo** · Rol: Ana
-- [ x ] Pasos: Beto entregó; Ana toca "Tengo un problema" → motivo, descripción, evidencia, mensajes a compartir → confirmar el costo del reclamo.
-- Esperado: el pago queda congelado. Beto recibe el aviso "Abrieron un reclamo".
+- [ x ] Pasos: Beto entregó; Ana toca "Tengo un problema" y sigue los 4 pasos: 1. Cómo sigue el reclamo (flujo con los plazos reales y el costo), 2. Contá qué pasó, 3. Sumá pruebas (opcional: fotos, videos o documentos, se ven como miniaturas y se abren al tocarlas), 4. Revisá y abrí el reclamo (resumen de lo que se va a subir) → confirmar el costo del reclamo.
+- Esperado: el pago queda congelado. Beto recibe el aviso "Abrieron un reclamo". El botón de atrás vuelve al paso anterior. El relato y los archivos se suben juntos con una sola firma.
 
 **8.3.2 Responder** · Rol: Beto
-- [ x ] Pasos: abrir el reclamo → agregar su versión y evidencia.
-- Esperado: se ven las dos versiones.
+- [ x ] Pasos: abrir el reclamo → "Tu versión" con sus pruebas opcionales → Responder, dentro del plazo de respuesta (15 min en Sepolia).
+- Esperado: se ven las dos versiones. Pasado el plazo, la app avisa "Se venció el plazo para responder" y no sube nada.
 
-**8.3.3 Sorteo de jurado** · Rol: sistema, J1 a J3
-- [ ] Esperado: el sistema sortea 3 jurados entre los anotados que no son parte ni tuvieron changas con ninguna de las dos. Cada jurado recibe el aviso "Te tocó ser jurado".
-- [ ] Variante: un jurado rechaza o no responde → se sortea un reemplazo.
-
-**8.3.4 Revisar el caso** · Rol: J1 a J3
-- [ ] Pasos: Perfil → Ser jurado → Mis casos → abrir el caso.
-- Esperado: se ve el acuerdo, la evidencia y los mensajes compartidos. Las partes aparecen como Parte A y Parte B, sin identidades.
-
-**8.3.5 Votar (commit)** · Rol: J1 a J3
-- [ ] Pasos: cada uno elige un veredicto y confirma el voto.
-- Esperado: queda guardado en secreto; no se ve el de los demás.
-
-**8.3.6 Revelar voto** · Rol: J1 a J3
-- [ ] Pasos: dentro de la ventana, "Revelar".
-- Esperado: se computa la mayoría de los votos revelados.
-
-**8.3.7 Veredicto y reparto** · Rol: Ana, Beto, J1 a J3
-- [ ] Esperado: el pago se reparte según el veredicto. Quien gana recupera la garantía del reclamo; quien pierde la cede. Los jurados con la mayoría cobran recompensa y el que quedó en minoría pierde una parte chica. Las identidades se revelan al cerrar.
+**8.3.3 Anotarse a un reclamo** · Rol: J1 a J3
+- [ ] Pasos: Perfil → "Cómo usás la app" → Jurado → Reclamos. Cuando Beto responde llega el aviso "Reclamo buscando jurados" (solo a quienes ya depositaron garantía). Abrir la tarjeta del reclamo y tocar "Anotarme" dentro del plazo de anotación (15 min).
+- Esperado: la tarjeta muestra, antes de anotarse, solo rubro, modalidad, monto y lo acordado antes del trabajo (sin título, relatos, pruebas ni identidades). Al anotarse, la pastilla pasa a "Anotado" y el texto dice cuándo hay que revelar y cuándo llega el resultado. Los filtros (Para anotarme, Para revelar, Ya anotado, No me anoté) clasifican bien y el número de la pestaña Reclamos cuenta solo lo que hay para hacer. No pueden anotarse, y ven "No cumplís los requisitos": las partes del caso, quien no tiene 10 USDC libres de garantía (la parte "en uso" en otro caso no cuenta), quien ya tiene 2 casos activos, y quien no cumple la credencial o el historial mínimos. Con la garantía en uso, la pestaña dice cuánto falta y por qué.
 - Observaciones: _
 
-**8.3.8 Jurado que no revela** · Rol: J3
-- [ ] Pasos: J3 vota pero no revela a tiempo.
-- Esperado: pierde toda la garantía de ese caso.
+**8.3.4 Revelar el número del sorteo** · Rol: J1 a J3
+- [ ] Pasos: cuando cierra la anotación llega el aviso "Revelá tu número del sorteo" (y otro 10 minutos antes del cierre). Reclamos → "Revelar", dentro de otros 15 min.
+- Esperado: la tarjeta pasa a "Revelado" y dice a qué hora se hace el sorteo. No se puede revelar antes de que cierre la anotación. El número es un secreto al azar de la app: no mueve plata ni garantía. Si se borran los datos de la app antes de revelar, la tarjeta avisa que se perdió el secreto y esa cuenta queda fuera de esa ronda. Quien revela deja de recibir el recordatorio.
 
-**8.3.9 Apelación** · Rol: la parte perdedora
-- [ ] Pasos: dentro del plazo, "Apelar" → paga el costo adicional.
-- Esperado: se sortea un jurado ampliado (2N+1). Solo se puede apelar una vez. Si gana la apelación, se devuelve el costo.
+**8.3.5 Sorteo de jurados** · Rol: sistema, J1 a J3
+- [ ] Esperado: pasado el plazo de revelar, el backend sortea solo (revisa cada minuto), entre quienes revelaron, tantos jurados como pide el reclamo (3 en uno mediano), al azar y parejo. La garantía de 10 USDC de cada elegido queda "en uso". Cada elegido recibe "Te sortearon como jurado", el caso aparece en Mis casos con "Te toca votar" y la pestaña muestra un número. Quien reveló y no salió elegido recibe "No te tocó en este reclamo" y su garantía queda libre. (Nota: el sorteo no excluye a quienes tuvieron changas con las partes; solo excluye a las partes y a las cuentas recusadas.)
+- [ ] Variante: menos jurados que revelaron de los que hacen falta → se abre otra ronda con plazos nuevos (hasta 3 más). Ver 8.3.14.
+- Observaciones: _
 
-**8.3.10 Sin jurados suficientes** · Rol: Admin
-- [ ] Pasos: con menos de 3 jurados disponibles tras las rondas de sorteo.
-- Esperado: resuelve el administrador como árbitro de emergencia, con motivo. Aparece en el panel (sección Reclamos).
+**8.3.6 Avance del sorteo visible a las partes** · Rol: Ana, Beto
+- [ ] Pasos: abrir el reclamo mientras se busca jurados.
+- Esperado: se ve "Sorteo de jurados · ronda N de hasta 4", los plazos, cuántos se anotaron y cuántos revelaron sobre los necesarios, y qué pasa si no alcanzan. Se actualiza solo. Nunca se ve quiénes son los jurados. Una vez sorteados, a las partes les llega "Ya hay jurados" y, al abrir el reclamo, la app comparte sus pruebas cifradas con cada jurado sin tocar nada (si algún jurado todavía no tiene su clave publicada, reintenta cada 30 segundos mientras la pantalla está abierta; queda el botón "Compartir mis pruebas con el jurado" de respaldo).
+
+**8.3.7 Revisar el caso** · Rol: J1 a J3
+- [ ] Pasos: Mis casos → abrir el caso.
+- Esperado: se ven las pruebas separadas en "Evidencias del trabajo", "Parte A (publicó): su versión y sus pruebas" y "Parte B (hizo el trabajo): su versión y sus pruebas", sin identidades. El relato se lee en una tarjeta; los archivos son miniaturas que se abren al tocarlas; con más de 6 archivos por bloque hay "Ver los N archivos". Si una parte todavía no compartió, su bloque lo dice. Se ve el plazo con el tiempo que queda. (Hoy el jurado no ve el acuerdo completo ni el chat, solo lo que las partes comparten.)
+- Observaciones: _
+
+**8.3.8 Votar (guardar el voto)** · Rol: J1 a J3
+- [ ] Pasos: elegir Parte A o Parte B → "Guardar mi voto en secreto" → firmar en la billetera, dentro del plazo de votar (15 min).
+- Esperado: queda guardado en secreto (solo su huella en la cadena); la tarjeta pasa a "Voto guardado" y no se ve el voto de los demás. Si se pasa el plazo sin votar, la pantalla muestra "Se te pasó el plazo…" y la tarjeta "Plazo perdido", sin botones.
+- Observaciones: _
+
+**8.3.9 Mostrar el voto** · Rol: J1 a J3
+- [ ] Pasos: cuando cierra el plazo de votar, "Mostrar mi voto" dentro de los otros 15 min.
+- Esperado: no se puede mostrar antes de que cierre el plazo de votar. Cuando los tres lo mostraron, el caso se cuenta sin esperar al final del plazo; si no, se cuenta al terminar. Gana la mayoría de los votos mostrados.
+
+**8.3.10 Veredicto y reparto** · Rol: Ana, Beto, J1 a J3
+- [ ] Esperado: el veredicto es todo o nada: el pago va entero a quien ganó (a quien hizo el trabajo, o se devuelve a quien pagó); no hay reparto parcial. Hay un plazo de apelación (15 min) y después se ejecuta solo. Si gana quien reclamó, recupera el costo del reclamo (sale de la parte del perdedor); si pierde, el costo queda para los jurados de la mayoría. Los jurados de la mayoría se reparten el costo del reclamo como recompensa (en "Recompensas para retirar", 1 USDC cada uno con 3 jurados) y recuperan su garantía; el que votó en minoría pierde el 25% de la garantía de ese caso (2,5 USDC). Las partes reciben "Se resolvió un reclamo" y el trabajo dice "Ganaste el reclamo…" o "Perdiste el reclamo…". Las identidades de las partes no se revelan a los jurados en ningún momento.
+- Observaciones: _
+
+**8.3.11 Jurado que no vota o no muestra su voto** · Rol: J3
+- [ ] Pasos: J3 no guarda su voto o lo guarda y no lo muestra a tiempo.
+- Esperado: pierde toda la garantía del caso (10 USDC, que va al tesoro) y no cobra. Las otras dos votaciones siguen y deciden el caso. Se aplica igual si no vota, sea por plazo o por no revelar.
+
+**8.3.12 Empate o nadie muestra su voto** · Rol: Admin
+- [ ] Esperado: si los votos mostrados empatan (por ejemplo 1 a 1 porque el tercero no mostró) o no hay ninguno, el caso pasa a resolución de emergencia y lo resuelve el administrador (8.3.14). Quienes mostraron voto no pierden ni cobran; quienes no votaron pierden su garantía. Se devuelve el costo del reclamo a quien reclamó.
+
+**8.3.13 Apelación** · Rol: la parte perdedora
+- [ ] Pasos: dentro del plazo de apelación, "Apelar" → paga el costo adicional (el valor de un jurado por cada uno de los 2N+1, 7 USDC si eran 3).
+- Esperado: solo puede apelar quien perdió, una sola vez. Se sortea un jurado ampliado de 2N+1 (7 si eran 3) con nueva anotación, revelado y votación; los jurados anteriores no pueden repetir. Hacen falta al menos 7 jurados habilitados además de los 3 anteriores: con las cuentas de demo no alcanza, así que esta prueba termina en emergencia (8.3.14) salvo que se sumen cuentas. Si gana la apelación, se le devuelve el costo de la parte del que pierde ahora. El resultado es definitivo.
+
+**8.3.14 Sin jurados suficientes** · Rol: Admin
+- [ ] Pasos: en una ronda se anotan o revelan menos jurados de los necesarios.
+- Esperado: se abre otra ronda con plazos nuevos (hasta 3 reemplazos, 4 rondas en total; las partes ven "ronda N de hasta 4"). Si ninguna alcanza, el caso queda "Lo resuelve el administrador" y aparece en el panel (sección Reclamos sin jurado, con un número). El administrador firma con motivo eligiendo a favor de Parte A o Parte B: el pago va entero a quien decide, se devuelve el costo del reclamo a quien reclamó (y el de la apelación a quien apeló) y queda en el registro. No hay plazo para que el administrador resuelva ni aviso: hasta que firme el pago queda congelado (anotado en el plan a futuro, sección 8).
+- Observaciones: _
+
+**8.3.15 Quien debía responder no responde** · Rol: Beto, Ana
+- [ ] Pasos: Beto no responde dentro del plazo de respuesta (15 min en Sepolia).
+- Esperado: el backend resuelve solo a favor de quien reclamó: el pago va a su favor y se le devuelve el costo del reclamo. El trabajo dice a Ana "Ganaste el reclamo… La otra parte no respondió a tiempo" y a Beto "Perdiste el reclamo… No respondiste a tiempo". Un relato subido fuera de plazo no se acepta.
 
 ### 8.4 Changa alta (más de 300 USDC, 5 jurados)
-- [ ] Repetir 8.3 con 5 jurados.
+- [ ] Repetir 8.3 con 5 jurados. Las changas altas piden testigo (ver sección 12). Hacen falta al menos 5 jurados habilitados que no sean parte; el costo del reclamo es de 5 USDC y una apelación necesitaría 11 jurados más, lo que con las cuentas de demo no alcanza.
 
 ### 8.5 Acuerdo amistoso
-- No disponible: el contrato no lo tiene.
+- No disponible: el contrato no tiene resolución por acuerdo entre las partes. Está en el plan a futuro (sección 7).
 
 ---
 
@@ -563,7 +587,7 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 - [ x ] Es la 1.3.
 
 **11.7 Reclamos de emergencia** · Rol: Admin
-- [ ] Pasos: con un reclamo sin jurados suficientes (8.3.10), resolver firmando como árbitro.
+- [ ] Pasos: con un reclamo sin jurados suficientes (8.3.14), resolver firmando como árbitro.
 - Esperado: el contrato aplica el reparto. Queda en el registro con motivo.
 
 **11.8 Registro de acciones** · Rol: Admin

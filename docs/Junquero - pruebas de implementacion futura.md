@@ -34,6 +34,15 @@ Esperado en todos: quién paga, quién cobra y cuánto coincide con los parámet
 
 ---
 
+## 8. Cambios de contrato y de diseño ya anotados (reclamos)
+
+Salieron de las pruebas 8.2.2 y siguientes. El detalle está en `Junquero - plan a futuro.md` (secciones 6, 7 y 8) y en `Junquero - cambios de contrato pendientes.md`.
+
+- 🛠 **Cambio futuro (comprobante):** cerrar en el contrato `Receipt` que un trabajo con reclamo chico no pueda reclamarlo (hoy solo lo oculta la app) y evaluar un comprobante de "gané la disputa" solo para las de jurado.
+- 🛠 **Cambio futuro:** hoy, pasado el tope, no se puede reclamar y no hay jurado. Evaluar que los reclamos siguientes del mes pasen a jurado pagando el costo (3 USDC), o un árbitro de emergencia. Además, el 50/50 deja un incentivo a rechazar para pagar la mitad (ya señalado en confianza y economía); el tope en 1 lo acota pero no lo elimina.
+
+---
+
 ## 9. 🛠 Implementación futura: changa grupal (escenario E)
 
 **Fuera del alcance por ahora.** Se deja como referencia para cuando se retome; no se prueba ni cuenta en el resumen. Los casilleros quedan sin marcar.
@@ -146,10 +155,3 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 | Notificaciones push reales | No se puede | 4.4 |
 
 ---
-
-## 8. Cambios de contrato y de diseño ya anotados (reclamos)
-
-Salieron de las pruebas 8.2.2 y siguientes. El detalle está en `Junquero - plan a futuro.md` (secciones 6, 7 y 8) y en `Junquero - cambios de contrato pendientes.md`.
-
-- 🛠 **Cambio futuro (comprobante):** cerrar en el contrato `Receipt` que un trabajo con reclamo chico no pueda reclamarlo (hoy solo lo oculta la app) y evaluar un comprobante de "gané la disputa" solo para las de jurado.
-- 🛠 **Cambio futuro:** hoy, pasado el tope, no se puede reclamar y no hay jurado. Evaluar que los reclamos siguientes del mes pasen a jurado pagando el costo (3 USDC), o un árbitro de emergencia. Además, el 50/50 deja un incentivo a rechazar para pagar la mitad (ya señalado en confianza y economía); el tope en 1 lo acota pero no lo elimina.

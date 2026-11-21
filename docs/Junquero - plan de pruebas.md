@@ -187,7 +187,7 @@ Las pruebas 8.3.1 a 8.3.4 y 8.3.14 ya están hechas: ver `Junquero - pruebas rea
 - Esperado: solo puede apelar quien perdió, una sola vez. Se sortea un jurado ampliado de 2N+1 (7 si eran 3) con nueva anotación, revelado y votación; los jurados anteriores no pueden repetir. Hacen falta al menos 7 jurados habilitados además de los 3 anteriores: con las cuentas de demo no alcanza, así que esta prueba termina en emergencia (8.3.14) salvo que se sumen cuentas. Si gana la apelación, se le devuelve el costo de la parte del que pierde ahora. El resultado es definitivo.
 
 **8.3.15 Quien debía responder no responde** · Rol: Beto, Ana
-- [ ] Pasos: Beto no responde dentro del plazo de respuesta (15 min en Sepolia).
+- [ x ] Pasos: Beto no responde dentro del plazo de respuesta (15 min en Sepolia).
 - Esperado: el backend resuelve solo a favor de quien reclamó: el pago va a su favor y se le devuelve el costo del reclamo. El trabajo dice a Ana "Ganaste el reclamo… La otra parte no respondió a tiempo" y a Beto "Perdiste el reclamo… No respondiste a tiempo". Un relato subido fuera de plazo no se acepta.
 
 ### 8.4 Changa alta (más de 300 USDC, 5 jurados)

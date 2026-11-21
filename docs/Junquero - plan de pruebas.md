@@ -149,7 +149,7 @@ Todas las pruebas de esta sección ya están hechas: ver `Junquero - pruebas rea
 
 Las pruebas 8.3.1 a 8.3.4 y 8.3.14 ya están hechas: ver `Junquero - pruebas realizadas.md`.
 **8.3.5 Sorteo de jurados** · Rol: sistema, J1 a J3
-- [ ] Esperado: pasado el plazo de revelar, el backend sortea solo (revisa cada minuto), entre quienes revelaron, tantos jurados como pide el reclamo (3 en uno mediano), al azar y parejo. La garantía de 10 USDC de cada elegido queda "en uso". Cada elegido recibe "Te sortearon como jurado", el caso aparece en Mis casos con "Te toca votar" y la pestaña muestra un número. Quien reveló y no salió elegido recibe "No te tocó en este reclamo" y su garantía queda libre. (Nota: el sorteo no excluye a quienes tuvieron changas con las partes; solo excluye a las partes y a las cuentas recusadas.)
+- [ x ] Esperado: pasado el plazo de revelar, el backend sortea solo (revisa cada minuto), entre quienes revelaron, tantos jurados como pide el reclamo (3 en uno mediano), al azar y parejo. La garantía de 10 USDC de cada elegido queda "en uso". Cada elegido recibe "Te sortearon como jurado", el caso aparece en Mis casos con "Te toca votar" y la pestaña muestra un número. Quien reveló y no salió elegido recibe "No te tocó en este reclamo" y su garantía queda libre. (Nota: el sorteo no excluye a quienes tuvieron changas con las partes; solo excluye a las partes y a las cuentas recusadas.)
 - [ x ] Variante: menos jurados que revelaron de los que hacen falta → se abre otra ronda con plazos nuevos (hasta 3 más). Ver 8.3.14.
 - Observaciones: _
 
@@ -163,27 +163,27 @@ Las pruebas 8.3.1 a 8.3.4 y 8.3.14 ya están hechas: ver `Junquero - pruebas rea
 - Observaciones: _
 
 **8.3.8 Votar (guardar el voto)** · Rol: J1 a J3
-- [ ] Pasos: elegir Parte A o Parte B → "Guardar mi voto en secreto" → firmar en la billetera, dentro del plazo de votar (15 min).
+- [ x ] Pasos: elegir Parte A o Parte B → "Guardar mi voto en secreto" → firmar en la billetera, dentro del plazo de votar (15 min).
 - Esperado: queda guardado en secreto (solo su huella en la cadena); la tarjeta pasa a "Voto guardado" y no se ve el voto de los demás. Si se pasa el plazo sin votar, la pantalla muestra "Se te pasó el plazo…" y la tarjeta "Plazo perdido", sin botones.
 - Observaciones: _
 
 **8.3.9 Mostrar el voto** · Rol: J1 a J3
-- [ ] Pasos: cuando cierra el plazo de votar, "Mostrar mi voto" dentro de los otros 15 min.
+- [ x ] Pasos: cuando cierra el plazo de votar, "Mostrar mi voto" dentro de los otros 15 min.
 - Esperado: no se puede mostrar antes de que cierre el plazo de votar. Cuando los tres lo mostraron, el caso se cuenta sin esperar al final del plazo; si no, se cuenta al terminar. Gana la mayoría de los votos mostrados.
 
 **8.3.10 Veredicto y reparto** · Rol: Ana, Beto, J1 a J3
-- [ ] Esperado: el veredicto es todo o nada: el pago va entero a quien ganó (a quien hizo el trabajo, o se devuelve a quien pagó); no hay reparto parcial. Hay un plazo de apelación (15 min) y después se ejecuta solo. Si gana quien reclamó, recupera el costo del reclamo (sale de la parte del perdedor); si pierde, el costo queda para los jurados de la mayoría. Los jurados de la mayoría se reparten el costo del reclamo como recompensa (en "Recompensas para retirar", 1 USDC cada uno con 3 jurados) y recuperan su garantía; el que votó en minoría pierde el 25% de la garantía de ese caso (2,5 USDC). Las partes reciben "Se resolvió un reclamo" y el trabajo dice "Ganaste el reclamo…" o "Perdiste el reclamo…". Las identidades de las partes no se revelan a los jurados en ningún momento.
+- [ x ] Esperado: el veredicto es todo o nada: el pago va entero a quien ganó (a quien hizo el trabajo, o se devuelve a quien pagó); no hay reparto parcial. Hay un plazo de apelación (15 min) y después se ejecuta solo. Si gana quien reclamó, recupera el costo del reclamo (sale de la parte del perdedor); si pierde, el costo queda para los jurados de la mayoría. Los jurados de la mayoría se reparten el costo del reclamo como recompensa (en "Recompensas para retirar", 1 USDC cada uno con 3 jurados) y recuperan su garantía; el que votó en minoría pierde el 25% de la garantía de ese caso (2,5 USDC). Las partes reciben "Se resolvió un reclamo" y el trabajo dice "Ganaste el reclamo…" o "Perdiste el reclamo…". Las identidades de las partes no se revelan a los jurados en ningún momento.
 - Observaciones: _
 
 **8.3.11 Jurado que no vota o no muestra su voto** · Rol: J3
-- [ ] Pasos: J3 no guarda su voto o lo guarda y no lo muestra a tiempo.
+- [ x ] Pasos: J3 no guarda su voto o lo guarda y no lo muestra a tiempo.
 - Esperado: pierde toda la garantía del caso (10 USDC, que va al tesoro) y no cobra. Las otras dos votaciones siguen y deciden el caso. Se aplica igual si no vota, sea por plazo o por no revelar.
 
 **8.3.12 Empate o nadie muestra su voto** · Rol: Admin
-- [ ] Esperado: si los votos mostrados empatan (por ejemplo 1 a 1 porque el tercero no mostró) o no hay ninguno, el caso pasa a resolución de emergencia y lo resuelve el administrador (8.3.14). Quienes mostraron voto no pierden ni cobran; quienes no votaron pierden su garantía. Se devuelve el costo del reclamo a quien reclamó.
+- [ x ] Esperado: si los votos mostrados empatan (por ejemplo 1 a 1 porque el tercero no mostró) o no hay ninguno, el caso pasa a resolución de emergencia y lo resuelve el administrador (8.3.14). Quienes mostraron voto no pierden ni cobran; quienes no votaron pierden su garantía. Se devuelve el costo del reclamo a quien reclamó.
 
 **8.3.13 Apelación** · Rol: la parte perdedora
-- [ ] Pasos: dentro del plazo de apelación, "Apelar" → paga el costo adicional (el valor de un jurado por cada uno de los 2N+1, 7 USDC si eran 3).
+- [ x ] Pasos: dentro del plazo de apelación, "Apelar" → paga el costo adicional (el valor de un jurado por cada uno de los 2N+1, 7 USDC si eran 3).
 - Esperado: solo puede apelar quien perdió, una sola vez. Se sortea un jurado ampliado de 2N+1 (7 si eran 3) con nueva anotación, revelado y votación; los jurados anteriores no pueden repetir. Hacen falta al menos 7 jurados habilitados además de los 3 anteriores: con las cuentas de demo no alcanza, así que esta prueba termina en emergencia (8.3.14) salvo que se sumen cuentas. Si gana la apelación, se le devuelve el costo de la parte del que pierde ahora. El resultado es definitivo.
 
 **8.3.15 Quien debía responder no responde** · Rol: Beto, Ana

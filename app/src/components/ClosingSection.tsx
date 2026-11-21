@@ -69,6 +69,9 @@ export function ClosingSection({ orderId, role, items }: { orderId: number; role
 
       {closing.data?.smallDispute ? (
         <Secondary>{t.order.receiptNoneSmallDispute}</Secondary>
+      ) : closing.data?.dispute && closing.data.dispute.payeeShareBps <= 0 ? (
+        // Si quien hizo el trabajo perdió el reclamo no cobró ni completó el trabajo: no hay comprobante que reclamar.
+        <Secondary>{t.order.receiptNoneLostDispute}</Secondary>
       ) : closing.data ? (
         role === "payee" ? (
           claimed ? (

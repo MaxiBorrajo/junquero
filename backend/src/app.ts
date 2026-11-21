@@ -38,7 +38,7 @@ import { allowed, clientKey } from "./guard";
 import { readCursor } from "./indexer";
 import { getProfile, presentOwnProfile, presentPublicProfile, profileStats, upsertProfile, validateProfile } from "./profiles";
 import { emergencyCases, listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
-import { casesFor } from "./cases";
+import { casesFor, juryResultsFor } from "./cases";
 import { closingFor, receiptsCount, receiptsOf } from "./receipts";
 import { cancelRelease, findReleaseByCode, parseRelease, readRelease, submitRelease } from "./releases";
 import { disputedMilestones, listExitReasons, saveExitReason, validateExit } from "./exits";
@@ -772,6 +772,7 @@ app.post("/me/orders/:orderId/agreement", async (c) => {
 });
 
 app.get("/me/cases", async (c) => c.json(await casesFor(c.env.DB, c.get("address"))));
+app.get("/me/jury/results", async (c) => c.json(await juryResultsFor(c.env.DB, c.get("address"))));
 
 app.post("/me/orders/:orderId/release", async (c) => {
   const orderId = parseOrderId(c.req.param("orderId"));

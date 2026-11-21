@@ -15,7 +15,7 @@ import { DetailActions, type DetailAction } from "../components/DetailActions";
 import { Icon, type IconName } from "../components/Icon";
 import { StatusChip } from "../components/StatusChip";
 import { Body, Button, Chip, ErrorText, Field, Row as ChipRow, Secondary, Title } from "../components/ui";
-import { useCaseState, useMyCases, type CaseRef } from "../data/useCases";
+import { useCaseState, useJuryResults, useMyCases, type CaseRef } from "../data/useCases";
 import { useSummary } from "../data/useSummary";
 import { t } from "../i18n";
 import { formatDate } from "../lib/format";
@@ -70,6 +70,7 @@ export function StakePanel() {
   const { run: runAction, busy, error } = useRunAction();
   const juror = address as `0x${string}`;
   const { account, required, free, missing: minDeposit } = useJurorAccount();
+  const results = useJuryResults();
   const reward = useQuery({ queryKey: ["reward", address], enabled: Boolean(address), queryFn: () => readReward(juror) });
   const [minError, setMinError] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -81,7 +82,7 @@ export function StakePanel() {
 
   if (!address) return <Secondary>{t.mine.needAccount}</Secondary>;
 
-  const refresh = [["juror", address], ["reward", address], ["cases", address]] as const;
+  const refresh = [["juror", address], ["reward", address], ["cases", address], ["juryResults", address]] as const;
   const run = (action: () => Promise<string | void>, success: string, icon: string) =>
     runAction(action, { success, successIcon: icon, failure: t.jury.stepFailed, invalidate: refresh });
 
@@ -131,6 +132,8 @@ export function StakePanel() {
         <Row label={t.jury.free} value={account.data ? formatAmount(free.toString()) : "-"} />
         <Row label={t.jury.active} value={account.data ? String(account.data.active) : "-"} />
         <Row label={t.jury.required} value={required.data !== undefined ? formatAmount(required.data.toString()) : "-"} />
+        <Row label={t.jury.totalLost} value={results.data ? formatAmount(results.data.totals.slashed) : "-"} />
+        <Row label={t.jury.totalEarned} value={results.data ? formatAmount(results.data.totals.earned) : "-"} />
         {minDeposit > 0n ? (
           <Secondary>
             {account.data && account.data.locked > 0n
@@ -280,11 +283,11 @@ function MyCaseCard({ item }: { item: CaseRef }) {
 }
 
 // "Votá hasta el vie, 20 nov, 2:28 a. m. (quedan 27 minutos)".
-export function deadlineText(kind: "commit" | "reveal", endsAt: number, now: number): string {
+export function deadlineText(kind: "commit" | "reveal" | "count", endsAt: number, now: number): string {
   const left = endsAt - now;
   const date = formatDate(endsAt);
   const remaining = left > 0 ? spokenDuration(Math.max(60, Math.round(left / 60) * 60)) : t.jury.leftNone;
-  return (kind === "commit" ? t.jury.deadlineVote : t.jury.deadlineReveal).replace("{date}", date).replace("{left}", remaining);
+  return (kind === "commit" ? t.jury.deadlineVote : kind === "count" ? t.jury.deadlineCount : t.jury.deadlineReveal).replace("{date}", date).replace("{left}", remaining);
 }
 
 function formatMicroPlain(value: bigint): string {

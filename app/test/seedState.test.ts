@@ -55,7 +55,7 @@ describe("etapa de un caso para el jurado elegido", () => {
     expect(jurorStage("vote-commit", { voteCommit: zero, vote: 0 })).toEqual({ tag: "toVote", deadline: "commit" });
     expect(jurorStage("vote-commit", { voteCommit: sealed, vote: 0 })).toEqual({ tag: "voteSaved", deadline: "commit" });
     expect(jurorStage("vote-reveal", { voteCommit: sealed, vote: 0 })).toEqual({ tag: "toReveal", deadline: "reveal" });
-    expect(jurorStage("vote-reveal", { voteCommit: sealed, vote: 2 })).toEqual({ tag: "revealed", deadline: null });
+    expect(jurorStage("vote-reveal", { voteCommit: sealed, vote: 2 })).toEqual({ tag: "revealed", deadline: "count" });
     expect(jurorStage("vote-reveal", { voteCommit: zero, vote: 0 })).toEqual({ tag: "missed", deadline: null });
     expect(jurorStage("verdict-final")).toEqual({ tag: "done", deadline: null });
     expect(jurorStage("seed-reveal")).toEqual({ tag: "seed", deadline: null });

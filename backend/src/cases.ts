@@ -70,3 +70,34 @@ export async function casesFor(db: D1Database, address: string, now = Date.now()
     openForJury: open.map(toRef),
   };
 }
+
+// Lo que cada jurado puso, perdió y ganó: sale de los eventos del contrato (en micro-USDC, como texto).
+// Por caso: lo que perdió de garantía (JurorSlashed) y la recompensa que ganó (JurorPaid). En total, además, todo lo que depositó (Staked).
+export async function juryResultsFor(db: D1Database, address: string) {
+  const [perCase, deposits] = await db.batch([
+    db
+      .prepare(
+        `SELECT case_id AS case_id,
+                COALESCE(SUM(CASE WHEN name = 'JurorSlashed' THEN CAST(json_extract(args, '$.amount') AS INTEGER) END), 0) AS slashed,
+                COALESCE(SUM(CASE WHEN name = 'JurorPaid' THEN CAST(json_extract(args, '$.reward') AS INTEGER) END), 0) AS earned
+         FROM events
+         WHERE name IN ('JurorSlashed', 'JurorPaid') AND lower(json_extract(args, '$.juror')) = ?1 AND case_id IS NOT NULL
+         GROUP BY case_id`,
+      )
+      .bind(address),
+    db
+      .prepare(`SELECT COALESCE(SUM(CAST(json_extract(args, '$.amount') AS INTEGER)), 0) AS deposited FROM events WHERE name = 'Staked' AND lower(json_extract(args, '$.juror')) = ?1`)
+      .bind(address),
+  ]);
+  const rows = (perCase as unknown as { results: { case_id: number; slashed: number; earned: number }[] }).results;
+  const cases: Record<string, { slashed: string; earned: string }> = {};
+  let slashed = 0n;
+  let earned = 0n;
+  for (const row of rows) {
+    cases[String(row.case_id)] = { slashed: String(row.slashed), earned: String(row.earned) };
+    slashed += BigInt(row.slashed);
+    earned += BigInt(row.earned);
+  }
+  const deposited = (deposits as unknown as { results: { deposited: number }[] }).results[0]?.deposited ?? 0;
+  return { cases, totals: { deposited: String(deposited), slashed: slashed.toString(), earned: earned.toString() } };
+}

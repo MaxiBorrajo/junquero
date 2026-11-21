@@ -35,3 +35,19 @@ export function useCaseState(caseId: number) {
     queryFn: () => fetchCase(api, caseId),
   });
 }
+
+export interface JuryResults {
+  // Por caso: garantía perdida y recompensa ganada, en micro-USDC como texto.
+  cases: Record<string, { slashed: string; earned: string }>;
+  totals: { deposited: string; slashed: string; earned: string };
+}
+
+export function useJuryResults() {
+  const { api, address } = useSession();
+  return useQuery({
+    queryKey: ["juryResults", address],
+    enabled: Boolean(address),
+    refetchInterval: useFocusedInterval(60_000),
+    queryFn: () => api.get<JuryResults>("/me/jury/results"),
+  });
+}

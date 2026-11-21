@@ -115,3 +115,23 @@ describe("lista de casos abiertos cacheada", () => {
     expect((await list(ctx, third)).openForJury).toHaveLength(2);
   });
 });
+
+describe("jury results", () => {
+  it("adds up what a juror deposited, lost and earned, in total and per case", async () => {
+    const ctx = setup();
+    const me = third.address;
+    event(ctx.raw, "JurorSlashed", 4, 10, 0, null, { juror: me, amount: "2500000" });
+    event(ctx.raw, "JurorPaid", 5, 11, 0, null, { juror: me, reward: "1000000" });
+    event(ctx.raw, "JurorSlashed", 5, 12, 0, null, { juror: owner.address, amount: "9" });
+    ctx.raw.prepare(
+      `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+       VALUES (1, 0, 1, '0x1', 'arbitration', '0x', 'Staked', NULL, NULL, ?)`,
+    ).run(JSON.stringify({ juror: me, amount: "10000000" }));
+    const session = await tokenFor(ctx.call, third);
+    const body = await (await ctx.call("/me/jury/results", authed(session.body.token, "GET"))).json();
+    expect(body).toEqual({
+      cases: { "4": { slashed: "2500000", earned: "0" }, "5": { slashed: "0", earned: "1000000" } },
+      totals: { deposited: "10000000", slashed: "2500000", earned: "1000000" },
+    });
+  });
+});

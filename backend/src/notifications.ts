@@ -38,6 +38,9 @@ export const TEMPLATES: Record<string, Template> = {
   dispute_resolved: { title: "Se resolvió un reclamo", body: "Se resolvió el reclamo de un trabajo. Abrilo para ver cómo quedó el pago.", priority: "high" },
   dispute_small: { title: "Abrieron un reclamo", body: "Abrieron un reclamo por un trabajo chico y el pago se repartió 50/50, sin jurado. Abrí el trabajo para ver cuánto cobraste.", priority: "high" },
   dispute_opened: { title: "Abrieron un reclamo", body: "Tenés un plazo limitado para responder. Entrá al trabajo ahora.", priority: "high" },
+  verdict_won: { title: "Ganaste el reclamo", body: "El jurado falló a tu favor. La otra parte puede apelar durante un plazo. Entrá al reclamo para ver los detalles.", priority: "high" },
+  verdict_lost: { title: "Perdiste el reclamo", body: "El jurado falló en tu contra. Podés apelar durante un plazo limitado. Entrá al reclamo ahora.", priority: "high" },
+  verdict_jury: { title: "Terminó el reclamo", body: "Ya se contaron los votos del reclamo en el que sos jurado. Entrá a ver cómo terminó.", priority: "default" },
   jury_drawn: { title: "Te sortearon como jurado", body: "Tenés plazos para votar. Entrá al reclamo ahora.", priority: "high" },
   jury_deadline: { title: "Plazo de jurado por vencer", body: "Si no actuás a tiempo podés perder tu depósito. Entrá al reclamo ahora.", priority: "high" },
   selfie_approved: { title: "Verificación aprobada", body: "Ya podés postularte a trabajos. Buscá uno en el mapa.", priority: "default" },
@@ -262,7 +265,34 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
           .prepare("DELETE FROM notifications WHERE address = ? AND kind = 'jury_deadline' AND ref = ? AND sent_at IS NULL")
           .bind(juror.toLowerCase(), `${event.case_id}:${phase}`),
       );
-    } else if ((event.name === "VerdictReached" || event.name === "CaseDecided") && event.case_id !== null) {
+    } else if (event.name === "CaseDecided" && event.case_id !== null) {
+      // A cada parte se le avisa si ganó o perdió; a los jurados de la ronda (los del último JuryDrawn) que ya está el resultado.
+      const payeeWins = parse<{ payeeWins?: boolean | string | number }>(event.args)?.payeeWins;
+      const wins = payeeWins === true || payeeWins === "true" || payeeWins === 1 || payeeWins === "1";
+      statements.push(
+        db
+          .prepare(
+            `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+             SELECT p.party, CASE WHEN p.party = p.winner THEN 'verdict_won' ELSE 'verdict_lost' END, CAST(CAST(?1 AS INTEGER) AS TEXT), 0, ${nowSql}
+             FROM (SELECT lower(op.payer) AS party, CASE WHEN ?2 THEN lower(op.payee) ELSE lower(op.payer) END AS winner
+                   FROM order_cases oc JOIN order_parties op ON op.order_id = oc.order_id WHERE oc.case_id = ?1 AND op.payer IS NOT NULL
+                   UNION SELECT lower(op.payee), CASE WHEN ?2 THEN lower(op.payee) ELSE lower(op.payer) END
+                   FROM order_cases oc JOIN order_parties op ON op.order_id = oc.order_id WHERE oc.case_id = ?1 AND op.payee IS NOT NULL) p`,
+          )
+          .bind(event.case_id, wins ? 1 : 0),
+        db
+          .prepare(
+            `INSERT OR IGNORE INTO notifications (address, kind, ref, due_at, created_at)
+             SELECT lower(j.value), 'verdict_jury', CAST(CAST(?1 AS INTEGER) AS TEXT), 0, ${nowSql}
+             FROM (SELECT r.args AS args FROM events r WHERE r.name = 'JuryDrawn' AND r.case_id = ?1 ORDER BY r.block_number DESC, r.log_index DESC LIMIT 1) d,
+                  json_each(d.args, '$.jurors') j`,
+          )
+          .bind(event.case_id),
+      );
+      statements.push(
+        db.prepare("DELETE FROM notifications WHERE kind = 'jury_deadline' AND ref LIKE ? AND sent_at IS NULL").bind(`${event.case_id}:%`),
+      );
+    } else if (event.name === "VerdictReached" && event.case_id !== null) {
       statements.push(
         db.prepare("DELETE FROM notifications WHERE kind = 'jury_deadline' AND ref LIKE ? AND sent_at IS NULL").bind(`${event.case_id}:%`),
       );

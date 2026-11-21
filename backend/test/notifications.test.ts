@@ -307,6 +307,26 @@ describe("what triggers a notification", () => {
     expect(rows(ctx).filter((r) => r.kind === "jury_deadline")).toEqual([]);
   });
 
+  it("tells the winner, the loser and the jurors how a case was decided", async () => {
+    const ctx = setup();
+    const insert = (name: string, log: number, args: object) =>
+      ctx.raw
+        .prepare(
+          `INSERT INTO events (block_number, log_index, block_timestamp, tx_hash, contract, address, name, order_id, case_id, args)
+           VALUES (70, ?, 1, '0x7', 'arbitration', '0x', ?, NULL, 9, ?)`,
+        )
+        .run(log, name, JSON.stringify(args));
+    ctx.raw.prepare("INSERT INTO order_parties (order_id, payer, payee) VALUES (21, ?, ?)").run(owner.address.toLowerCase(), stranger.address.toLowerCase());
+    ctx.raw.prepare("INSERT INTO order_cases (case_id, order_id) VALUES (9, 21)").run();
+    insert("JuryDrawn", 1, { caseId: "9", jurors: [juror.address], commitEnd: 300, revealEnd: 400 });
+    insert("CaseDecided", 2, { caseId: "9", payeeWins: false, payeeVotes: 0, payerVotes: 1 });
+    await processEvents(ctx.db, handlers, 100);
+    const found = rows(ctx);
+    expect(found.filter((r) => r.kind === "verdict_won").map((r) => r.address)).toEqual([owner.address.toLowerCase()]);
+    expect(found.filter((r) => r.kind === "verdict_lost").map((r) => r.address)).toEqual([stranger.address.toLowerCase()]);
+    expect(found.filter((r) => r.kind === "verdict_jury").map((r) => r.address)).toEqual([juror.address.toLowerCase()]);
+  });
+
   it("notifies the other participant of a chat message when they have no live connection", async () => {
     const ctx = setup();
     const { publisher, worker, changaId } = await agreedOrder(ctx);

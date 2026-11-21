@@ -5,7 +5,7 @@ import { Text, View } from "react-native";
 import { StatusChip } from "../../components/StatusChip";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData, splitSignature } from "../../chain/createOrder";
 import { deployment } from "../../chain/deployment";
-import { appealCost, canAppeal, canRespond, encodeAppealWithPermit, encodeRespond, partyRole, phaseView, reasonHash } from "../../chain/jury";
+import { appealCost, canAppeal, canRespond, encodeAppealWithPermit, encodeRespond, loser, partyRole, phaseView, reasonHash } from "../../chain/jury";
 import { sendViaRelay } from "../../chain/orderActions";
 import { readJurorFee, readTokenBalance, readTokenNonce } from "../../chain/reader";
 import { Card } from "../../components/Card";
@@ -142,7 +142,11 @@ export default function CaseScreen() {
       {view.startsWith("verdict") || view === "resolved" ? (
         <Body>{`${t.caseScreen.verdictFor} ${snapshot.verdictPayee ? t.caseScreen.forPayee : t.caseScreen.forPayer}.`}</Body>
       ) : null}
-      {view === "verdict-appealable" ? <Secondary>{`${t.caseScreen.appealUntil} ${formatDate(snapshot.appealEnd)}`}</Secondary> : null}
+      {view === "verdict-appealable" ? (
+        <Secondary>
+          {`${!isParty ? t.caseScreen.appealUntilAnyone : loser(snapshot).toLowerCase() === address?.toLowerCase() ? t.caseScreen.appealUntil : t.caseScreen.appealUntilOther} ${formatDate(snapshot.appealEnd)}`}
+        </Secondary>
+      ) : null}
       {canAppeal(snapshot, address, now) && view === "verdict-appealable" ? (
         <>
           <Secondary>{t.caseScreen.appealCost.replace("{amount}", formatAmount(appealCost(fee.data ?? 0n, snapshot.jurors).toString()))}</Secondary>

@@ -5,79 +5,79 @@
   "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
   "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
   "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
-  "startBlock": 12204944,
+  "startBlock": 12210253,
   "contracts": {
     "token": {
       "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
       "block": 12115214
     },
     "forwarder": {
-      "address": "0xE892a7B4349B115FA8bAEABfA810363F4b03C78c",
-      "block": 12204944
+      "address": "0x37B4b8d022e59C70F512E27AE3f6a0621D518b6c",
+      "block": 12210253
     },
     "parameterRegistry": {
-      "address": "0xf7b853b9383525b4f70d6cF014f8765FE3023b4E",
-      "block": 12204945
+      "address": "0x1EDE81496348c213B80F051E02CF7a7A529731fe",
+      "block": 12210254
     },
     "treasury": {
-      "address": "0x9bF6e5b294eE148417E6Ff0bA5aD1B18f41D2b98",
-      "block": 12204946
+      "address": "0x15695F91499A3a08e22514F075727689248eB7E5",
+      "block": 12210255
     },
     "escrow": {
-      "address": "0x4cD68F659560aFc94Ae8CB07ed6E2Cff87F16846",
-      "block": 12204947
+      "address": "0x668B95EE87Af4f7E995647C68A109a4B8c5B685f",
+      "block": 12210256
     },
     "orderModule": {
-      "address": "0xE0A3aF58559aBAD4f964210834a38Cd569093711",
-      "block": 12204948
+      "address": "0xb41C8D92F09A249c928e4B923AAfaCdBfF869c50",
+      "block": 12210257
     },
     "cancelModule": {
-      "address": "0x75b57E0fc82e983d3389ee72D5FD227D2e1e06ad",
-      "block": 12204959
+      "address": "0x3853f2CEE0d668D639D98928448AF01C5B0B1D07",
+      "block": 12210287
     },
     "adminModule": {
-      "address": "0xF6938Dfb2247A64fAc181b70eb2A29B800CB7e9a",
-      "block": 12204961
+      "address": "0xf4Ed4578760a094bB9330e4Ca5f3926343220100",
+      "block": 12210290
     },
     "disputeModule": {
-      "address": "0x623b0B03E020b578803e74ce5B6E9481B6E9c97A",
-      "block": 12204963
+      "address": "0xcBC0c4A6f9501039e98D5dB51a46F84e6233Db0B",
+      "block": 12210292
     },
     "milestoneModule": {
-      "address": "0x2E7be95eA8964012a377d4924d9f95e6212e8b6F",
-      "block": 12204965
+      "address": "0xc8f58498792Af884025A30E74D489aD18520F495",
+      "block": 12210294
     },
     "groupModule": {
-      "address": "0x821C2657346Ce05404f45282BF3AD7fB48C18Ca3",
-      "block": 12204967
+      "address": "0xA937e9cdf78dc2C92552806e64Bd6e5afE32F29c",
+      "block": 12210296
     },
     "credentials": {
-      "address": "0xC8a4F13B3ACf471C7d1906a6970f1D29d503f33a",
-      "block": 12205007
+      "address": "0x8f70dd2709b3fD97B2Cdcf40CF8d17843e84e64e",
+      "block": 12210342
     },
     "reputation": {
-      "address": "0xf6aba0Cf5987e430d8AAE273d5B32b601180FE6D",
-      "block": 12205008
+      "address": "0xd7b3F455E85B6995ad651836a326097a593Ea146",
+      "block": 12210343
     },
     "receipt": {
-      "address": "0x01dA3B0a81ba0d27c178F1d00eCd1cD78d20fCa7",
-      "block": 12205009
+      "address": "0x1aaA132a95d67f8FaA01c018B8572D4064b36B81",
+      "block": 12210344
     },
     "arbitration": {
-      "address": "0x02C3c5549a33Ec9c5Fa3A6CF80c4Ae4179227944",
-      "block": 12205012
+      "address": "0x398Ac7b188e6dcFF7Ac1918068D8896E051Cb990",
+      "block": 12210347
     },
     "votingWeight": {
-      "address": "0x78d9dF625f1739943E724d30b530B50B6FbB9f5B",
-      "block": 12205023
+      "address": "0x86bdf15C0A8a1a8467DcF84E1F8a002CC383FEeE",
+      "block": 12210350
     },
     "timelock": {
-      "address": "0xe0359d16Cf0f022A6E49242eF147022681CaA35A",
-      "block": 12205024
+      "address": "0x03D7a80b51814D33951660b5bc5659749a1b034F",
+      "block": 12210351
     },
     "governor": {
-      "address": "0xAa8904F877eAE01950e1769F08071E09e1057C2F",
-      "block": 12205025
+      "address": "0xA090E03C49d256727CDac641593B12B1F9d6d52d",
+      "block": 12210352
     }
   },
   "abiDirectory": "deployments/abi",

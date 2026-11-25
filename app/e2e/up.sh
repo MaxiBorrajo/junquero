@@ -27,8 +27,8 @@ rm -rf "$ROOT/backend/.wrangler"
 cp -r "$REPO/backend/src" "$ROOT/backend/" && cp -r "$REPO/backend/migrations" "$ROOT/backend/"
 cp -r "$REPO/app/src" "$ROOT/app/" && cp -r "$REPO/app/e2e" "$ROOT/app/" && cp "$REPO/app/vitest.e2e.config.ts" "$ROOT/app/"
 
-# La cadena arranca 3 dias en el pasado para poder avanzar el reloj sin pasarse de la hora real.
-BACK=$(( $(date +%s) - 3*86400 ))
+# La cadena arranca 10 dias en el pasado para poder avanzar el reloj sin pasarse de la hora real (la tanda completa avanza mas de 4 dias en total).
+BACK=$(( $(date +%s) - 10*86400 ))
 (anvil --chain-id 11155111 --block-time 1 --port 8545 --gas-limit 500000000 --code-size-limit 200000 --timestamp $BACK > $OUT_DIR/anvil.log 2>&1 &)
 sleep 3
 CODE=$(cast code 0xcA11bde05977b3631167028862bE2a173976CA11 --rpc-url https://ethereum-sepolia-rpc.publicnode.com)

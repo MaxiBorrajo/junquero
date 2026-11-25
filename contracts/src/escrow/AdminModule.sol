@@ -13,6 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IParameterRegistry} from "../interfaces/IParameterRegistry.sol";
 import {IReputation, Role} from "../interfaces/IReputation.sol";
+import {IReceipt} from "../interfaces/IReceipt.sol";
 import {EscrowHashes} from "../libraries/EscrowHashes.sol";
 import {ParameterKeys} from "../libraries/ParameterKeys.sol";
 import {
@@ -40,7 +41,7 @@ contract AdminModule is EscrowStorage {
     {}
 
     function selectors() external pure returns (bytes4[] memory selectors_) {
-        selectors_ = new bytes4[](7);
+        selectors_ = new bytes4[](8);
         selectors_[0] = AdminModule.claim.selector;
         selectors_[1] = AdminModule.setReputation.selector;
         selectors_[2] = AdminModule.configureToken.selector;
@@ -48,6 +49,7 @@ contract AdminModule is EscrowStorage {
         selectors_[4] = AdminModule.tokenConfig.selector;
         selectors_[5] = AdminModule.setOrderLimits.selector;
         selectors_[6] = AdminModule.domainSeparator.selector;
+        selectors_[7] = AdminModule.setReceipt.selector;
     }
 
     function claim(address token, address account) external nonReentrant {
@@ -61,6 +63,11 @@ contract AdminModule is EscrowStorage {
     function setReputation(IReputation reputation_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         reputation = reputation_;
         emit ReputationUpdated(address(reputation_));
+    }
+
+    function setReceipt(IReceipt receipt_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        receipt = receipt_;
+        emit ReceiptUpdated(address(receipt_));
     }
 
     function configureToken(address token, TokenConfig calldata config) external onlyRole(TOKEN_ADMIN_ROLE) {

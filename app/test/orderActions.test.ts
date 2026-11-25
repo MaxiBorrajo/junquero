@@ -34,7 +34,7 @@ describe("liberación", () => {
   it("la firma de liberación da el mismo digest que los vectores", async () => {
     const vector = vectors.vectors.release;
     const m = vector.message;
-    const typed = releaseTypedData(deployment, { orderId: BigInt(m.orderId), payee: m.payee, amount: BigInt(m.amount), rating: Number(m.rating), evidenceHash: m.evidenceHash, expiry: Number(m.expiry) });
+    const typed = releaseTypedData(deployment, { orderId: BigInt(m.orderId), payee: m.payee, amount: BigInt(m.amount), rating: Number(m.rating), evidenceHash: m.evidenceHash, expiry: Number(m.expiry), commentHash: m.commentHash });
     expect(hashTypedData(typed)).toBe(vector.digest);
     const signer = await recoverTypedDataAddress({ ...typed, signature: vector.signatures.payer as Hex });
     expect(signer.toLowerCase()).toBe(vector.message.payer?.toLowerCase() ?? signer.toLowerCase());
@@ -43,7 +43,7 @@ describe("liberación", () => {
   it("el QR lleva todo lo necesario, vuelve igual y detecta vencidos o alterados", () => {
     const vector = vectors.vectors.release;
     const m = vector.message;
-    const data = { orderId: BigInt(m.orderId), payee: m.payee, amount: BigInt(m.amount), rating: Number(m.rating), evidenceHash: m.evidenceHash, expiry: Number(m.expiry) };
+    const data = { orderId: BigInt(m.orderId), payee: m.payee, amount: BigInt(m.amount), rating: Number(m.rating), evidenceHash: m.evidenceHash, expiry: Number(m.expiry), commentHash: m.commentHash };
     const signature = vector.signatures.payer as Hex;
     const text = encodeReleaseQr(data, signature);
     expect(text.length).toBeLessThan(600);
@@ -59,7 +59,7 @@ describe("liberación", () => {
     expect(encodeDeliver(1n, ("0x" + "ab".repeat(32)) as Hex).slice(0, 10)).toBe(selectors(real).get("deliver"));
     const vector = vectors.vectors.release;
     const m = vector.message;
-    const data = encodeRelease({ orderId: BigInt(m.orderId), payee: m.payee, amount: BigInt(m.amount), rating: Number(m.rating), evidenceHash: m.evidenceHash, expiry: Number(m.expiry) }, vector.signatures.payer);
+    const data = encodeRelease({ orderId: BigInt(m.orderId), payee: m.payee, amount: BigInt(m.amount), rating: Number(m.rating), evidenceHash: m.evidenceHash, expiry: Number(m.expiry), commentHash: m.commentHash }, vector.signatures.payer);
     expect(data.slice(0, 10)).toBe(selectors(real).get("release"));
   });
 });

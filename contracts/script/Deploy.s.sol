@@ -105,6 +105,9 @@ contract Deploy is Script {
         deployment.receipt = new JunqueroReceipt(IEscrow(address(deployment.escrow)), address(deployment.forwarder));
         deployment.reputation.grantRole(deployment.reputation.RECORDER_ROLE(), address(deployment.escrow));
         deployment.escrow.setReputation(deployment.reputation);
+        deployment.escrow.setReceipt(deployment.receipt);
+        string memory receiptBase = vm.envOr("RECEIPT_BASE_URI", string(""));
+        if (bytes(receiptBase).length > 0) deployment.receipt.setBaseURI(receiptBase);
         deployment.arbitration = new Arbitration(
             admin,
             deployment.escrow,

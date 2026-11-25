@@ -24,6 +24,8 @@ export interface ReleaseData {
   rating: number;
   evidenceHash: Hex;
   expiry: number;
+  // Huella del comentario público de quien publica (cero si no escribió). Va firmada y queda en el comprobante.
+  commentHash: Hex;
 }
 
 export function releaseTypedData(deployment: Deployment, data: ReleaseData) {
@@ -75,11 +77,12 @@ export interface ReleaseQr {
   r: number;
   h: string;
   e: number;
+  c: string;
   s: string;
 }
 
 export function encodeReleaseQr(data: ReleaseData, signature: Hex): string {
-  const payload: ReleaseQr = { v: 1, o: Number(data.orderId), p: data.payee, a: data.amount.toString(), r: data.rating, h: data.evidenceHash, e: data.expiry, s: signature };
+  const payload: ReleaseQr = { v: 1, o: Number(data.orderId), p: data.payee, a: data.amount.toString(), r: data.rating, h: data.evidenceHash, e: data.expiry, c: data.commentHash, s: signature };
   return JSON.stringify(payload);
 }
 
@@ -89,9 +92,10 @@ export function parseReleaseQr(text: string, nowSeconds: number): { data: Releas
     if (raw.v !== 1 || !Number.isSafeInteger(raw.o) || typeof raw.p !== "string" || typeof raw.a !== "string" || !/^\d+$/.test(raw.a)) return "invalid";
     if (!Number.isInteger(raw.r) || raw.r! < 1 || raw.r! > 5 || typeof raw.h !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(raw.h)) return "invalid";
     if (!Number.isSafeInteger(raw.e) || typeof raw.s !== "string" || !/^0x[0-9a-fA-F]{130}$/.test(raw.s) || !/^0x[0-9a-fA-F]{40}$/.test(raw.p)) return "invalid";
+    if (typeof raw.c !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(raw.c)) return "invalid";
     if (raw.e! < nowSeconds) return "expired";
     return {
-      data: { orderId: BigInt(raw.o!), payee: raw.p as Address, amount: BigInt(raw.a), rating: raw.r!, evidenceHash: raw.h as Hex, expiry: raw.e! },
+      data: { orderId: BigInt(raw.o!), payee: raw.p as Address, amount: BigInt(raw.a), rating: raw.r!, evidenceHash: raw.h as Hex, expiry: raw.e!, commentHash: raw.c as Hex },
       signature: raw.s as Hex,
     };
   } catch {

@@ -8,6 +8,7 @@ import { ClosingSection } from "../../components/ClosingSection";
 import { ReleaseCode } from "../../components/ReleaseCode";
 import { releaseCode } from "../../chain/releaseCode";
 import { deployment } from "../../chain/deployment";
+import { MAX_COMMENT_LENGTH, saveRatingComment } from "../../chain/rating";
 import { approveRemotely, releaseCall, type RemoteRelease } from "../../chain/remoteRelease";
 import { encodeCheckIn, encodeDeliver, encodeReleaseQr, releaseTypedData, sendViaRelay, RELEASE_VALIDITY_SECONDS } from "../../chain/orderActions";
 import { readContributionOf, readForwarderNonce, readJurorFee, readParam, readTokenBalance, readTokenNonce } from "../../chain/reader";
@@ -62,6 +63,7 @@ export default function OrderScreen() {
   const myCase = (myCases.data?.asParty ?? []).find((item) => item.orderId === id);
   const { run: runAction, busy, error: failed } = useRunAction();
   const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
   const [qr, setQr] = useState<{ text: string; expiry: number; code: string | null } | null>(null);
 
   const contribution = useQuery({
@@ -162,7 +164,8 @@ export default function OrderScreen() {
 
   const approve = () =>
     run(async () => {
-      await approveRemotely({ api, deployment, orderId: id, payee: state.payee, index: null, amount: state.price, rating, evidenceHash: state.evidenceHash, now: Math.floor(Date.now() / 1000), sign: signTyped });
+      const commentHash = await saveRatingComment(api, id, comment);
+      await approveRemotely({ api, deployment, orderId: id, payee: state.payee, index: null, amount: state.price, rating, evidenceHash: state.evidenceHash, commentHash, now: Math.floor(Date.now() / 1000), sign: signTyped });
     }, t.order.releaseFailed, t.order.approved, "check");
 
   const claim = () =>
@@ -176,11 +179,12 @@ export default function OrderScreen() {
   const showCode = () =>
     run(async () => {
       const expiry = Math.floor(Date.now() / 1000) + RELEASE_VALIDITY_SECONDS;
-      const data = { orderId: BigInt(id), payee: state.payee, amount: state.price, rating, evidenceHash: state.evidenceHash, expiry };
+      const commentHash = await saveRatingComment(api, id, comment);
+      const data = { orderId: BigInt(id), payee: state.payee, amount: state.price, rating, evidenceHash: state.evidenceHash, expiry, commentHash };
       const signature = await signTyped(releaseTypedData(deployment, data));
       // Se guarda la liberación firmada en el servidor: así quien cobra puede escribir el código corto si la cámara no anda.
       const code = await api
-        .send("POST", `/me/orders/${id}/release`, { amount: data.amount.toString(), rating, evidenceHash: data.evidenceHash, expiry, signature })
+        .send("POST", `/me/orders/${id}/release`, { amount: data.amount.toString(), rating, evidenceHash: data.evidenceHash, expiry, commentHash, signature })
         .then(() => releaseCode(signature))
         .catch(() => null);
       setQr({ text: encodeReleaseQr(data, signature), expiry, code });
@@ -317,6 +321,7 @@ export default function OrderScreen() {
           ) : (
             <>
               <Stars value={rating} onChange={setRating} />
+              <Field label={t.order.commentLabel} value={comment} onChangeText={setComment} multiline maxLength={MAX_COMMENT_LENGTH} hint={t.order.commentHint} />
               <DetailActions
                 actions={[
                   { key: "approve", label: t.order.approveRemote, icon: "check", hint: t.order.approveRemoteNote, onPress: () => void approve() },

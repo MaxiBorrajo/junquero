@@ -263,7 +263,8 @@ contract EscrowGroupDecisionsTest is GroupBase {
             amount: uint128(100 * USDC),
             rating: 5,
             evidenceHash: EVIDENCE,
-            expiry: uint40(block.timestamp + 10 minutes)
+            expiry: uint40(block.timestamp + 10 minutes),
+            commentHash: bytes32(0)
         });
         bytes memory forged = _sign(memberKeys[0], _releaseHash(r));
 
@@ -312,7 +313,8 @@ contract EscrowGroupDecisionsTest is GroupBase {
         // el miembro 0 es el coordinador y aporta 40 de los 100
         vm.prank(payer);
         uint256 orderId = escrow.createGroupOrder(
-            _params(address(usdc), 100 * USDC), GroupParams({coordinator: members[0], fundingDeadline: uint40(block.timestamp + 7 days)})
+            _params(address(usdc), 100 * USDC),
+            GroupParams({coordinator: members[0], fundingDeadline: uint40(block.timestamp + 7 days)})
         );
         _fundStandard(orderId);
         _markApplicant(orderId);
@@ -526,7 +528,8 @@ contract EscrowGroupDecisionsTest is GroupBase {
             amount: uint128(100 * USDC),
             rating: 5,
             evidenceHash: EVIDENCE,
-            expiry: uint40(block.timestamp + 10 minutes)
+            expiry: uint40(block.timestamp + 10 minutes),
+            commentHash: bytes32(0)
         });
         bytes memory oldSig = _sign(payerKey, _releaseHash(r));
         vm.prank(payee);

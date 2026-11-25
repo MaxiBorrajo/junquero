@@ -2400,7 +2400,7 @@
   "name": "release",
   "inputs": [
    {
-    "name": "releaseData",
+    "name": "release",
     "type": "tuple",
     "internalType": "struct Release",
     "components": [
@@ -2433,6 +2433,11 @@
       "name": "expiry",
       "type": "uint40",
       "internalType": "uint40"
+     },
+     {
+      "name": "commentHash",
+      "type": "bytes32",
+      "internalType": "bytes32"
      }
     ]
    },
@@ -2895,7 +2900,7 @@
   "name": "setReputation",
   "inputs": [
    {
-    "name": "reputation_",
+    "name": "reputation",
     "type": "address",
     "internalType": "contract IReputation"
    }
@@ -3148,7 +3153,7 @@
   "name": "setArbitration",
   "inputs": [
    {
-    "name": "arbitration_",
+    "name": "arbitration",
     "type": "address",
     "internalType": "contract IArbitration"
    }
@@ -4128,5 +4133,101 @@
    }
   ],
   "anonymous": false
+ },
+ {
+  "type": "constructor",
+  "inputs": [
+   {
+    "name": "admin",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "registry_",
+    "type": "address",
+    "internalType": "contract IParameterRegistry"
+   },
+   {
+    "name": "treasury_",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "permit2_",
+    "type": "address",
+    "internalType": "contract ISignatureTransfer"
+   },
+   {
+    "name": "forwarder",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "receipt",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "contract IReceipt"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "event",
+  "name": "ReceiptUpdated",
+  "inputs": [
+   {
+    "name": "receipt",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "constructor",
+  "inputs": [
+   {
+    "name": "registry_",
+    "type": "address",
+    "internalType": "contract IParameterRegistry"
+   },
+   {
+    "name": "treasury_",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "permit2_",
+    "type": "address",
+    "internalType": "contract ISignatureTransfer"
+   },
+   {
+    "name": "forwarder",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "setReceipt",
+  "inputs": [
+   {
+    "name": "receipt",
+    "type": "address",
+    "internalType": "contract IReceipt"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
  }
 ]

@@ -18,6 +18,8 @@
   },
   "include": [
     "src",
-    "test"
+    "test",
+    "../app/src/receipts/cardSvg.ts",
+    "../app/src/lib/contactGuard.ts"
   ]
 }

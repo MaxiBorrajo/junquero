@@ -140,10 +140,20 @@ contract Smoke is Script {
             amount: uint128(PRICE),
             rating: rating,
             evidenceHash: EVIDENCE,
-            expiry: uint40(block.timestamp + 10 minutes)
+            expiry: uint40(block.timestamp + 10 minutes),
+            commentHash: bytes32(0)
         });
         bytes32 structHash = keccak256(
-            abi.encode(EscrowHashes.RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry)
+            abi.encode(
+                EscrowHashes.RELEASE_TYPEHASH,
+                r.orderId,
+                r.payee,
+                r.amount,
+                r.rating,
+                r.evidenceHash,
+                r.expiry,
+                r.commentHash
+            )
         );
         bytes memory signature = _sign(requester, structHash);
         vm.broadcast(provider);

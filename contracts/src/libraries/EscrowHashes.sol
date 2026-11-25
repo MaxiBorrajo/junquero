@@ -13,7 +13,7 @@ library EscrowHashes {
         "MilestoneRelease(uint256 orderId,uint8 index,uint128 amount,uint8 rating,bytes32 evidenceHash,uint40 expiry)"
     );
     bytes32 internal constant RELEASE_TYPEHASH = keccak256(
-        "Release(uint256 orderId,address payee,uint128 amount,uint8 rating,bytes32 evidenceHash,uint40 expiry)"
+        "Release(uint256 orderId,address payee,uint128 amount,uint8 rating,bytes32 evidenceHash,uint40 expiry,bytes32 commentHash)"
     );
 
     function hash(Reservation calldata r) internal pure returns (bytes32) {
@@ -27,7 +27,11 @@ library EscrowHashes {
     }
 
     function hash(Release calldata r) internal pure returns (bytes32) {
-        return keccak256(abi.encode(RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry));
+        return keccak256(
+            abi.encode(
+                RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry, r.commentHash
+            )
+        );
     }
 
     function hash(MilestoneRelease memory r) internal pure returns (bytes32) {

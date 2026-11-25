@@ -40,6 +40,7 @@ import { getProfile, presentOwnProfile, presentPublicProfile, profileStats, upse
 import { emergencyCases, listChangas as adminChangas, listLog, listUsers, logAction, parseReason, setHidden, summary as adminSummary } from "./admin";
 import { casesFor, juryResultsFor } from "./cases";
 import { closingFor, receiptsCount, receiptsOf } from "./receipts";
+import { receiptJson, receiptMeta, receiptSvg, saveRatingComment, validateComment } from "./receiptNft";
 import { cancelRelease, findReleaseByCode, parseRelease, readRelease, submitRelease } from "./releases";
 import { disputedMilestones, listExitReasons, saveExitReason, validateExit } from "./exits";
 import { createReport, listReports, resolveReport } from "./reports";
@@ -157,6 +158,7 @@ const optionalInt = (value: string | undefined): number | undefined | null => {
 };
 
 app.use("/health", readGuard);
+app.use("/receipts/*", readGuard);
 app.use("/events", readGuard);
 app.use("/orders/*", readGuard);
 app.use("/changas", readGuard);
@@ -241,6 +243,19 @@ app.get("/profiles/:address/receipts", async (c) => {
   const address = c.req.param("address");
   if (!ADDRESS.test(address)) return c.json({ error: "invalid address" }, 400);
   return c.json({ receipts: await cachedSlow(`receipts:${address.toLowerCase()}`, () => receiptsOf(c.env.DB, address)) });
+});
+
+// Los datos públicos de un comprobante (NFT): el JSON que leen las billeteras y su imagen. Sin sesión; no llevan el monto.
+app.get("/receipts/:file", async (c) => {
+  const file = c.req.param("file");
+  const match = /^(\d{1,12})(\.svg)?$/.exec(file);
+  if (!match) return c.json({ error: "invalid order id" }, 400);
+  const orderId = Number(match[1]);
+  const meta = await receiptMeta(c.env.DB, orderId);
+  if (!meta) return c.json({ error: "not found" }, 404);
+  c.header("Cache-Control", "public, max-age=60");
+  if (match[2]) return c.body(receiptSvg(meta), 200, { "content-type": "image/svg+xml; charset=utf-8" });
+  return c.json(receiptJson(meta, new URL(c.req.url).origin));
 });
 
 app.post("/me/changas", async (c) => {
@@ -785,6 +800,16 @@ app.post("/me/orders/:orderId/release", async (c) => {
   const result = await submitRelease(c.env.DB, orderId, c.get("address"), parsed.value, nowSeconds());
   if (result.ok) await record(c, recordOrderEvent(c.env.DB, "approved", orderId, c.get("address"), String(nowSeconds()), nowSeconds()));
   return result.ok ? c.json({ ok: true }, 201) : c.json({ error: result.error }, result.status);
+});
+
+// El comentario público con el que quien publicó acompaña su nota. Se manda antes de firmar la liberación: la huella va en la firma.
+app.post("/me/orders/:orderId/rating-comment", async (c) => {
+  const orderId = parseOrderId(c.req.param("orderId"));
+  if (orderId === null) return c.json({ error: "invalid order id" }, 400);
+  const parsed = validateComment(await readJson(c));
+  if (!parsed.ok) return c.json({ error: parsed.error }, parsed.status);
+  const result = await saveRatingComment(c.env.DB, orderId, c.get("address"), parsed.text, nowSeconds());
+  return result.ok ? c.json({ hash: result.hash }, 201) : c.json({ error: result.error }, result.status);
 });
 
 // Quien termina o deja un trabajo lo justifica antes de mandar la transacción; el motivo se ve en el chat y en el detalle.

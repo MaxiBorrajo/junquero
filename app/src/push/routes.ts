@@ -9,6 +9,8 @@ export function routeForNotification(kind: string, ref: string): AppRoute {
   if (kind === "verdict_won" || kind === "verdict_lost") return { pathname: "/case/[caseId]", params: { caseId: id } };
   if (kind === "verdict_jury" || kind === "jury_drawn" || kind === "jury_deadline") return { pathname: "/jury/[caseId]", params: { caseId: id } };
   switch (kind) {
+    case "receipt_minted":
+      return { pathname: "/receipt/[orderId]", params: { orderId: id } };
     case "application_new":
       return { pathname: "/applications/[changaId]", params: { changaId: ref } };
     case "agreement_proposed":

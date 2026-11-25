@@ -104,7 +104,7 @@ describe("cierre de un trabajo y comprobantes", () => {
     const ctx = await closed();
     plainEvent(ctx.raw, "ReceiptClaimed", 1, 302, { payee: stranger.address, category: "3", month: "202611" });
     await processEvents(ctx.db, handlers, 100);
-    expect(await receiptsOf(ctx.db, stranger.address)).toEqual([{ orderId: 1, category: 3, month: 202611, title: "", closedAt: 1 }]);
+    expect(await receiptsOf(ctx.db, stranger.address)).toEqual([{ orderId: 1, category: 3, month: 202611, title: "", closedAt: 1, rated: false, rating: null, comment: null, commentHash: null, payerName: null, remote: false }]);
     expect(await receiptsOf(ctx.db, owner.address)).toEqual([]);
     expect(await receiptsCount(ctx.db, stranger.address)).toBe(1);
 
@@ -115,7 +115,7 @@ describe("cierre de un trabajo y comprobantes", () => {
     expect(((await response.json()) as any).profile.receiptsCount).toBe(1);
     const list = await ctx.call(`/profiles/${stranger.address}/receipts`);
     expect(list.status).toBe(200);
-    expect(((await list.json()) as any).receipts).toEqual([{ orderId: 1, category: 3, month: 202611, title: "", closedAt: 1 }]);
+    expect(((await list.json()) as any).receipts).toEqual([{ orderId: 1, category: 3, month: 202611, title: "", closedAt: 1, rated: false, rating: null, comment: null, commentHash: null, payerName: null, remote: false }]);
     expect((await ctx.call("/profiles/nope/receipts")).status).toBe(400);
   });
 

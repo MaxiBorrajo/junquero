@@ -15,6 +15,7 @@ import {IEscrowEvents} from "../interfaces/IEscrowEvents.sol";
 import {IParameterRegistry} from "../interfaces/IParameterRegistry.sol";
 import {IReputation, Role} from "../interfaces/IReputation.sol";
 import {IArbitration} from "../interfaces/IArbitration.sol";
+import {IReceipt} from "../interfaces/IReceipt.sol";
 import {EscrowHashes} from "../libraries/EscrowHashes.sol";
 import {ParameterKeys} from "../libraries/ParameterKeys.sol";
 import {
@@ -76,6 +77,8 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
     mapping(uint256 orderId => mapping(uint32 epoch => mapping(address candidate => uint128))) internal
         _coordinatorWeight;
     mapping(uint256 orderId => mapping(address account => bytes32)) internal _objectedAt;
+    // El comprobante (NFT intransferible) que se emite solo al cobrar con calificación. Va al final: los módulos no reordenan campos guardados.
+    IReceipt public receipt;
 
     constructor(IParameterRegistry registry_, address treasury_, ISignatureTransfer permit2_, address forwarder)
         EIP712("Escrow", "1")
@@ -100,6 +103,16 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         try target.recordSettled(order.payer, order.payee, rating, automatic, disputed, qualifies) {}
         catch {
             emit HookFailed(orderId, IReputation.recordSettled.selector);
+        }
+    }
+
+    // Emite el comprobante de un trabajo cobrado con calificación. Si falla, no frena el pago: queda el aviso `HookFailed`.
+    function _mintReceipt(uint256 orderId, uint8 rating, bytes32 commentHash) internal {
+        IReceipt target = receipt;
+        if (address(target) == address(0) || rating == 0) return;
+        try target.mintRated(orderId, rating, commentHash) {}
+        catch {
+            emit HookFailed(orderId, IReceipt.mintRated.selector);
         }
     }
 
@@ -286,11 +299,9 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         return SizeClass.Large;
     }
 
-    function _agree(
-        Agreement calldata agreement,
-        bytes calldata payerSignature,
-        bytes calldata payeeSignature
-    ) internal {
+    function _agree(Agreement calldata agreement, bytes calldata payerSignature, bytes calldata payeeSignature)
+        internal
+    {
         Order storage order = _orders[agreement.orderId];
         OrderStatus status = order.status;
         if (status == OrderStatus.None) revert UnknownOrder(agreement.orderId);
@@ -376,6 +387,7 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         uint8 rating = automatic ? 0 : uint8(plan.ratingSum / plan.ratingCount);
         emit OrderSettled(orderId, order.payee, plan.paidTotal, plan.refundedTotal, plan.feeTotal, rating, automatic);
         _recordSettled(orderId, order, rating, automatic, disputed);
+        if (!disputed && !automatic) _mintReceipt(orderId, rating, bytes32(0));
     }
 
     function _checkGroupProposal(uint256 orderId, address payee) internal view {
@@ -396,5 +408,4 @@ abstract contract EscrowStorage is IEscrowEvents, EIP712, ERC2771Context, Access
         return uint256(money) * BPS >= uint256(total) * registry.get(ParameterKeys.OBJECTION_MONEY_BPS)
             || count >= registry.get(ParameterKeys.OBJECTION_MIN_PEOPLE);
     }
-
 }

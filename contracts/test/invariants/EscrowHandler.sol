@@ -272,10 +272,20 @@ contract EscrowHandler is Test {
             amount: uint128((uint256(order.price) * pct) / 10_000),
             rating: 4,
             evidenceHash: bytes32(0),
-            expiry: uint40(block.timestamp + 1 hours)
+            expiry: uint40(block.timestamp + 1 hours),
+            commentHash: bytes32(0)
         });
         bytes32 structHash = keccak256(
-            abi.encode(EscrowHashes.RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry)
+            abi.encode(
+                EscrowHashes.RELEASE_TYPEHASH,
+                r.orderId,
+                r.payee,
+                r.amount,
+                r.rating,
+                r.evidenceHash,
+                r.expiry,
+                r.commentHash
+            )
         );
         bytes memory sig = _sign(_keyOf(order.payer), structHash);
         vm.prank(order.payee);

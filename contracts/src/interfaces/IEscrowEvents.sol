@@ -60,6 +60,7 @@ interface IEscrowEvents {
     event PayoutDeferred(address indexed token, address indexed to, uint256 amount);
     event Claimed(address indexed token, address indexed account, uint256 amount);
     event ReputationUpdated(address indexed reputation);
+    event ReceiptUpdated(address indexed receipt);
     event HookFailed(uint256 indexed orderId, bytes4 selector);
     event DisputeOpened(
         uint256 indexed orderId, address indexed claimant, bytes32 reasonHash, uint256 caseId, uint128 fee

@@ -87,7 +87,7 @@ contract VectorsTest is GroupBase {
             "{",
             '"Reservation":[{"name":"orderId","type":"uint256"},{"name":"payer","type":"address"},{"name":"payee","type":"address"},{"name":"expiry","type":"uint40"}],',
             '"Agreement":[{"name":"orderId","type":"uint256"},{"name":"payer","type":"address"},{"name":"payee","type":"address"},{"name":"price","type":"uint128"},{"name":"specHash","type":"bytes32"},{"name":"termsHash","type":"bytes32"},{"name":"expiry","type":"uint40"}],',
-            '"Release":[{"name":"orderId","type":"uint256"},{"name":"payee","type":"address"},{"name":"amount","type":"uint128"},{"name":"rating","type":"uint8"},{"name":"evidenceHash","type":"bytes32"},{"name":"expiry","type":"uint40"}],',
+            '"Release":[{"name":"orderId","type":"uint256"},{"name":"payee","type":"address"},{"name":"amount","type":"uint128"},{"name":"rating","type":"uint8"},{"name":"evidenceHash","type":"bytes32"},{"name":"expiry","type":"uint40"},{"name":"commentHash","type":"bytes32"}],',
             '"MilestoneRelease":[{"name":"orderId","type":"uint256"},{"name":"index","type":"uint8"},{"name":"amount","type":"uint128"},{"name":"rating","type":"uint8"},{"name":"evidenceHash","type":"bytes32"},{"name":"expiry","type":"uint40"}],',
             '"Permit":[{"name":"owner","type":"address"},{"name":"spender","type":"address"},{"name":"value","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"deadline","type":"uint256"}],',
             '"ForwardRequest":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"},{"name":"gas","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"deadline","type":"uint48"},{"name":"data","type":"bytes"}]',
@@ -278,13 +278,14 @@ contract VectorsTest is GroupBase {
         vm.prank(payee);
         escrow.release(r, sig);
 
-        string[] memory message = new string[](6);
+        string[] memory message = new string[](7);
         message[0] = _num("orderId", r.orderId);
         message[1] = _addr("payee", r.payee);
         message[2] = _num("amount", r.amount);
         message[3] = _num("rating", r.rating);
         message[4] = _hex("evidenceHash", r.evidenceHash);
         message[5] = _num("expiry", r.expiry);
+        message[6] = _hex("commentHash", r.commentHash);
         return _vector("Release", _join(message), structHash, "escrow", _obj2s0(_bytes("payer", sig)));
     }
 

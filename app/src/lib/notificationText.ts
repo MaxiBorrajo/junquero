@@ -7,6 +7,7 @@ const TEXTS: Record<string, { title: string; body: string }> = {
   chat: { title: "Mensaje nuevo", body: "Te escribieron por un trabajo. Entrá a leer y responder." },
   delivered: { title: "Trabajo terminado", body: "Marcaron el trabajo como terminado. Revisalo y aprobalo: si no respondés a tiempo, se aprueba solo." },
   changes_requested: { title: "Te pidieron cambios", body: "Quien publicó el trabajo pidió cambios. Abrilo, mirá qué hay que cambiar y volvé a entregar." },
+  receipt_minted: { title: "Recibiste un comprobante", body: "Quien publicó te calificó y tu comprobante ya está en tu cuenta. Abrilo para verlo." },
   cancelled: { title: "Trabajo cancelado", body: "Cancelaron un trabajo tuyo. Abrilo para ver cómo queda el pago." },
   settled: { title: "Pago liberado", body: "Se liberó el pago de un trabajo. Calificá a la otra persona desde el trabajo." },
   reminder_start: { title: "Tu trabajo es pronto", body: "Tenés un trabajo en una hora. Abrilo para ver el lugar y cuando llegues, tocá Llegué." },

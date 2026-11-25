@@ -31,6 +31,15 @@ export interface ReceiptView {
   // Nombre de la changa (el de la publicación, que ya es público) y cuándo se cerró y pagó.
   title: string;
   closedAt: number | null;
+  // Si el comprobante lo emitió quien publicó al calificar (true) o lo reclamó a mano quien trabajó (false, sin nota ni comentario).
+  rated: boolean;
+  rating: number | null;
+  // Texto del comentario público, solo si coincide con la huella que quedó en el comprobante.
+  comment: string | null;
+  commentHash: string | null;
+  // Nombre público de quien calificó (nunca su dirección).
+  payerName: string | null;
+  remote: boolean;
 }
 
 export const RECEIPTS_PAGE = 100;
@@ -39,14 +48,49 @@ export const RECEIPTS_PAGE = 100;
 export async function receiptsOf(db: D1Database, address: string, limit = RECEIPTS_PAGE): Promise<ReceiptView[]> {
   const { results } = await db
     .prepare(
-      `SELECT r.order_id, r.category, r.month, json_extract(c.spec, '$.title') AS title,
-              (SELECT MAX(e.block_timestamp) FROM events e WHERE e.order_id = r.order_id AND e.name = 'OrderSettled') AS closed_at
+      `SELECT r.order_id, r.category, r.month, json_extract(c.spec, '$.title') AS title, c.modality AS modality,
+              (SELECT MAX(e.block_timestamp) FROM events e WHERE e.order_id = r.order_id AND e.name = 'OrderSettled') AS closed_at,
+              (SELECT json_extract(m.args, '$.rating') FROM events m WHERE m.order_id = r.order_id AND m.name = 'ReceiptMinted' LIMIT 1) AS rating,
+              (SELECT json_extract(m.args, '$.commentHash') FROM events m WHERE m.order_id = r.order_id AND m.name = 'ReceiptMinted' LIMIT 1) AS comment_hash,
+              (SELECT p.name FROM events m JOIN profiles p ON p.address = lower(json_extract(m.args, '$.payer'))
+                 WHERE m.order_id = r.order_id AND m.name = 'ReceiptMinted' LIMIT 1) AS payer_name,
+              (SELECT k.text FROM rating_comments k WHERE k.order_id = r.order_id) AS comment_text,
+              (SELECT k.hash FROM rating_comments k WHERE k.order_id = r.order_id) AS comment_text_hash
        FROM receipts r LEFT JOIN changas c ON c.order_id = r.order_id
        WHERE r.payee = ? ORDER BY r.order_id DESC LIMIT ?`,
     )
     .bind(address.toLowerCase(), limit)
-    .all<{ order_id: number; category: number; month: number; title: string | null; closed_at: number | null }>();
-  return results.map((row) => ({ orderId: row.order_id, category: row.category, month: row.month, title: row.title ?? "", closedAt: row.closed_at }));
+    .all<{
+      order_id: number;
+      category: number;
+      month: number;
+      title: string | null;
+      modality: string | null;
+      closed_at: number | null;
+      rating: number | string | null;
+      comment_hash: string | null;
+      payer_name: string | null;
+      comment_text: string | null;
+      comment_text_hash: string | null;
+    }>();
+  const zero = `0x${"0".repeat(64)}`;
+  return results.map((row) => {
+    const onChain = row.comment_hash ? row.comment_hash.toLowerCase() : null;
+    const matches = onChain !== null && onChain !== zero && row.comment_text_hash !== null && row.comment_text_hash.toLowerCase() === onChain;
+    return {
+      orderId: row.order_id,
+      category: row.category,
+      month: row.month,
+      title: row.title ?? "",
+      closedAt: row.closed_at,
+      rated: row.rating !== null,
+      rating: row.rating === null ? null : Number(row.rating),
+      comment: matches ? row.comment_text : null,
+      commentHash: onChain === null || onChain === zero ? null : onChain,
+      payerName: row.payer_name,
+      remote: row.modality === "remote",
+    };
+  });
 }
 
 export async function receiptsCount(db: D1Database, address: string): Promise<number> {

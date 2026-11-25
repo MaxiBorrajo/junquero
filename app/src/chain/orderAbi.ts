@@ -2,7 +2,7 @@ import { parseAbi } from "viem";
 
 export const orderAbi = parseAbi([
   "struct Order { address payer; uint8 status; uint8 mode; uint8 modality; uint8 sizeClass; bool extended; uint8 category; uint8 changeRequests; bool hasMilestones; bool isGroup; uint40 createdAt; address payee; uint40 startsAt; uint40 deliveredAt; uint40 settledAt; bool paidOut; address token; uint40 agreedAt; uint40 deadline; address reservedPayee; uint40 reservedAt; uint40 checkedInAt; bool arrivalConfirmed; uint128 deposited; uint128 price; bytes32 specHash; bytes32 termsHash; bytes32 evidenceHash; }",
-  "struct Release { uint256 orderId; address payee; uint128 amount; uint8 rating; bytes32 evidenceHash; uint40 expiry; }",
+  "struct Release { uint256 orderId; address payee; uint128 amount; uint8 rating; bytes32 evidenceHash; uint40 expiry; bytes32 commentHash; }",
   "struct DepositAuth { uint8 method; uint256 nonce; uint256 deadline; bytes signature; }",
   "function getOrder(uint256 orderId) view returns (Order)",
   "function deliver(uint256 orderId, bytes32 evidenceHash)",
@@ -37,5 +37,6 @@ export const releaseTypes = {
     { name: "rating", type: "uint8" },
     { name: "evidenceHash", type: "bytes32" },
     { name: "expiry", type: "uint40" },
+    { name: "commentHash", type: "bytes32" },
   ],
 } as const;

@@ -151,6 +151,13 @@ export interface ReceiptItem {
   month: number;
   title: string;
   closedAt: number | null;
+  // Del comprobante que se emite solo al cobrar con calificación (nulos o ausentes si se reclamó a mano).
+  rating?: number | null;
+  comment?: string | null;
+  commentHash?: string | null;
+  payerName?: string | null;
+  remote?: boolean;
+  rated?: boolean;
 }
 
 export interface Closing {

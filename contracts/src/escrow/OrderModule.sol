@@ -190,6 +190,7 @@ contract OrderModule is EscrowStorage {
             return;
         }
         _settle(releaseData.orderId, order, releaseData.amount, releaseData.rating, false);
+        _mintReceipt(releaseData.orderId, releaseData.rating, releaseData.commentHash);
     }
 
     function autoRelease(uint256 orderId) external nonReentrant {

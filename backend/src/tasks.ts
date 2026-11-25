@@ -37,7 +37,7 @@ export const NEVER = 9_999_999_999;
 export const ORDER_STATUS = { Agreed: 3, Delivered: 4, Settled: 6, Cancelled: 7, Funding: 8 };
 export const CASE_PHASE = { Response: 1, Seed: 2, Vote: 3, Resolved: 5, Decided: 6 };
 
-const QUIET_EVENTS = new Set(["SeedCommitted", "SeedRevealed", "VoteCommitted", "JurorPaid", "JurorSlashed", "Recused"]);
+const QUIET_EVENTS = new Set(["SeedCommitted", "SeedRevealed", "VoteCommitted", "JurorPaid", "JurorSlashed", "Recused", "ReceiptMinted"]);
 
 export function orderActions(state: OrderState): string[] {
   if (state.status === ORDER_STATUS.Agreed) return state.hasMilestones ? ["autoReleaseMilestone", "reclaim"] : ["reclaim"];

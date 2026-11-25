@@ -181,6 +181,8 @@ struct Release {
     uint8 rating;
     bytes32 evidenceHash;
     uint40 expiry;
+    // Huella del comentario público con el que quien publica acompaña la calificación (cero si no hay). Va firmada y queda en el comprobante.
+    bytes32 commentHash;
 }
 
 struct TokenConfig {

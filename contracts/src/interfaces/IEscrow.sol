@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IEscrowEvents} from "./IEscrowEvents.sol";
 import {IReputation} from "./IReputation.sol";
+import {IReceipt} from "./IReceipt.sol";
 import {IArbitration} from "./IArbitration.sol";
 import {
     Order,
@@ -43,6 +44,7 @@ interface IEscrow is IEscrowEvents {
     function moderate(uint256 orderId, bytes32 reasonHash) external;
     function claim(address token, address account) external;
     function setReputation(IReputation reputation) external;
+    function setReceipt(IReceipt receipt) external;
     function agreeWithMilestones(
         Agreement calldata agreement,
         MilestoneTerms calldata terms,

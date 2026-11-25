@@ -192,6 +192,29 @@
  },
  {
   "type": "function",
+  "name": "mintRated",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "rating",
+    "type": "uint8",
+    "internalType": "uint8"
+   },
+   {
+    "name": "commentHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
   "name": "monthOf",
   "inputs": [
    {
@@ -237,6 +260,52 @@
     "name": "",
     "type": "address",
     "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "rated",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "tuple",
+    "internalType": "struct RatedInfo",
+    "components": [
+     {
+      "name": "payer",
+      "type": "address",
+      "internalType": "address"
+     },
+     {
+      "name": "rating",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "commentHash",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "specHash",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "amount",
+      "type": "uint128",
+      "internalType": "uint128"
+     }
+    ]
    }
   ],
   "stateMutability": "view"
@@ -305,6 +374,19 @@
     "name": "approved",
     "type": "bool",
     "internalType": "bool"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "setBaseURI",
+  "inputs": [
+   {
+    "name": "uri",
+    "type": "string",
+    "internalType": "string"
    }
   ],
   "outputs": [],
@@ -449,6 +531,19 @@
  },
  {
   "type": "event",
+  "name": "BaseURIUpdated",
+  "inputs": [
+   {
+    "name": "uri",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
   "name": "Locked",
   "inputs": [
    {
@@ -487,6 +582,55 @@
     "type": "uint32",
     "indexed": false,
     "internalType": "uint32"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "ReceiptMinted",
+  "inputs": [
+   {
+    "name": "orderId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "payee",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "payer",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "rating",
+    "type": "uint8",
+    "indexed": false,
+    "internalType": "uint8"
+   },
+   {
+    "name": "commentHash",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "specHash",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "amount",
+    "type": "uint128",
+    "indexed": false,
+    "internalType": "uint128"
    }
   ],
   "anonymous": false
@@ -645,12 +789,45 @@
  },
  {
   "type": "error",
+  "name": "InvalidRating",
+  "inputs": [
+   {
+    "name": "rating",
+    "type": "uint8",
+    "internalType": "uint8"
+   }
+  ]
+ },
+ {
+  "type": "error",
+  "name": "NotAdmin",
+  "inputs": [
+   {
+    "name": "caller",
+    "type": "address",
+    "internalType": "address"
+   }
+  ]
+ },
+ {
+  "type": "error",
   "name": "NotClaimable",
   "inputs": [
    {
     "name": "orderId",
     "type": "uint256",
     "internalType": "uint256"
+   }
+  ]
+ },
+ {
+  "type": "error",
+  "name": "NotEscrow",
+  "inputs": [
+   {
+    "name": "caller",
+    "type": "address",
+    "internalType": "address"
    }
   ]
  },

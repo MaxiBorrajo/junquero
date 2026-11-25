@@ -242,7 +242,16 @@ abstract contract EscrowBase is Test {
 
     function _releaseHash(Release memory r) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(EscrowHashes.RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry)
+            abi.encode(
+                EscrowHashes.RELEASE_TYPEHASH,
+                r.orderId,
+                r.payee,
+                r.amount,
+                r.rating,
+                r.evidenceHash,
+                r.expiry,
+                r.commentHash
+            )
         );
     }
 
@@ -288,7 +297,8 @@ abstract contract EscrowBase is Test {
             amount: uint128(amount),
             rating: rating,
             evidenceHash: EVIDENCE,
-            expiry: uint40(block.timestamp + 10 minutes)
+            expiry: uint40(block.timestamp + 10 minutes),
+            commentHash: bytes32(0)
         });
         return (r, _sign(payerKey, _releaseHash(r)));
     }

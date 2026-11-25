@@ -27,6 +27,7 @@ export const TEMPLATES: Record<string, Template> = {
   cancelled: { title: "Trabajo cancelado", body: "Cancelaron un trabajo tuyo. Abrilo para ver cómo queda el pago.", priority: "high" },
   abandoned: { title: "Dejaron tu trabajo", body: "Quien hacía tu trabajo lo dejó. Volvió a publicarse con lo que quedó en garantía: elegí a otra persona.", priority: "high" },
   terminated: { title: "Terminaron tu trabajo", body: "Terminaron el trabajo antes de tiempo. Abrilo para ver cuánto cobraste y cómo quedó el pago.", priority: "high" },
+  receipt_minted: { title: "Recibiste un comprobante", body: "Quien publicó te calificó y tu comprobante ya está en tu cuenta. Abrilo para verlo.", priority: "default" },
   settled: { title: "Pago liberado", body: "Se liberó el pago de un trabajo. Calificá a la otra persona desde el trabajo.", priority: "default" },
   reminder_start: { title: "Tu trabajo es pronto", body: "Tenés un trabajo en una hora. Abrilo para ver el lugar y cuando llegues, tocá Llegué.", priority: "high" },
   checked_in: { title: "Llegó quien hace tu trabajo", body: "Avisó que llegó al lugar. Salí a recibirlo y abrí el trabajo para ver los detalles.", priority: "high" },
@@ -129,6 +130,9 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
     } else if (event.name === "OrderSettled" && event.order_id !== null) {
       const payee = parse<{ payee?: string }>(event.args)?.payee;
       if (payee && isAddress(payee)) statements.push(queueNotification(db, payee, "settled", String(event.order_id)));
+    } else if (event.name === "ReceiptMinted" && event.order_id !== null) {
+      const payee = parse<{ payee?: string }>(event.args)?.payee;
+      if (payee && isAddress(payee)) statements.push(queueNotification(db, payee, "receipt_minted", String(event.order_id)));
     } else if (event.name === "CaseOpened" && event.order_id !== null) {
       const claimant = parse<{ claimant?: string }>(event.args)?.claimant;
       if (claimant && isAddress(claimant)) {

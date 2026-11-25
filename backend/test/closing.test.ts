@@ -6,7 +6,7 @@ import { applicationsHandler } from "../src/applications";
 import { createChangasHandler } from "../src/changas";
 import { processEvents } from "../src/eventStream";
 import { escrowDomain } from "../src/agreements";
-import { milestoneReleaseTypes, normalizeCode, releaseCode, releaseTypes } from "../src/releases";
+import { ZERO_HASH, milestoneReleaseTypes, normalizeCode, releaseCode, releaseTypes } from "../src/releases";
 import { partiesHandler } from "../src/parties";
 import { receiptsHandler } from "../src/receipts";
 import { validateSpec } from "../src/spec";
@@ -40,7 +40,7 @@ const releaseBody = async (signer: typeof owner, patch: Record<string, unknown> 
     domain: escrowDomain,
     types: releaseTypes,
     primaryType: "Release",
-    message: { orderId: 1n, payee: stranger.address, amount: BigInt(base.amount as string), rating: base.rating as number, evidenceHash: base.evidenceHash as Hex, expiry: base.expiry as number },
+    message: { orderId: 1n, payee: stranger.address, amount: BigInt(base.amount as string), rating: base.rating as number, evidenceHash: base.evidenceHash as Hex, expiry: base.expiry as number, commentHash: ((base as { commentHash?: Hex }).commentHash ?? ZERO_HASH) as Hex },
   });
   return { ...base, signature };
 };
@@ -302,6 +302,6 @@ describe("comprobante con el nombre del trabajo", () => {
     w.ctx.raw.prepare("UPDATE events SET block_timestamp = 1790000000 WHERE name = 'OrderSettled'").run();
     await processEvents(w.ctx.db, [...handlers, receiptsHandler], 100);
     const list = (await (await w.ctx.call(`/profiles/${stranger.address}/receipts`, authed(w.worker.body.token, "GET"))).json()) as any;
-    expect(list.receipts).toEqual([{ orderId: 1, category: 2, month: 202611, title: "Cambiar una canilla", closedAt: 1790000000 }]);
+    expect(list.receipts).toEqual([{ orderId: 1, category: 2, month: 202611, title: "Cambiar una canilla", closedAt: 1790000000, rated: false, rating: null, comment: null, commentHash: null, payerName: null, remote: false }]);
   });
 });

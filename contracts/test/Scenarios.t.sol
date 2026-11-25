@@ -185,10 +185,20 @@ contract ScenariosTest is Test {
             amount: uint128(amount),
             rating: rating,
             evidenceHash: EVIDENCE,
-            expiry: uint40(block.timestamp + 10 minutes)
+            expiry: uint40(block.timestamp + 10 minutes),
+            commentHash: bytes32(0)
         });
         bytes32 structHash = keccak256(
-            abi.encode(EscrowHashes.RELEASE_TYPEHASH, r.orderId, r.payee, r.amount, r.rating, r.evidenceHash, r.expiry)
+            abi.encode(
+                EscrowHashes.RELEASE_TYPEHASH,
+                r.orderId,
+                r.payee,
+                r.amount,
+                r.rating,
+                r.evidenceHash,
+                r.expiry,
+                r.commentHash
+            )
         );
         sig = _sign(payerKey, structHash);
     }
@@ -249,10 +259,10 @@ contract ScenariosTest is Test {
         assertEq(usdc.balanceOf(address(d.escrow)), 0);
         assertEq(uint8(d.escrow.getOrder(orderId).status), uint8(OrderStatus.Settled));
 
-        vm.prank(provider);
-        d.receipt.claim(orderId);
+        // El comprobante se emite solo al cobrar con calificación: no hace falta reclamarlo.
         assertEq(d.receipt.ownerOf(orderId), provider);
         assertEq(d.receipt.info(orderId).category, 2);
+        assertEq(d.receipt.rated(orderId).rating, 5);
 
         Stats memory providerStats = d.reputation.stats(provider, Role.Provider);
         assertEq(providerStats.closed, 1);

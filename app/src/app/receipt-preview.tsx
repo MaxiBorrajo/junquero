@@ -5,6 +5,7 @@ import { Card } from "../components/Card";
 import { Chip, Field, Labeled, Screen, Secondary, Title } from "../components/ui";
 import { t } from "../i18n";
 import { CARD_HEIGHT, CARD_WIDTH, receiptCardSvg, monthLabel } from "../receipts/cardSvg";
+import { REEDS_IMAGE } from "../receipts/reeds";
 import { colors, fonts, radius, spacing, text } from "../theme";
 
 const SAMPLE_COMMENT = "Excelente trabajo: llegó a horario, dejó todo prolijo y me explicó cómo cuidarlo. Lo vuelvo a contratar.";
@@ -23,6 +24,7 @@ export default function ReceiptPreview() {
     { orderId: 3, title, category, categoryName: categories[category] ?? "", remote, rating, month: 202611, payerName: named ? "Ana M." : null },
     "minimal",
     { regular: fonts.regular, bold: fonts.bold },
+    REEDS_IMAGE,
   );
 
   return (

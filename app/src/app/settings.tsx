@@ -109,8 +109,6 @@ export default function Settings() {
         actions={[
           ...(push === "blocked" ? [{ key: "phone", label: t.settings.openPhoneSettings, icon: "settings" as const, onPress: () => void Linking.openSettings() }] : []),
           { key: "notifications", label: t.notifications.open, icon: "bell", onPress: () => router.push("/notifications") },
-          // Temporal: vista previa del comprobante para elegir su estilo.
-          { key: "receipt-preview", label: "Vista previa del comprobante", icon: "shield" as const, onPress: () => router.push("/receipt-preview") },
         ]}
       />
 

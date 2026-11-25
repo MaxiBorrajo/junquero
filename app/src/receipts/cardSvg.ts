@@ -106,8 +106,8 @@ function minimalCard(d: CardData, fonts: CardFonts, background: string | null): 
 }
 
 // Los juncos de fondo ocupan la parte baja de la tarjeta, semitransparentes, detrás del texto.
-const REEDS_HEIGHT = 300;
-const REEDS_OPACITY = 0.14;
+const REEDS_HEIGHT = 320;
+const REEDS_OPACITY = 0.2;
 
 // `background` es la imagen de los juncos ya codificada como `data:image/png;base64,...` (opcional).
 export function receiptCardSvg(data: CardData, _style: CardStyle = "minimal", fonts: CardFonts = WEB_FONTS, background: string | null = null): string {

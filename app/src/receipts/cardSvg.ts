@@ -85,6 +85,19 @@ function lines(values: string[], x: number, y: number, step: number, size: numbe
   return values.map((line, i) => text(line, x, y + i * step, size, fill, font, "700", `text-anchor="${anchor}"`)).join("");
 }
 
+// La versión compacta es para verla chica (la grilla): solo el título y la nota, grandes. El resto se ve al entrar.
+function compactBody(d: CardData, fonts: CardFonts): string {
+  const title = wrap(d.title || "Changa", 13, 4);
+  return [
+    `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paletteOf(d.category).deep}"/>`,
+    reedsGroup(REEDS_OPACITY, "#000000"),
+    `<rect width="26" height="${CARD_HEIGHT}" fill="${SAND}"/>`,
+    lines(title, 76, 170, 84, 72, BACKGROUND, fonts.bold),
+    text(`${d.rating}`, 70, 740, 300, SAND, fonts.bold, "700"),
+    text("/ 5", 270, 740, 100, SAND, fonts.regular, "400"),
+  ].join("");
+}
+
 function cardBody(d: CardData, fonts: CardFonts): string {
   const c = paletteOf(d.category);
   const title = wrap(d.title || "Changa", 17, 3);
@@ -119,8 +132,8 @@ function reedsGroup(opacity: number, fill: string): string {
   return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${REEDS_SCALE})" opacity="${opacity}"><path d="${REEDS.path}" fill="${fill}"/></g>`;
 }
 
-export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS): string {
+export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, compact = false): string {
   const rating = Math.min(5, Math.max(0, Math.round(data.rating)));
-  const body = cardBody({ ...data, rating }, fonts);
+  const body = compact ? compactBody({ ...data, rating }, fonts) : cardBody({ ...data, rating }, fonts);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" height="${CARD_HEIGHT}">${body}</svg>`;
 }

@@ -62,14 +62,12 @@ contract ScenariosTest is Test {
             method: DepositMethod.Permit,
             smallMax: uint128(20 * USDC),
             mediumMax: uint128(300 * USDC),
-            witnessAmount: uint128(300 * USDC),
             reputationMin: uint128(5 * USDC),
             feeFloor: uint128(USDC / 4),
             feeCap: uint128(5 * USDC),
             cashFeeFloor: uint128(USDC),
             reservationCap: uint128(10 * USDC),
-            jurorFee: uint128(USDC),
-            witnessFee: uint128(USDC)
+            jurorFee: uint128(USDC)
         });
         vm.startPrank(admin);
         d.escrow.configureToken(address(usdc), config);

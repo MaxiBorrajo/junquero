@@ -60,7 +60,7 @@ Nombre público: Junquero (pájaro *Phleocryptes melanops*). Nombre interno de r
 - Una moneda por changa, de una lista blanca; sin cambio entre monedas.
 - Tamaños: chica hasta 20 USDC (disputa 50/50 sin jurado), media 20 a 300, alta más de 300.
 - Hitos opcionales: los elige quien publica, sin umbral de monto ni de plazo. La app lo sugiere en trabajos grandes o largos (más de 500 USDC o más de 5 días) pero no obliga. Anticipo para materiales: máximo 30% y 5 changas cerradas sin disputa.
-- Testigo obligatorio por encima de 300 USDC.
+- ~~Testigo obligatorio por encima de 300 USDC.~~ Eliminado el 2026-11-24: el testigo se sacó del contrato porque no aportaba.
 - Grupal: aportes de 5% a 50% por persona; cada aportante hace su propio depósito y puede retirarse hasta el acuerdo; si vence el plazo sin completar, cada uno recupera lo suyo.
 
 **Cancelación**
@@ -85,7 +85,7 @@ Nombre público: Junquero (pájaro *Phleocryptes melanops*). Nombre interno de r
 
 **Identidad, reputación, gobernanza**
 - Solo nivel 0 en el TP. Niveles 1 y 2 y las capas contra changas falsas quedan fuera.
-- Reputación por rol (prestador, solicitante, testigo, jurado); sube solo si la changa pagada por la plataforma supera 5 USDC y suman como máximo 2 changas con la misma contraparte.
+- Reputación por rol (prestador, solicitante, jurado); sube solo si la changa pagada por la plataforma supera 5 USDC y suman como máximo 2 changas con la misma contraparte.
 - Voto por actividad; todo cambio de parámetros pasa por Timelock.
 - Un solo administrador (la billetera de Maxi), con permisos por AccessControl: modera, verifica selfies, opera el servidor y resuelve reclamos de emergencia. No mueve fondos ni cambia parámetros.
 
@@ -143,7 +143,7 @@ Foundry está instalado en `~/.foundry/bin`, que no está en el `PATH` de la she
 - Estados: `None, Open, Reserved, Agreed, Delivered, Disputed, Settled, Cancelled`.
 - `agree` devuelve al solicitante la diferencia entre lo depositado y el precio acordado, y clasifica el tamaño (chica, media, alta) según los umbrales del token.
 - `release` lo llama el prestador con la firma del solicitante. En efectivo solo cierra y emite el evento, sin mover dinero.
-- `TokenConfig` por moneda: lista blanca, método de depósito, umbrales de tamaño, monto de hito, monto de testigo, reputación mínima, piso y tope de comisión, piso de tarifa en efectivo y tope de compensación de reserva.
+- `TokenConfig` por moneda: lista blanca, método de depósito, umbrales de tamaño, monto de hito, reputación mínima, piso y tope de comisión, piso de tarifa en efectivo y tope de compensación de reserva.
 - Roles: `DEFAULT_ADMIN_ROLE` y `TOKEN_ADMIN_ROLE`.
 - Parámetros definidos en los tests (son valores de prueba, no valores finales): comisión 0–200 bps (0 por defecto), liberación automática corta de 1 hora a 7 días (24 h), gracia de reserva 12 h, crecimiento de reserva 3 días, máximo de reserva 200 bps, comisión de efectivo 0–1000 bps (500 en los tests, mientras el diseño dice 2%), cancelación tras acordar 10%, parte del prestador 80%, no presentación 10%, espera de 20 minutos, aviso de cancelación gratis 24 h, 2 por cuenta y 1 por pareja por mes.
 
@@ -160,7 +160,7 @@ Foundry está instalado en `~/.foundry/bin`, que no está en el `PATH` de la she
 | `Comprobante` (ERC-721 intransferible, ERC-5192) | Sin empezar; OpenZeppelin no trae ERC-5192 |
 | `Credentials`, `Reputation`, `VoteWeight` | Sin empezar |
 | `Governor` y `TimelockController` | Sin empezar |
-| Testigos (atestado y tarifa) | Sin empezar |
+| Testigos (atestado y tarifa) | Eliminado el 2026-11-24 (se sacó del contrato) |
 | Despliegue real en Sepolia | Sin hacer; el script `contracts/script/Deploy.s.sol` existe y tiene test |
 | Despliegue en Sepolia y direcciones | No hecho; falta la dirección de Permit2 en Sepolia y Arbitrum |
 | Cobro de comisión de plataforma al liberar | El cálculo existe (`_protocolFee`); revisar los tests antes de darlo por cerrado |

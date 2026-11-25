@@ -98,9 +98,8 @@ contract DeployTest is Test {
         assertEq(deployment.registry.get(ParameterKeys.GROUP_VETO_WINDOW), 24 hours);
     }
 
-    function test_witnessModuleIsRoutedAndTheEscrowCanPayFromTheTreasury() public view {
-        assertTrue(deployment.escrow.moduleOf(IEscrow.attest.selector) != address(0));
-        assertTrue(deployment.treasury.hasRole(deployment.treasury.SPENDER_ROLE(), address(deployment.escrow)));
+    function test_theEscrowHasNoSpendingRoleOnTheTreasury() public view {
+        assertFalse(deployment.treasury.hasRole(deployment.treasury.SPENDER_ROLE(), address(deployment.escrow)));
     }
 
     function test_governanceIsWiredAndAdministeredByNobodyElse() public view {

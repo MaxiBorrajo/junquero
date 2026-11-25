@@ -12,7 +12,7 @@ Para probar a mano, con la app, el servidor y el panel, antes de la entrega del 
 
 **Dentro del alcance:** publicar y explorar, postulación y acuerdo, chat, hacer la changa y cobrar, hitos, cancelaciones, reclamo y jurado, perfil, panel de administración y casos transversales.
 
-**Fuera del alcance por ahora (implementación futura):** changa grupal, votación de parámetros, pago en efectivo, testigo, notificaciones push reales y algunas funciones del panel. Sus pruebas están en `Junquero - pruebas de implementacion futura.md` y no cuentan en el resumen de este plan. El jurado sí está dentro del alcance. Los cambios de contrato ya anotados para los reclamos están en `Junquero - plan a futuro.md` y en `Junquero - cambios de contrato pendientes.md`.
+**Fuera del alcance por ahora (implementación futura):** changa grupal, votación de parámetros, pago en efectivo, notificaciones push reales y algunas funciones del panel. Sus pruebas están en `Junquero - pruebas de implementacion futura.md` y no cuentan en el resumen de este plan. El jurado sí está dentro del alcance. Los cambios de contrato ya anotados para los reclamos están en `Junquero - plan a futuro.md` y en `Junquero - cambios de contrato pendientes.md`.
 
 ## 0. Preparación
 
@@ -29,7 +29,7 @@ Cada rol es una billetera distinta. Los nombres son solo para este documento.
 | Admin | Panel de administración | 1 | La cuenta `0x4E5e…6511`, la del despliegue |
 | Relayer | Paga el gas de las operaciones | 1 | No es una persona: tiene que tener ETH de Sepolia |
 
-Las cuentas de demo ya están creadas en Sepolia (solicitante, prestador, cinco jurados, tres aportantes y un testigo), con credencial de nivel 0, jurados semilla y fondos de prueba. Sus direcciones están en `demoAccounts` de `contracts/deployments/sepolia.json` y sus claves en los keystores de Foundry de la compu de Maxi. Se pueden importar a MetaMask para no tener que crear ni fondear cuentas nuevas.
+Las cuentas de demo ya están creadas en Sepolia (solicitante, prestador, cinco jurados y tres aportantes), con credencial de nivel 0, jurados semilla y fondos de prueba. Sus direcciones están en `demoAccounts` de `contracts/deployments/sepolia.json` y sus claves en los keystores de Foundry de la compu de Maxi. Se pueden importar a MetaMask para no tener que crear ni fondear cuentas nuevas.
 
 Con dos celulares o un celular y el emulador alcanza para los flujos de dos partes. Para jurados y aportantes se cambia de cuenta en la misma billetera o se usa más de un dispositivo.
 
@@ -191,7 +191,7 @@ Las pruebas 8.3.1 a 8.3.4 y 8.3.14 ya están hechas: ver `Junquero - pruebas rea
 - Esperado: el backend resuelve solo a favor de quien reclamó: el pago va a su favor y se le devuelve el costo del reclamo. El trabajo dice a Ana "Ganaste el reclamo… La otra parte no respondió a tiempo" y a Beto "Perdiste el reclamo… No respondiste a tiempo". Un relato subido fuera de plazo no se acepta.
 
 ### 8.4 Changa alta (más de 300 USDC, 5 jurados)
-- [ ] Repetir 8.3 con 5 jurados. Las changas altas piden testigo (ver sección 12). Hacen falta al menos 5 jurados habilitados que no sean parte; el costo del reclamo es de 5 USDC y una apelación necesitaría 11 jurados más, lo que con las cuentas de demo no alcanza.
+- [ ] Repetir 8.3 con 5 jurados. Hacen falta al menos 5 jurados habilitados que no sean parte; el costo del reclamo es de 5 USDC y una apelación necesitaría 11 jurados más, lo que con las cuentas de demo no alcanza.
 
 ### 8.5 Acuerdo amistoso
 - No disponible: el contrato no tiene resolución por acuerdo entre las partes. Está en el plan a futuro (sección 7).
@@ -200,7 +200,7 @@ Las pruebas 8.3.1 a 8.3.4 y 8.3.14 ya están hechas: ver `Junquero - pruebas rea
 
 ## 9. Implementación futura (pasó a otro documento)
 
-Lo que todavía no está desarrollado o está fuera del alcance se prueba en **`Junquero - pruebas de implementacion futura.md`**: la changa grupal (antes sección 9 y 9.10), votar un parámetro (antes 12), pago en efectivo (antes 13), testigo (antes 14), las notificaciones push reales (4.4), suspender usuarios y el fondo, los parámetros y las métricas del panel (11.5 y 11.9) y las pruebas 7.9, 7.10 y 7.11. Los números de las demás secciones no cambiaron.
+Lo que todavía no está desarrollado o está fuera del alcance se prueba en **`Junquero - pruebas de implementacion futura.md`**: la changa grupal (antes sección 9 y 9.10), votar un parámetro (antes 12), pago en efectivo (antes 13), las notificaciones push reales (4.4), suspender usuarios y el fondo, los parámetros y las métricas del panel (11.5 y 11.9) y las pruebas 7.9, 7.10 y 7.11. Los números de las demás secciones no cambiaron.
 
 ---
 
@@ -257,7 +257,7 @@ Completar al terminar cada sesión de pruebas. Los números de "OK" cuentan las 
 | 10. Perfil y ajustes | 5 | 5 | 0 | 0 |
 | 11. Panel | 8 | 5 | 0 | 3 |
 | 15. Transversales | 22 | 21 | 0 | 1 |
-| Implementación futura (grupal, votación, efectivo, testigo, push, panel) | En otro documento | | | |
+| Implementación futura (grupal, votación, efectivo, push, panel) | En otro documento | | | |
 
 **Fallas encontradas** (anotar acá y arreglar después):
 

@@ -12,5 +12,5 @@ export const escrowAbi = parseAbi([
   "function createOrder(CreateParams params, DepositAuth auth) returns (uint256 orderId)",
   "function minCancelFee(address token) view returns (uint128)",
   "function smallDisputesUsed(address account) view returns (uint8)",
-  "function tokenConfig(address token) view returns ((bool allowed, uint8 method, uint128 smallMax, uint128 mediumMax, uint128 witnessAmount, uint128 reputationMin, uint128 feeFloor, uint128 feeCap, uint128 cashFeeFloor, uint128 reservationCap, uint128 jurorFee))",
+  "function tokenConfig(address token) view returns ((bool allowed, uint8 method, uint128 smallMax, uint128 mediumMax, uint128 reputationMin, uint128 feeFloor, uint128 feeCap, uint128 cashFeeFloor, uint128 reservationCap, uint128 jurorFee))",
 ]);

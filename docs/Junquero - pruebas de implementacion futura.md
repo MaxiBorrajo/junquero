@@ -11,7 +11,6 @@ Los números de las secciones se conservaron para que las referencias de otros d
 | Changa grupal y cambio de coordinador | E | Sección 9 |
 | Votar parámetros | F | Sección 12 |
 | Pago en efectivo | B | Sección 13 |
-| Testigo en changas de más de 300 USDC | | Sección 14 |
 | Notificaciones push reales | | Sección 4.4 |
 | Panel: suspender usuarios, fondo y parámetros, métricas con exportación | H | Sección 11 |
 | Cambios de contrato y de diseño ya anotados | | Sección 8 |
@@ -132,14 +131,9 @@ El contrato tiene la modalidad (tarifa de publicación de 1 USDC más 2% y menor
 - [ ] 13.3 Reputación: la changa en efectivo suma menos que una con pago en garantía.
 - [ ] 13.4 Reclamo en una changa en efectivo: qué se resuelve y qué no (la plata no está en el contrato).
 
-## 14. 🛠 POR DESARROLLAR: testigo en changas de más de 300 USDC
+## 14. Eliminada
 
-El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. Cuando se desarrolle, pruebas a agregar:
-- [ ] 14.1 Una changa de más de 300 USDC exige asignar un testigo al acordar.
-- [ ] 14.2 El testigo recibe el aviso y ve la evidencia.
-- [ ] 14.3 El testigo atesta que el trabajo se hizo y se libera el pago; sin su atestación no se libera.
-- [ ] 14.4 El testigo no puede ser una de las partes.
-- [ ] 14.5 Testigo que no responde: qué pasa con el plazo y el reclamo.
+El testigo se eliminó del producto el 2026-11-24 (no aportaba). No hay pruebas pendientes en esta sección.
 
 ## 14b. Resumen de lo que está por desarrollar o fuera del alcance
 
@@ -147,7 +141,6 @@ El contrato y el servidor lo tienen (asignar y atestar), pero no hay pantalla. C
 | --- | --- | --- |
 | Votar parámetros (F) | Fuera del alcance por ahora | 12 |
 | Pago en efectivo (B) | Fuera del alcance por ahora | 13 |
-| Testigo | No se puede | 14 |
 | Changa grupal (E) y cambio de coordinador | Fuera del alcance por ahora | 9, 9.10 |
 | Suspender usuarios en el panel | No se puede | 11.5 |
 | Fondo y parámetros en el panel | No se puede | 11.9 |

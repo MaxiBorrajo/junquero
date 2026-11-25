@@ -401,30 +401,6 @@
   "stateMutability": "view"
  },
  {
-  "type": "function",
-  "name": "witnessOwed",
-  "inputs": [
-   {
-    "name": "token",
-    "type": "address",
-    "internalType": "address"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "internalType": "address"
-   }
-  ],
-  "outputs": [
-   {
-    "name": "",
-    "type": "uint256",
-    "internalType": "uint256"
-   }
-  ],
-  "stateMutability": "view"
- },
- {
   "type": "event",
   "name": "ArbitrationUpdated",
   "inputs": [
@@ -452,43 +428,6 @@
     "type": "address",
     "indexed": true,
     "internalType": "address"
-   }
-  ],
-  "anonymous": false
- },
- {
-  "type": "event",
-  "name": "Attested",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "indexed": true,
-    "internalType": "uint256"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "indexed": true,
-    "internalType": "address"
-   },
-   {
-    "name": "index",
-    "type": "uint8",
-    "indexed": false,
-    "internalType": "uint8"
-   },
-   {
-    "name": "evidenceHash",
-    "type": "bytes32",
-    "indexed": false,
-    "internalType": "bytes32"
-   },
-   {
-    "name": "approved",
-    "type": "bool",
-    "indexed": false,
-    "internalType": "bool"
    }
   ],
   "anonymous": false
@@ -1612,11 +1551,6 @@
       "internalType": "uint128"
      },
      {
-      "name": "witnessAmount",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
       "name": "reputationMin",
       "type": "uint128",
       "internalType": "uint128"
@@ -1645,107 +1579,8 @@
       "name": "jurorFee",
       "type": "uint128",
       "internalType": "uint128"
-     },
-     {
-      "name": "witnessFee",
-      "type": "uint128",
-      "internalType": "uint128"
      }
     ]
-   }
-  ],
-  "anonymous": false
- },
- {
-  "type": "event",
-  "name": "WitnessAssigned",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "indexed": true,
-    "internalType": "uint256"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "indexed": true,
-    "internalType": "address"
-   }
-  ],
-  "anonymous": false
- },
- {
-  "type": "event",
-  "name": "WitnessFeeClaimed",
-  "inputs": [
-   {
-    "name": "token",
-    "type": "address",
-    "indexed": true,
-    "internalType": "address"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "indexed": true,
-    "internalType": "address"
-   },
-   {
-    "name": "amount",
-    "type": "uint256",
-    "indexed": false,
-    "internalType": "uint256"
-   }
-  ],
-  "anonymous": false
- },
- {
-  "type": "event",
-  "name": "WitnessFeeOwed",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "indexed": true,
-    "internalType": "uint256"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "indexed": true,
-    "internalType": "address"
-   },
-   {
-    "name": "fee",
-    "type": "uint128",
-    "indexed": false,
-    "internalType": "uint128"
-   }
-  ],
-  "anonymous": false
- },
- {
-  "type": "event",
-  "name": "WitnessPaid",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "indexed": true,
-    "internalType": "uint256"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "indexed": true,
-    "internalType": "address"
-   },
-   {
-    "name": "fee",
-    "type": "uint128",
-    "indexed": false,
-    "internalType": "uint128"
    }
   ],
   "anonymous": false
@@ -1780,17 +1615,6 @@
   "type": "error",
   "name": "AgreementMismatch",
   "inputs": []
- },
- {
-  "type": "error",
-  "name": "AlreadyAttested",
-  "inputs": [
-   {
-    "name": "index",
-    "type": "uint8",
-    "internalType": "uint8"
-   }
-  ]
  },
  {
   "type": "error",
@@ -2051,17 +1875,6 @@
   "type": "error",
   "name": "InvalidThresholds",
   "inputs": []
- },
- {
-  "type": "error",
-  "name": "InvalidWitness",
-  "inputs": [
-   {
-    "name": "witness",
-    "type": "address",
-    "internalType": "address"
-   }
-  ]
  },
  {
   "type": "error",
@@ -2368,38 +2181,6 @@
     "internalType": "uint40"
    }
   ]
- },
- {
-  "type": "error",
-  "name": "WitnessAlreadyAssigned",
-  "inputs": [
-   {
-    "name": "witness",
-    "type": "address",
-    "internalType": "address"
-   }
-  ]
- },
- {
-  "type": "error",
-  "name": "WitnessAttestationMissing",
-  "inputs": [
-   {
-    "name": "index",
-    "type": "uint8",
-    "internalType": "uint8"
-   }
-  ]
- },
- {
-  "type": "error",
-  "name": "WitnessNotAssigned",
-  "inputs": []
- },
- {
-  "type": "error",
-  "name": "WitnessRequired",
-  "inputs": []
  },
  {
   "type": "error",
@@ -2900,11 +2681,6 @@
       "internalType": "uint128"
      },
      {
-      "name": "witnessAmount",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
       "name": "reputationMin",
       "type": "uint128",
       "internalType": "uint128"
@@ -2931,11 +2707,6 @@
      },
      {
       "name": "jurorFee",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
-      "name": "witnessFee",
       "type": "uint128",
       "internalType": "uint128"
      }
@@ -3169,11 +2940,6 @@
       "internalType": "uint128"
      },
      {
-      "name": "witnessAmount",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
       "name": "reputationMin",
       "type": "uint128",
       "internalType": "uint128"
@@ -3200,11 +2966,6 @@
      },
      {
       "name": "jurorFee",
-      "type": "uint128",
-      "internalType": "uint128"
-     },
-     {
-      "name": "witnessFee",
       "type": "uint128",
       "internalType": "uint128"
      }
@@ -4110,164 +3871,6 @@
   ],
   "outputs": [],
   "stateMutability": "nonpayable"
- },
- {
-  "type": "function",
-  "name": "assignWitness",
-  "inputs": [
-   {
-    "name": "assignment",
-    "type": "tuple",
-    "internalType": "struct WitnessAssignment",
-    "components": [
-     {
-      "name": "orderId",
-      "type": "uint256",
-      "internalType": "uint256"
-     },
-     {
-      "name": "witness",
-      "type": "address",
-      "internalType": "address"
-     },
-     {
-      "name": "expiry",
-      "type": "uint40",
-      "internalType": "uint40"
-     }
-    ]
-   },
-   {
-    "name": "payerSignature",
-    "type": "bytes",
-    "internalType": "bytes"
-   },
-   {
-    "name": "payeeSignature",
-    "type": "bytes",
-    "internalType": "bytes"
-   }
-  ],
-  "outputs": [],
-  "stateMutability": "nonpayable"
- },
- {
-  "type": "function",
-  "name": "attest",
-  "inputs": [
-   {
-    "name": "attestation",
-    "type": "tuple",
-    "internalType": "struct Attestation",
-    "components": [
-     {
-      "name": "orderId",
-      "type": "uint256",
-      "internalType": "uint256"
-     },
-     {
-      "name": "index",
-      "type": "uint8",
-      "internalType": "uint8"
-     },
-     {
-      "name": "evidenceHash",
-      "type": "bytes32",
-      "internalType": "bytes32"
-     },
-     {
-      "name": "approved",
-      "type": "bool",
-      "internalType": "bool"
-     },
-     {
-      "name": "expiry",
-      "type": "uint40",
-      "internalType": "uint40"
-     }
-    ]
-   },
-   {
-    "name": "witnessSignature",
-    "type": "bytes",
-    "internalType": "bytes"
-   }
-  ],
-  "outputs": [],
-  "stateMutability": "nonpayable"
- },
- {
-  "type": "function",
-  "name": "attestationOf",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "internalType": "uint256"
-   },
-   {
-    "name": "index",
-    "type": "uint8",
-    "internalType": "uint8"
-   }
-  ],
-  "outputs": [
-   {
-    "name": "",
-    "type": "tuple",
-    "internalType": "struct AttestationRecord",
-    "components": [
-     {
-      "name": "evidenceHash",
-      "type": "bytes32",
-      "internalType": "bytes32"
-     },
-     {
-      "name": "approved",
-      "type": "bool",
-      "internalType": "bool"
-     }
-    ]
-   }
-  ],
-  "stateMutability": "view"
- },
- {
-  "type": "function",
-  "name": "claimWitnessFee",
-  "inputs": [
-   {
-    "name": "token",
-    "type": "address",
-    "internalType": "address"
-   },
-   {
-    "name": "witness",
-    "type": "address",
-    "internalType": "address"
-   }
-  ],
-  "outputs": [],
-  "stateMutability": "nonpayable"
- },
- {
-  "type": "function",
-  "name": "witnessOf",
-  "inputs": [
-   {
-    "name": "orderId",
-    "type": "uint256",
-    "internalType": "uint256"
-   }
-  ],
-  "outputs": [
-   {
-    "name": "",
-    "type": "address",
-    "internalType": "address"
-   }
-  ],
-  "stateMutability": "view"
  },
  {
   "type": "function",

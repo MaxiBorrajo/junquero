@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {WitnessBase} from "./WitnessBase.sol";
+import {GroupBase} from "./GroupBase.sol";
 import {IEscrow} from "../src/interfaces/IEscrow.sol";
 import {EscrowHashes} from "../src/libraries/EscrowHashes.sol";
 import {ERC2771Forwarder} from "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
@@ -13,12 +13,10 @@ import {
     Release,
     MilestoneRelease,
     MilestoneTerms,
-    WitnessAssignment,
-    Attestation,
     DepositAuth
 } from "../src/libraries/OrderTypes.sol";
 
-contract VectorsTest is WitnessBase {
+contract VectorsTest is GroupBase {
     string internal vectors;
 
     function _q(string memory value) internal pure returns (string memory) {
@@ -91,8 +89,6 @@ contract VectorsTest is WitnessBase {
             '"Agreement":[{"name":"orderId","type":"uint256"},{"name":"payer","type":"address"},{"name":"payee","type":"address"},{"name":"price","type":"uint128"},{"name":"specHash","type":"bytes32"},{"name":"termsHash","type":"bytes32"},{"name":"expiry","type":"uint40"}],',
             '"Release":[{"name":"orderId","type":"uint256"},{"name":"payee","type":"address"},{"name":"amount","type":"uint128"},{"name":"rating","type":"uint8"},{"name":"evidenceHash","type":"bytes32"},{"name":"expiry","type":"uint40"}],',
             '"MilestoneRelease":[{"name":"orderId","type":"uint256"},{"name":"index","type":"uint8"},{"name":"amount","type":"uint128"},{"name":"rating","type":"uint8"},{"name":"evidenceHash","type":"bytes32"},{"name":"expiry","type":"uint40"}],',
-            '"WitnessAssignment":[{"name":"orderId","type":"uint256"},{"name":"witness","type":"address"},{"name":"expiry","type":"uint40"}],',
-            '"Attestation":[{"name":"orderId","type":"uint256"},{"name":"index","type":"uint8"},{"name":"evidenceHash","type":"bytes32"},{"name":"approved","type":"bool"},{"name":"expiry","type":"uint40"}],',
             '"Permit":[{"name":"owner","type":"address"},{"name":"spender","type":"address"},{"name":"value","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"deadline","type":"uint256"}],',
             '"ForwardRequest":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"},{"name":"gas","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"deadline","type":"uint48"},{"name":"data","type":"bytes"}]',
             "}"
@@ -127,26 +123,22 @@ contract VectorsTest is WitnessBase {
         string memory permitVector = _permitVector();
         string memory reservationVector = _reservationVector();
         string memory agreementVector = _agreementVector();
-        string memory witnessVectors = _witnessVectors();
         string memory releaseVector = _releaseVector();
         string memory milestoneVectors = _milestoneVectors();
         string memory forwardVector = _forwardVector();
 
-        string[] memory vectorParts = new string[](9);
+        string[] memory vectorParts = new string[](7);
         vectorParts[0] = string.concat('"permit":', permitVector);
         vectorParts[1] = string.concat('"reservation":', reservationVector);
         vectorParts[2] = string.concat('"agreement":', agreementVector);
-        vectorParts[3] = string.concat('"witnessAssignment":', _field0(witnessVectors));
-        vectorParts[4] = string.concat('"attestation":', _field1(witnessVectors));
-        vectorParts[5] = string.concat('"release":', releaseVector);
-        vectorParts[6] = string.concat('"milestoneAgreement":', _field0(milestoneVectors));
-        vectorParts[7] = string.concat('"milestoneRelease":', _field1(milestoneVectors));
-        vectorParts[8] = string.concat('"forwardRequest":', forwardVector);
+        vectorParts[3] = string.concat('"release":', releaseVector);
+        vectorParts[4] = string.concat('"milestoneAgreement":', _field0(milestoneVectors));
+        vectorParts[5] = string.concat('"milestoneRelease":', _field1(milestoneVectors));
+        vectorParts[6] = string.concat('"forwardRequest":', forwardVector);
 
-        string[] memory accountParts = new string[](3);
+        string[] memory accountParts = new string[](2);
         accountParts[0] = string.concat('"payer":', _account(payer, payerKey));
         accountParts[1] = string.concat('"payee":', _account(payee, payeeKey));
-        accountParts[2] = string.concat('"witness":', _account(witness, witnessKey));
 
         string[] memory root = new string[](7);
         root[0] = _field(
@@ -278,54 +270,11 @@ contract VectorsTest is WitnessBase {
         );
     }
 
-    function _witnessVectors() internal returns (string memory) {
-        WitnessAssignment memory assignment = _assignment(1);
-        bytes32 assignmentHash = EscrowHashes.hash(assignment);
-        bytes memory payerSig = _sign(payerKey, assignmentHash);
-        bytes memory payeeSig = _sign(payeeKey, assignmentHash);
-        vm.prank(relayer);
-        escrow.assignWitness(assignment, payerSig, payeeSig);
-        string[] memory assignmentMessage = new string[](3);
-        assignmentMessage[0] = _num("orderId", assignment.orderId);
-        assignmentMessage[1] = _addr("witness", assignment.witness);
-        assignmentMessage[2] = _num("expiry", assignment.expiry);
-
-        vm.prank(payee);
-        escrow.deliver(1, EVIDENCE);
-        Attestation memory attestation = _attestation(1, 0, EVIDENCE, true);
-        bytes32 attestationHash = EscrowHashes.hash(attestation);
-        bytes memory witnessSig = _sign(witnessKey, attestationHash);
-        vm.prank(relayer);
-        escrow.attest(attestation, witnessSig);
-        string[] memory attestationMessage = new string[](5);
-        attestationMessage[0] = _num("orderId", attestation.orderId);
-        attestationMessage[1] = _num("index", attestation.index);
-        attestationMessage[2] = _hex("evidenceHash", attestation.evidenceHash);
-        attestationMessage[3] = string.concat('"approved":', attestation.approved ? "true" : "false");
-        attestationMessage[4] = _num("expiry", attestation.expiry);
-
-        return string.concat(
-            _vector(
-                "WitnessAssignment",
-                _join(assignmentMessage),
-                assignmentHash,
-                "escrow",
-                _signatures2(payerSig, payeeSig, "payer", "payee")
-            ),
-            "|||",
-            _vector(
-                "Attestation",
-                _join(attestationMessage),
-                attestationHash,
-                "escrow",
-                _obj2s0(_bytes("witness", witnessSig))
-            )
-        );
-    }
-
     function _releaseVector() internal returns (string memory) {
         (Release memory r, bytes memory sig) = _release(1, 100 * USDC, 5);
         bytes32 structHash = _releaseHash(r);
+        vm.prank(payee);
+        escrow.deliver(1, EVIDENCE);
         vm.prank(payee);
         escrow.release(r, sig);
 
@@ -349,9 +298,7 @@ contract VectorsTest is WitnessBase {
         bytes memory payeeSig = _sign(payeeKey, structHash);
         vm.prank(relayer);
         escrow.agreeWithMilestones(a, terms, payerSig, payeeSig);
-        _assignWitness(orderId);
         _deliverAt(orderId, 0);
-        _attest(orderId, 0, keccak256(abi.encode("evidence", uint8(0))), true);
 
         (MilestoneRelease memory release, bytes memory sig) = _msRelease(orderId, 0, 100 * USDC, 5);
         vm.prank(payee);

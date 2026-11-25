@@ -58,7 +58,7 @@ Diez contratos; el dinero de los usuarios vive solo en el escrow.
 | Treasury | Recibe comisiones; contrato aparte del escrow |
 | ParameterRegistry | Parámetros con mínimo y máximo; solo el Timelock los cambia |
 | Credentials | Niveles de cuenta como credenciales intransferibles |
-| Reputation | Historial por persona y por rol (prestador, solicitante, testigo, jurado); lo actualizan eventos del escrow |
+| Reputation | Historial por persona y por rol (prestador, solicitante, jurado); lo actualizan eventos del escrow |
 | Arbitration | Jurados, votos cifrados (commit-reveal), apelación, stake; sorteo por compromiso y revelación; quien no revela pierde el stake |
 | VotingWeight | Peso de voto por actividad (IVotes), no se compra ni se transfiere |
 | ProtocolGovernor y TimelockController | Votación con espera obligatoria; multisig del equipo al inicio |
@@ -78,7 +78,6 @@ Estándares: EIP-712, EIP-2612 (permit), Permit2, ERC-20 con SafeERC20, Signatur
 - Compensación por no presentarse: 10% del monto.
 - Tamaño de changa: chica hasta 20 USDC (disputa 50/50 automática), media 20 a 300, alta más de 300.
 - Hitos opcionales: los elige quien publica, sin umbral de monto ni de plazo. La app lo sugiere en trabajos grandes o largos (más de 500 USDC o más de 5 días) pero no obliga. Anticipo para materiales: máximo 30%, con 5 changas cerradas sin disputa.
-- Testigo obligatorio: más de 300 USDC.
 - Changa grupal: aportes de 5% a 50% por persona; cada aportante hace su propio depósito (una transacción con permiso firmado, cargo de red a su cargo) y puede retirarse hasta el acuerdo; si vence el plazo sin completar la meta, cada uno recupera lo suyo.
 
 ### Cierre

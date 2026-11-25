@@ -35,7 +35,7 @@ Cambios hechos por la revisión:
 2. **Costo del arbitraje y de la apelación.** Lo adelanta quien reclama (y quien apela). Si gana, se reintegra desde la parte de quien perdió, hasta donde alcance. Como los jurados deciden todo o nada, quien perdió todo no tiene nada de qué reintegrar, y el ganador termina pagando el costo.
 3. **Anticipo.** Es el primer hito. No hay recuperación on-chain si el prestador cobra y no entrega.
 4. **Administrador.** Mientras no se traspase el control, un solo administrador configura monedas, parámetros y conexiones. El traspaso al Timelock es un paso aparte (`GOVERNANCE`).
-5. **Tesoro y testigo.** El Escrow puede retirar del tesoro solo por el camino de la tarifa del testigo. Si el tesoro está vacío, la tarifa queda como deuda.
+5. **Tesoro.** El Escrow no tiene permiso para retirar del tesoro; solo lo mueve la gobernanza.
 6. **Monedas.** Solo las de la lista blanca. Las que cobran comisión por transferencia se rechazan. Una cuenta bloqueada por la moneda no traba un cierre: su parte queda como deuda reclamable.
 7. **Módulos.** Los módulos del Escrow se registran una vez y luego se bloquean; para cambiar la lógica hay que desplegar un Escrow nuevo.
 8. **Apelación.** Hay una sola, la hace quien perdió, con un jurado de 2N+1 que no incluye a los de la primera ronda, y su costo lo adelanta el apelante. Necesita al menos 2N+1 jurados elegibles distintos de los de la primera ronda; si no los hay, el caso termina en emergencia y se devuelve el costo de la apelación.

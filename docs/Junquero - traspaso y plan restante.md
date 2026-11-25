@@ -4,6 +4,8 @@ Escrito el 7 de noviembre de 2026 y actualizado el 8 de noviembre con el desplie
 
 Orden de lectura si hace falta más detalle: `docs/Junquero - CONTEXT.md` (decisiones de producto), `docs/Junquero - especificacion de contratos y pruebas.md` (diseño y avance de los contratos), `contracts/SECURITY.md` (análisis y limitaciones), `docs/Junquero - diseno de pantallas.md` (pantallas) y `docs/Junquero - stack y costos.md` (infraestructura).
 
+> **Nota del 2026-11-24: testigo eliminado del contrato.** Se quitaron `WitnessModule`, `assignWitness`, `attest`, la tarifa y el umbral de 300 USDC para exigirlo. Las changas altas ya no piden testigo. Hay que redesplegar en Sepolia para que el cambio llegue a las direcciones publicadas; las que figuran acá todavía incluyen el módulo.
+
 ## 1. Proyecto y reglas de trabajo
 
 Junquero es un marketplace descentralizado de changas para Argentina, TP de la UNQ (Seminario de Introducción a Blockchain). Entrega estimada: 1 de diciembre de 2026, sin confirmar (no se sabe si es entrega o defensa; Maxi lo consulta al profesor).
@@ -36,7 +38,7 @@ Comandos habituales (desde `contracts/`): `forge build`, `forge test` (tarda cer
 
 Estado verificado: 758 tests en verde (754 más 4 del token de prueba), cobertura 98,8% de líneas y 91,9% de ramas, formato limpio, sin hallazgos nuevos de Slither. Desplegados en Sepolia el 8 de noviembre de 2026 en modo `DEMO` (ventanas de minutos; la liberación automática sigue en 24 h y 72 h), con 104 transacciones y 0 fallos. Direcciones, bloques de despliegue y ABI en `contracts/deployments/`. El control de parámetros ya pasó al Timelock: desde ahora cambiar un parámetro o agregar una moneda requiere una votación.
 
-Cuentas: `deployer` (`0x2105…8560`, ya sin roles) y `admin` (`0x4E5e…6511`, modera, emite credenciales, siembra jurados y resuelve emergencias). Las cuentas de demo (solicitante, prestador, cinco jurados, tres aportantes y un testigo) están en `demoAccounts` de `sepolia.json`, con credencial nivel 0, jurados semilla y fondos de prueba. Las claves se guardan en keystores de Foundry de la máquina de Maxi y nunca se pasan por el chat.
+Cuentas: `deployer` (`0x2105…8560`, ya sin roles) y `admin` (`0x4E5e…6511`, modera, emite credenciales, siembra jurados y resuelve emergencias). Las cuentas de demo (solicitante, prestador, cinco jurados y tres aportantes) están en `demoAccounts` de `sepolia.json`, con credencial nivel 0, jurados semilla y fondos de prueba. Las claves se guardan en keystores de Foundry de la máquina de Maxi y nunca se pasan por el chat.
 
 Moneda en Sepolia: `TestUSDC` (6 decimales, con permit, `mint` abierto con tope de 100.000 por llamada). En producción se pensó USDC (permit), USDT y DAI (Permit2, DAI con 18 decimales), sin moneda en pesos. Pendiente: agregar tokens de prueba USDT y DAI en Sepolia.
 
@@ -44,9 +46,9 @@ Scripts en `contracts/script/`: `Deploy.s.sol`, `Verify.s.sol` (70 comprobacione
 
 | Contrato | Función |
 | --- | --- |
-| `Escrow` (router de 3,9 KB) y módulos `OrderModule`, `CancelModule`, `AdminModule`, `DisputeModule`, `MilestoneModule`, `GroupModule`, `WitnessModule` | Una sola dirección y una sola caja de datos; la lógica vive en módulos por `delegatecall` porque el Escrow superó el límite de 24 KB. Módulos fijos tras `lockModules()` |
+| `Escrow` (router de 3,9 KB) y módulos `OrderModule`, `CancelModule`, `AdminModule`, `DisputeModule`, `MilestoneModule`, `GroupModule` | Una sola dirección y una sola caja de datos; la lógica vive en módulos por `delegatecall` porque el Escrow superó el límite de 24 KB. Módulos fijos tras `lockModules()` |
 | `ParameterRegistry` | Parámetros con mínimo y máximo; solo el Timelock los cambia tras el traspaso |
-| `Treasury` | Recibe comisiones; el Escrow puede retirar solo por la tarifa del testigo |
+| `Treasury` | Recibe comisiones; el Escrow ya no retira de acá (el testigo se eliminó el 2026-11-24) |
 | `Forwarder` | `ERC2771Forwarder` para que el relayer pague el gas |
 | `Credentials` | Nivel de cuenta como credencial intransferible (ERC-5192); en el TP solo nivel 0 |
 | `Reputation` | Historial por persona y por rol; lo actualizan el Escrow y `Arbitration` |
@@ -117,7 +119,7 @@ Alcance del TP: 37 de 40 funciones; quedan fuera historial y nivel 1, nivel 2 co
 
 ### 4.3 Documentos a actualizar cuando se llegue a la app
 
-- `docs/Junquero - diseno de pantallas.md`: faltan las pantallas de reserva del prestador, propuesta y veto del prestador en grupal, cambio de coordinador, objeción, testigo (asignar y atestar), apelación y la cola de tareas del jurado.
+- `docs/Junquero - diseno de pantallas.md`: faltan las pantallas de reserva del prestador, propuesta y veto del prestador en grupal, cambio de coordinador, objeción, apelación y la cola de tareas del jurado.
 - `docs/Junquero - idea cerrada.md` es la versión vieja del funcional: no usarla.
 - `docs/Junquero - confianza y economia.md`: recalcular la tabla de sostenibilidad, que usa supuestos viejos.
 

@@ -16,7 +16,7 @@ Terminados y con pruebas (758 en verde): pasos 1 a 9 y la apelación. El paso 10
 | 4. Arbitration | Hecho sin apelación | Stake, sorteo por compromiso y revelación, recusaciones, votos cifrados, castigos, árbitro de emergencia, respuesta en 72 horas |
 | 5. Hitos | Hecho | Plan de hitos firmado, pago por QR por hito, liberación automática a las 72 h, anticipo como primer hito, término anticipado, abandono con reapertura, disputa por hito |
 | 6. Changa grupal | Hecho | Fondeo con plazo, aportes de 5% a 50%, retiro hasta el acuerdo, devolución automática proporcional, propuesta de prestador con veto, cambio de coordinador por mayoría de dinero y objeción |
-| 7. Testigo | Hecho | Asignación firmada por las dos partes, atestado firmado por el testigo, compuerta de cobro en changas de más de 300 USDC y tarifa pagada desde el tesoro |
+| 7. Testigo | Eliminado el 2026-11-24 | Se hizo (asignación, atestado, compuerta de cobro y tarifa) y después se sacó del contrato porque no aportaba |
 | 8. Votación y gobernanza | Hecho | `VotingWeight`, `ProtocolGovernor`, Timelock y traspaso del control de parámetros, monedas, roles y tesoro al Timelock |
 | 9. Pruebas finales | Hecho, falta el fork | Invariantes con secuencias aleatorias (200 corridas de 120 acciones), escenarios A a F sobre el despliegue real, vectores de firma para la app (`contracts/vectors/`), cobertura de 98,8% de líneas y 91,9% de ramas, análisis estático con Slither (`contracts/SECURITY.md`) |
 | 10 | Hecho, salvo el fork | Despliegue y publicación en Sepolia hechos; pruebas con bifurcación de Sepolia pendientes |
@@ -24,12 +24,12 @@ Terminados y con pruebas (758 en verde): pasos 1 a 9 y la apelación. El paso 10
 
 **Cambios de diseño respecto de lo especificado**
 
-- **Escrow modular:** el Escrow superó el límite de 24 KB por contrato. Ahora es un router de 3,9 KB que delega en módulos (`OrderModule`, `CancelModule`, `AdminModule`, `DisputeModule`) con la misma dirección y la misma caja de datos. Quedan módulos libres para hitos, grupal y testigo.
+- **Escrow modular:** el Escrow superó el límite de 24 KB por contrato. Ahora es un router de 3,9 KB que delega en módulos (`OrderModule`, `CancelModule`, `AdminModule`, `DisputeModule`) con la misma dirección y la misma caja de datos. Quedan módulos libres para hitos y grupal.
 - **Anticipo (fuera del alcance de la entrega):** la app y el servidor ya no lo ofrecen; el contrato conserva el mecanismo sin uso. Descripción original: el anticipo es el primer hito, pagado al reclamarlo (con tope de 30% y reputación mínima del prestador). No hay recuperación on-chain de lo no gastado; queda como riesgo del solicitante, pensado para anticipos chicos.
 - **Término anticipado y abandono:** el solicitante paga lo ya verificado, el avance reportado del hito en curso y una compensación sobre lo que queda; no puede terminar mientras hay un hito esperando revisión (debe aprobarlo o disputarlo). Si el prestador abandona, la changa vuelve a abierta con los fondos restantes.
 - **Grupal: quién firma y quién cobra.** El coordinador (por defecto quien publica) es el `payer` del Escrow: firma el acuerdo y el QR. Todo reembolso al solicitante se reparte entre los aportantes en proporción a lo que pusieron, y el resto del redondeo va al último.
 - **Grupal: veto y objeción.** El veto del prestador propuesto y la objeción usan el mismo umbral: 25% del dinero o 2 personas distintas. Al alcanzarse la objeción se abre la disputa y el costo del jurado lo adelanta quien la dispara (la última persona en objetar). Las reservas de prestador no existen en changas grupales; las reemplaza la propuesta con ventana de veto de 24 horas.
-- **Testigo: elección y pago.** Una parte lo propone y lo firman las dos partes (también sirve en changas chicas, de forma opcional). El testigo firma un atestado de la entrega (o de cada hito); sin un atestado aprobado no se puede cobrar con QR ni por liberación automática en changas de más de 300 USDC. La disputa con jurado no depende del testigo. La tarifa fija la paga el tesoro (el Escrow tiene permiso de retiro acotado a esto); si el tesoro no tiene fondos, queda como deuda que el testigo reclama después. Las changas que no exigen testigo no pagan tarifa.
+- **Testigo (eliminado el 2026-11-24, ya no existe en el contrato).** Una parte lo propone y lo firman las dos partes (también sirve en changas chicas, de forma opcional). El testigo firma un atestado de la entrega (o de cada hito); sin un atestado aprobado no se puede cobrar con QR ni por liberación automática en changas de más de 300 USDC. La disputa con jurado no depende del testigo. La tarifa fija la paga el tesoro (el Escrow tiene permiso de retiro acotado a esto); si el tesoro no tiene fondos, queda como deuda que el testigo reclama después. Las changas que no exigen testigo no pagan tarifa.
 - **Votación: peso y reglas.** El peso de voto es la cantidad de changas cerradas sin disputa (como prestador, solicitante o jurado) con tope de 20 por cuenta, y solo cuenta con credencial y un depósito de 5 USDC. No se puede delegar a otra cuenta ni transferir. Cada cuenta se sincroniza (`sync`, la puede llamar cualquiera) para que el peso quede registrado antes de la votación; lo ganado después de la propuesta no cuenta. El reloj es por tiempo. Tiempos de producción: 1 día de espera, 5 días de votación, quórum del 10% y 2 días de Timelock; con `DEMO` son minutos.
 - **Traspaso a la gobernanza.** `handOverToGovernance` pasa al Timelock los roles que controlan parámetros, monedas (`configureToken`), conexiones entre contratos y tesoro, y el administrador los renuncia. El administrador conserva solo los roles operativos: moderar, emitir credenciales de nivel 0, sembrar jurados y resolver emergencias. Es un paso aparte del despliegue (variable `GOVERNANCE`), para operar con un solo administrador al principio.
 - **Apelación.** El costo del jurado pasa al contrato de arbitraje apenas se abre la disputa. Con un veredicto claro de la primera ronda se paga a esos jurados y se abre una ventana de apelación (24 horas). Si nadie apela, se ejecuta el reparto. Si apela quien perdió, paga el costo de una segunda ronda con 2N+1 jurados distintos; los de la primera ronda no pueden volver a votar. La segunda ronda es definitiva. Quien gana en definitiva recupera lo que adelantó desde la parte del perdedor, hasta donde alcance. Un empate o falta de jurados lleva a emergencia y se devuelve lo adelantado que no se haya pagado a jurados.
@@ -95,7 +95,9 @@ Todos los contratos con acciones de usuario usan `ERC2771Context` con el `Forwar
 - `object(orderId)`: durante la revisión, un aportante o varios se oponen. Congela el pago si suman al menos `OBJECTION_MONEY_BPS` (25%) del dinero o son al menos `OBJECTION_MIN_PEOPLE` (2) personas distintas, y abre disputa. Si el jurado la considera infundada, los objetores pagan el costo del arbitraje.
 - Reembolsos y sobrantes se reparten proporcionalmente al aporte, con el resto del redondeo asignado al último aportante para que el total cierre exacto.
 
-### 3.5 Testigo
+### 3.5 Testigo (eliminado el 2026-11-24)
+
+Se sacó del contrato: ya no hay `WitnessModule`, `assignWitness`, `attest`, `WITNESS_FEE` ni `witnessAmount`, y las changas altas no lo exigen. El enum `Role` de `Reputation` conserva `Witness` sin uso para no mover los valores de `Juror`. Lo que sigue es el diseño original, sin vigencia.
 
 - Obligatorio por encima de `witnessAmount` (300 USDC). El acuerdo incluye la dirección del testigo (no puede ser parte ni tener vínculo registrado) y se firma por ambos.
 - `attest(Attestation, signature)`: el testigo firma un atestado (EIP-712) del resultado y lo presenta cualquiera. Sin atestado, una changa alta no se libera, salvo por resolución de jurado.
@@ -110,7 +112,7 @@ Todos los contratos con acciones de usuario usan `ERC2771Context` con el `Forwar
 - Lectura: `levelOf(account)`.
 
 ### 4.2 Reputation
-- Un registro por cuenta y por rol (prestador, solicitante, testigo, jurado): changas cerradas, changas cerradas sin disputa, disputas perdidas, suma de calificaciones.
+- Un registro por cuenta y por rol (prestador, solicitante, jurado; el enum conserva `Witness` sin uso): changas cerradas, changas cerradas sin disputa, disputas perdidas, suma de calificaciones.
 - `record(...)` con `RECORDER_ROLE` (`Escrow` y `Arbitration`). Reglas: solo suma si la changa fue pagada por la plataforma y supera 5 USDC; como máximo 2 changas con la misma contraparte; la liberación por silencio cuenta como calificación neutra; las changas en efectivo tienen menor peso y solo con cierre confirmado por ambos.
 - Lectura: `closedWithoutDispute(account)`, `score(account, role)`.
 
@@ -142,7 +144,7 @@ Todos los contratos con acciones de usuario usan `ERC2771Context` con el `Forwar
 Estas propiedades se prueban con fuzz y con pruebas de invariantes, además de los casos puntuales.
 
 1. **Solvencia:** el saldo del escrow en cada token es igual a la suma de lo depositado en changas abiertas y en curso, más los saldos reclamables.
-2. **Conservación:** en toda changa cerrada, pagado al prestador + devuelto al solicitante (o a los aportantes) + comisión + compensaciones + costo de arbitraje + tarifa de testigo = lo depositado. Nada se pierde ni se crea.
+2. **Conservación:** en toda changa cerrada, pagado al prestador + devuelto al solicitante (o a los aportantes) + comisión + compensaciones + costo de arbitraje = lo depositado. Nada se pierde ni se crea.
 3. **Nadie cobra más de lo depositado.**
 4. **Estados:** una changa solo avanza por transiciones válidas; `Settled` y `Cancelled` son finales.
 5. **Una sola salida de fondos por changa:** no hay doble cobro ni por QR repetido ni por liberación automática después de un pago.
@@ -252,7 +254,7 @@ Cada una tiene una recomendación; si estás de acuerdo con todas, sigo con ella
 | --- | --- | --- |
 | D1 | Pagos que fallan (cuenta bloqueada por el token): saldo reclamable | Sí, agregarlo |
 | D2 | Contratos sin actualización (sin proxys) | Sí, inmutables; se redespliega si hace falta |
-| D3 | Testigo: quién lo elige y cómo cobra | Lo propone una de las partes en el acuerdo, lo firman ambas, cobra una tarifa fija desde la comisión |
+| D3 | Testigo: quién lo elige y cómo cobra (eliminado el 2026-11-24) | Lo propone una de las partes en el acuerdo, lo firman ambas, cobra una tarifa fija desde la comisión |
 | D4 | Sorteo de jurados | Compromiso y revelación entre los candidatos, como dicen los docs, con un plazo y reemplazo si alguien no revela |
 | D5 | Moneda del stake de jurados | Una sola moneda configurada (USDC en Sepolia) |
 | D6 | Quién gana si la parte demandada no responde en 72 horas | Gana quien reclama, con el costo a cargo de quien no respondió |
@@ -271,7 +273,7 @@ Cada paso termina con las pruebas en verde y un commit antes de seguir.
 4. **Arbitration** completo (pool, sorteo, votos, apelación, emergencia, stake).
 5. **Hitos, anticipo, término anticipado y abandono.**
 6. **Changa grupal** con objeción.
-7. **Testigo.**
+7. **Testigo.** (eliminado el 2026-11-24)
 8. **VotingWeight, ProtocolGovernor y Timelock**, y traspaso de roles.
 9. **Invariantes, fuzz extendido, escenarios A a F, vectores de firma, cobertura y análisis estático.**
 10. **Script de despliegue completo, pruebas con fork y publicación en Sepolia.**

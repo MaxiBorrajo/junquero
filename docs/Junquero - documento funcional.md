@@ -8,7 +8,7 @@ Actualizado el 3 de noviembre de 2026 según el CONTEXT del proyecto, el alcance
 
 Junquero es el nombre de la app, por un pájaro sudamericano (el junquero, *Phleocryptes melanops*) que construye su nido con paja, barro y plumas.
 
-Proponemos un marketplace descentralizado de changas y necesidades: una persona o un grupo publica un trabajo sencillo (retirar un objeto, arreglar algo, una mudanza chica, pasear un perro) en un mapa y deposita el pago en un contrato que custodia el dinero. Quienes quieren resolverlo ven las changas cercanas, se postulan y chatean; cuando acuerdan, las dos partes firman el acuerdo y la changa pasa de pública a en proceso. Al terminar, el prestador sube pruebas, los solicitantes verifican y firman un QR que el prestador escanea para liberar el pago, con una comisión baja para la plataforma (0% en el arranque, alrededor de 1% después y 2% como máximo). Si hay desacuerdo, testigos y jurados (otras personas con reputación y stake) resuelven. La plataforma también admite acuerdos en efectivo, con una tarifa por publicar (un piso fijo más un porcentaje del monto declarado), y changas a distancia que no necesitan encuentro físico. El sistema combina tokens fungibles (pago en stablecoins, stake de jurados) y no fungibles (los comprobantes de changas cerradas y las credenciales y reputación intransferibles), con reglas de intercambio en los contratos, identidad autosoberana y gobernanza comunitaria. Busca dar acceso a trabajo simple y a ingresos inmediatos, algo muy necesario en Argentina, sin un intermediario que cobre entre 15% y 25%.
+Proponemos un marketplace descentralizado de changas y necesidades: una persona o un grupo publica un trabajo sencillo (retirar un objeto, arreglar algo, una mudanza chica, pasear un perro) en un mapa y deposita el pago en un contrato que custodia el dinero. Quienes quieren resolverlo ven las changas cercanas, se postulan y chatean; cuando acuerdan, las dos partes firman el acuerdo y la changa pasa de pública a en proceso. Al terminar, el prestador sube pruebas, los solicitantes verifican y firman un QR que el prestador escanea para liberar el pago, con una comisión baja para la plataforma (0% en el arranque, alrededor de 1% después y 2% como máximo). Si hay desacuerdo, jurados (otras personas con reputación y stake) resuelven. La plataforma también admite acuerdos en efectivo, con una tarifa por publicar (un piso fijo más un porcentaje del monto declarado), y changas a distancia que no necesitan encuentro físico. El sistema combina tokens fungibles (pago en stablecoins, stake de jurados) y no fungibles (los comprobantes de changas cerradas y las credenciales y reputación intransferibles), con reglas de intercambio en los contratos, identidad autosoberana y gobernanza comunitaria. Busca dar acceso a trabajo simple y a ingresos inmediatos, algo muy necesario en Argentina, sin un intermediario que cobre entre 15% y 25%.
 
 La plataforma es intermediaria: no emplea a nadie ni custodia dinero. El dinero de los usuarios vive solo en el contrato de escrow.
 
@@ -23,7 +23,7 @@ Qué aporta la blockchain:
 - **Reputación propia:** el historial de cada persona le pertenece y no depende de una app.
 - **Reseñas reales:** solo puede calificar quien cerró un pago con la otra parte.
 - **Fondos grupales con devolución automática:** si la changa no se concreta, cada aportante recupera lo suyo sin que nadie lo apruebe.
-- **Arbitraje entre desconocidos:** testigos y jurados con stake resuelven disputas sin una empresa en el medio.
+- **Arbitraje entre desconocidos:** jurados con stake resuelven disputas sin una empresa en el medio.
 - **Trazabilidad:** cada paso de una changa es un evento público en la cadena y de ahí sale su línea de tiempo.
 
 ## Actores
@@ -33,12 +33,11 @@ Qué aporta la blockchain:
 | Solicitante | Persona o grupo que publica la changa, aporta el dinero, elige al prestador, verifica y firma el QR |
 | Aportante | Cada integrante de una changa grupal; pone su parte y participa en la verificación |
 | Prestador | Ve el mapa, se postula, chatea, acuerda, realiza la changa, sube pruebas y escanea el QR para cobrar |
-| Testigo | Persona que verifica presencialmente o revisa evidencia cuando se la pide una de las partes |
 | Jurado | Grupo sorteado de personas con reputación y stake que resuelve disputas |
 | Administrador | Modera, verifica selfies, opera el servidor e invita a los jurados semilla; no mueve fondos ni cambia parámetros |
 | Plataforma / DAO | Cobra la comisión, administra el tesoro y define las reglas |
 
-Una misma persona puede ser solicitante, prestador, testigo o jurado en distintas changas, nunca dos de esos roles en la misma.
+Una misma persona puede ser solicitante, prestador o jurado en distintas changas, nunca dos de esos roles en la misma.
 
 ## Tipos de changa
 
@@ -46,7 +45,7 @@ Una misma persona puede ser solicitante, prestador, testigo o jurado en distinta
 | --- | --- | --- |
 | Modalidad | Presencial o a distancia | La presencial aparece como pin en el mapa y usa check-in y QR. La remota no tiene pin ni check-in: se ve con un chip "A distancia" que abre la lista, la evidencia son entregables con su hash, no usa QR y se libera con "Está todo bien" o por liberación automática, con hasta 2 pedidos de cambios |
 | Pago | Por la plataforma o en efectivo | Ver Pago en efectivo y comisión |
-| Tamaño | Chica (hasta 20 USDC), media (20 a 300) o alta (más de 300) | Define cómo se resuelve una disputa y si hace falta testigo |
+| Tamaño | Chica (hasta 20 USDC), media (20 a 300) o alta (más de 300) | Define cómo se resuelve una disputa |
 | Duración | Corta o larga | Quien publica decide si divide en hitos; la app lo sugiere sobre 5 días o 500 USDC |
 | Autoría | Individual o grupal | Ver Changa individual y grupal |
 
@@ -129,7 +128,7 @@ El pago lo libera una autorización firmada por quien pagó: el QR no es un pedi
 4. **Cobro:** el prestador lo escanea, envía la transacción y el contrato libera el pago menos la comisión.
 5. **Calificación:** va dentro del QR, así que solo existe si hubo pago real. Al cobrar se emite el comprobante intransferible, opcional para el prestador.
 
-Si el solicitante no responde, el pago se libera solo a las 24 horas en changas cortas, o a las 72 horas por hito en changas largas, con calificación neutra. Si el prestador no subió todas las pruebas pedidas, el plazo no corre. El solicitante puede pedir una única prórroga mientras el plazo siga abierto. Si rechaza sin justificar, el prestador puede abrir una disputa (ver Testigos y jurado).
+Si el solicitante no responde, el pago se libera solo a las 24 horas en changas cortas, o a las 72 horas por hito en changas largas, con calificación neutra. Si el prestador no subió todas las pruebas pedidas, el plazo no corre. El solicitante puede pedir una única prórroga mientras el plazo siga abierto. Si rechaza sin justificar, el prestador puede abrir una disputa (ver Jurado).
 
 | Riesgo | Solución |
 | --- | --- |
@@ -170,16 +169,9 @@ La tarifa en efectivo tiene un piso fijo porque el monto declarado no se puede c
 
 La comisión va al tesoro, un contrato aparte del escrow, que financia el arbitraje y la operación. El gas lo adelanta un relayer, con una cuenta dedicada, poco saldo y límites por cuenta, y se traslada al usuario como un cargo de red al costo.
 
-## Testigos y jurado
+## Jurado
 
-La verificación queda en manos de personas, no de dispositivos. Hay dos figuras con funciones distintas.
-
-**Testigo**
-
-- Cualquiera de las partes puede pedir uno para changas presenciales, y es obligatorio por encima de 300 USDC.
-- Va al lugar o revisa las pruebas y firma un atestado de lo que vio.
-- Cobra una pequeña tarifa fija, que sale de la comisión de la changa.
-- No puede ser alguien con vínculo registrado con las partes.
+La verificación queda en manos de personas, no de dispositivos. El jurado es la figura que resuelve los desacuerdos.
 
 **Jurado**
 
@@ -202,8 +194,8 @@ El jurado ve las pruebas y el chat que las partes decidan presentar, no los dato
 | Comprobante de changa | NFT (ERC-721 con ERC-5192) | Nunca: es intransferible | Se emite al cerrar una changa completada, con categoría y mes y sin datos personales; la changa en sí es un registro del escrow, no un NFT |
 | Pago | Stablecoin (ERC-20) de una lista blanca | Sí | Dinero de la changa y comisión; una moneda por changa |
 | Credencial | Soulbound (ERC-5192) | No | Nivel de cuenta y habilitaciones |
-| Reputación | Soulbound por rol | No | Historial como prestador, solicitante, testigo y jurado |
-| Stake de jurado | ERC-20 bloqueado | No mientras está en juego | Garantía de buena fe de testigos y jurados |
+| Reputación | Soulbound por rol | No | Historial como prestador, solicitante y jurado |
+| Stake de jurado | ERC-20 bloqueado | No mientras está en juego | Garantía de buena fe de los jurados |
 | Gobernanza | Peso de voto por actividad (IVotes, soulbound) | No | Votación de los parámetros de la DAO, a partir de las changas cerradas y la reputación; no se compra |
 
 **Reglas de intercambio**
@@ -284,7 +276,7 @@ Entran 37 de las 40 funciones del inventario; quedan fuera el historial y el niv
 **Decisiones tomadas**
 
 - Solo changas y necesidades; las donaciones quedan fuera.
-- La verificación de cada changa la hacen personas (solicitantes, testigos y jurados), no dispositivos.
+- La verificación de cada changa la hacen personas (solicitantes y jurados), no dispositivos.
 - Una changa la publica una persona o un grupo, con coordinador opcional; todos aportan y el dinero queda en el contrato desde la publicación.
 - Changas presenciales y a distancia; las remotas sin pin, sin check-in y sin QR.
 - Changas con hitos opcionales y reglas de término anticipado.

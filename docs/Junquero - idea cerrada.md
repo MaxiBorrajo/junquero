@@ -8,7 +8,7 @@ Actualizado el 29 de octubre de 2026 para alinearlo con los docs de reglas de ci
 
 ## Resumen
 
-Proponemos un marketplace descentralizado de changas y necesidades: una persona o un grupo publica un trabajo sencillo (retirar un objeto, arreglar algo, una mudanza chica, pasear un perro) y deposita el pago en un contrato que custodia el dinero. Quienes quieren resolverlo se postulan y chatean; cuando acuerdan, la changa pasa de pública a en proceso. Al terminar, el prestador sube pruebas, los solicitantes verifican y firman un QR que el prestador escanea para liberar el pago, con una comisión baja para la plataforma (0% en el arranque, alrededor de 1% después y 2% como máximo). Si hay desacuerdo, testigos y jurados (otras personas con reputación y stake) resuelven. La plataforma también admite acuerdos en efectivo, con una tarifa por publicar (un piso fijo más un porcentaje del monto declarado). El sistema combina tokens fungibles (pago, reputación de jurados) y no fungibles (los comprobantes de changas cerradas y las credenciales y reputación intransferibles), con reglas de intercambio en los contratos, identidad autosoberana y gobernanza comunitaria. Busca dar acceso a trabajo simple y a ingresos inmediatos, algo muy necesario en Argentina, sin un intermediario que cobre entre 15% y 25%.
+Proponemos un marketplace descentralizado de changas y necesidades: una persona o un grupo publica un trabajo sencillo (retirar un objeto, arreglar algo, una mudanza chica, pasear un perro) y deposita el pago en un contrato que custodia el dinero. Quienes quieren resolverlo se postulan y chatean; cuando acuerdan, la changa pasa de pública a en proceso. Al terminar, el prestador sube pruebas, los solicitantes verifican y firman un QR que el prestador escanea para liberar el pago, con una comisión baja para la plataforma (0% en el arranque, alrededor de 1% después y 2% como máximo). Si hay desacuerdo, jurados (otras personas con reputación y stake) resuelven. La plataforma también admite acuerdos en efectivo, con una tarifa por publicar (un piso fijo más un porcentaje del monto declarado). El sistema combina tokens fungibles (pago, reputación de jurados) y no fungibles (los comprobantes de changas cerradas y las credenciales y reputación intransferibles), con reglas de intercambio en los contratos, identidad autosoberana y gobernanza comunitaria. Busca dar acceso a trabajo simple y a ingresos inmediatos, algo muy necesario en Argentina, sin un intermediario que cobre entre 15% y 25%.
 
 ## Concepto
 
@@ -21,7 +21,7 @@ Qué aporta la blockchain:
 - **Reputación propia:** el historial de cada persona le pertenece y no depende de una app.
 - **Reseñas reales:** solo puede calificar quien cerró un pago con la otra parte.
 - **Fondos grupales con devolución automática:** si la changa no se concreta, cada aportante recupera lo suyo sin que nadie lo apruebe.
-- **Arbitraje entre desconocidos:** testigos y jurados con stake resuelven disputas sin una empresa en el medio.
+- **Arbitraje entre desconocidos:** jurados con stake resuelven disputas sin una empresa en el medio.
 
 ## Actores
 
@@ -30,11 +30,10 @@ Qué aporta la blockchain:
 | Solicitante | Persona o grupo que publica la changa, aporta el dinero, elige al prestador, verifica y firma el QR |
 | Aportante | Cada integrante de una changa grupal; pone su parte y participa en la verificación |
 | Prestador | Se postula, chatea, acuerda, realiza la changa, sube pruebas y escanea el QR para cobrar |
-| Testigo | Persona que verifica presencialmente o revisa evidencia cuando se la pide una de las partes |
 | Jurado | Grupo sorteado de personas con reputación y stake que resuelve disputas |
 | Plataforma / DAO | Cobra la comisión, administra el tesoro y define las reglas |
 
-Una misma persona puede ser solicitante, prestador, testigo o jurado en distintas changas, nunca dos de esos roles en la misma.
+Una misma persona puede ser solicitante, prestador o jurado en distintas changas, nunca dos de esos roles en la misma.
 
 ## Ciclo de vida de una changa
 
@@ -76,7 +75,7 @@ El pago lo libera una autorización firmada por quien pagó: el QR no es un pedi
 4. **Cobro:** el prestador lo escanea, envía la transacción y el contrato libera el pago menos la comisión.
 5. **Calificación:** va dentro del QR, así que solo existe si hubo pago real.
 
-Si el solicitante no responde dentro de un plazo, o rechaza sin justificar, el prestador puede abrir una disputa (ver Testigos y jurado).
+Si el solicitante no responde dentro de un plazo, o rechaza sin justificar, el prestador puede abrir una disputa (ver Jurado).
 
 | Riesgo | Solución |
 | --- | --- |
@@ -102,16 +101,9 @@ La tarifa en efectivo tiene un piso fijo porque el monto declarado no se puede c
 
 La comisión va al tesoro de la DAO, que financia el arbitraje y la operación. El gas lo adelanta un relayer y se traslada al usuario como un cargo de red al costo.
 
-## Testigos y jurado
+## Jurado
 
-La verificación queda en manos de personas, no de dispositivos. Hay dos figuras con funciones distintas.
-
-**Testigo**
-
-- Cualquiera de las partes puede pedir uno para changas presenciales o de monto alto.
-- Va al lugar o revisa las pruebas y firma un atestado de lo que vio.
-- Cobra una pequeña tarifa fija, que sale de la comisión de la changa.
-- No puede ser alguien con vínculo registrado con las partes.
+La verificación queda en manos de personas, no de dispositivos. El jurado es la figura que resuelve los desacuerdos.
 
 **Jurado**
 
@@ -130,8 +122,8 @@ El jurado ve las pruebas y el chat que las partes decidan presentar, no los dato
 | Comprobante de changa | NFT (ERC-721) | Nunca: es intransferible | Se emite al cerrar una changa completada, con categoría y mes y sin datos personales; la changa en sí es un registro del escrow |
 | Pago | Stablecoin (ERC-20) | Sí | Dinero de la changa y comisión |
 | Credencial | Soulbound (ERC-5192) | No | Nivel de cuenta y habilitaciones |
-| Reputación | Soulbound por rol | No | Historial como prestador, solicitante, testigo y jurado |
-| Stake de jurado | ERC-20 bloqueado | No mientras está en juego | Garantía de buena fe de testigos y jurados |
+| Reputación | Soulbound por rol | No | Historial como prestador, solicitante y jurado |
+| Stake de jurado | ERC-20 bloqueado | No mientras está en juego | Garantía de buena fe de los jurados |
 | Gobernanza | Peso de voto por actividad (soulbound) | No | Votación de los parámetros de la DAO, a partir de las changas cerradas y la reputación; no se compra |
 
 **Reglas de intercambio**
@@ -175,7 +167,7 @@ El voto es por actividad: el peso sale de las changas cerradas por la plataforma
 **Decisiones tomadas**
 
 - Solo changas y necesidades; las donaciones quedan fuera.
-- La verificación de cada changa la hacen personas (solicitantes, testigos y jurados), no dispositivos.
+- La verificación de cada changa la hacen personas (solicitantes y jurados), no dispositivos.
 - Una changa la publica una persona o un grupo; todos aportan al publicar y el dinero queda en el contrato.
 - Postulación y chat hasta acordar; al acordar pasa de pública a en proceso.
 - El prestador entrega con pruebas, los solicitantes verifican y firman un QR, el prestador lo escanea y cobra.

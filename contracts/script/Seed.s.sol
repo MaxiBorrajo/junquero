@@ -23,14 +23,12 @@ contract Seed is Script {
 
         address requester = vm.parseJsonAddress(json, ".demoAccounts.solicitante");
         address provider = vm.parseJsonAddress(json, ".demoAccounts.prestador");
-        address witness = vm.parseJsonAddress(json, ".demoAccounts.witness");
         address[] memory jurors = vm.parseJsonAddressArray(json, ".demoAccounts.jurors");
         address[] memory contributors = vm.parseJsonAddressArray(json, ".demoAccounts.contributors");
 
         vm.startBroadcast();
         _issue(requester);
         _issue(provider);
-        _issue(witness);
         for (uint256 i; i < jurors.length; i++) {
             _issue(jurors[i]);
             if (!arbitration.account(jurors[i]).seed) arbitration.setSeedJuror(jurors[i], true);

@@ -100,7 +100,6 @@ contract Deploy is Script {
             !demo
         );
         _defineParameters(deployment.registry, demo);
-        deployment.treasury.grantRole(deployment.treasury.SPENDER_ROLE(), address(deployment.escrow));
         deployment.credentials = new Credentials(admin);
         deployment.reputation = new Reputation(admin, IParameterRegistry(address(deployment.registry)));
         deployment.receipt = new JunqueroReceipt(IEscrow(address(deployment.escrow)), address(deployment.forwarder));
@@ -289,14 +288,12 @@ contract Deploy is Script {
                 method: method,
                 smallMax: uint128(20 * UNIT),
                 mediumMax: uint128(300 * UNIT),
-                witnessAmount: uint128(300 * UNIT),
                 reputationMin: uint128(5 * UNIT),
                 feeFloor: uint128(UNIT / 4),
                 feeCap: uint128(5 * UNIT),
                 cashFeeFloor: uint128(UNIT),
                 reservationCap: uint128(10 * UNIT),
-                jurorFee: uint128(UNIT),
-                witnessFee: uint128(UNIT)
+                jurorFee: uint128(UNIT)
             })
         );
         // Una changa vale como mínimo 5 y cancelar con postulaciones cuesta como mínimo 0,50.

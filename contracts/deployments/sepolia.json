@@ -1,106 +1,101 @@
 {
- "chainId": 11155111,
- "mode": "demo",
- "governanceHandedOver": false,
- "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
- "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
- "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
- "startBlock": 12141086,
- "contracts": {
-  "token": {
-   "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
-   "block": 12115214
+  "chainId": 11155111,
+  "mode": "demo",
+  "governanceHandedOver": false,
+  "deployer": "0x2105299C114dD6733040BA259040c2DB3C7f8560",
+  "admin": "0x4E5e9eE0aAAbDA5B4e6118EE20e1bBe68b136511",
+  "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  "startBlock": 12204944,
+  "contracts": {
+    "token": {
+      "address": "0x18714d5aA9dB30054893714Ef1D4af8f42D7a2dc",
+      "block": 12115214
+    },
+    "forwarder": {
+      "address": "0xE892a7B4349B115FA8bAEABfA810363F4b03C78c",
+      "block": 12204944
+    },
+    "parameterRegistry": {
+      "address": "0xf7b853b9383525b4f70d6cF014f8765FE3023b4E",
+      "block": 12204945
+    },
+    "treasury": {
+      "address": "0x9bF6e5b294eE148417E6Ff0bA5aD1B18f41D2b98",
+      "block": 12204946
+    },
+    "escrow": {
+      "address": "0x4cD68F659560aFc94Ae8CB07ed6E2Cff87F16846",
+      "block": 12204947
+    },
+    "orderModule": {
+      "address": "0xE0A3aF58559aBAD4f964210834a38Cd569093711",
+      "block": 12204948
+    },
+    "cancelModule": {
+      "address": "0x75b57E0fc82e983d3389ee72D5FD227D2e1e06ad",
+      "block": 12204959
+    },
+    "adminModule": {
+      "address": "0xF6938Dfb2247A64fAc181b70eb2A29B800CB7e9a",
+      "block": 12204961
+    },
+    "disputeModule": {
+      "address": "0x623b0B03E020b578803e74ce5B6E9481B6E9c97A",
+      "block": 12204963
+    },
+    "milestoneModule": {
+      "address": "0x2E7be95eA8964012a377d4924d9f95e6212e8b6F",
+      "block": 12204965
+    },
+    "groupModule": {
+      "address": "0x821C2657346Ce05404f45282BF3AD7fB48C18Ca3",
+      "block": 12204967
+    },
+    "credentials": {
+      "address": "0xC8a4F13B3ACf471C7d1906a6970f1D29d503f33a",
+      "block": 12205007
+    },
+    "reputation": {
+      "address": "0xf6aba0Cf5987e430d8AAE273d5B32b601180FE6D",
+      "block": 12205008
+    },
+    "receipt": {
+      "address": "0x01dA3B0a81ba0d27c178F1d00eCd1cD78d20fCa7",
+      "block": 12205009
+    },
+    "arbitration": {
+      "address": "0x02C3c5549a33Ec9c5Fa3A6CF80c4Ae4179227944",
+      "block": 12205012
+    },
+    "votingWeight": {
+      "address": "0x78d9dF625f1739943E724d30b530B50B6FbB9f5B",
+      "block": 12205023
+    },
+    "timelock": {
+      "address": "0xe0359d16Cf0f022A6E49242eF147022681CaA35A",
+      "block": 12205024
+    },
+    "governor": {
+      "address": "0xAa8904F877eAE01950e1769F08071E09e1057C2F",
+      "block": 12205025
+    }
   },
-  "forwarder": {
-   "address": "0xf9A95F4Dec87121da3cddb921D0c8c60361485E6",
-   "block": 12141086
-  },
-  "parameterRegistry": {
-   "address": "0x6c523B229Df30030F21c26c74f9AE58185106280",
-   "block": 12141086
-  },
-  "treasury": {
-   "address": "0xE502356b75FB4B9E84D35155B8cD6371991d2971",
-   "block": 12141086
-  },
-  "escrow": {
-   "address": "0xdc05BE8B7587e39De3fCC06d6F9D0eB827f311B5",
-   "block": 12141086
-  },
-  "orderModule": {
-   "address": "0xee85941771c9BC4A10215049dB4FE19EDe6a1b82",
-   "block": 12141086
-  },
-  "cancelModule": {
-   "address": "0xDd5A30E63FD571e7C10037DE17D9EedA8060243a",
-   "block": 12141086
-  },
-  "adminModule": {
-   "address": "0xCfE4fA82F0c8AF00209C7fe4Cf6a217a15aFfC34",
-   "block": 12141086
-  },
-  "disputeModule": {
-   "address": "0xBE5051750eAcA65cC2eEd35eCb305C0721C859dD",
-   "block": 12141086
-  },
-  "milestoneModule": {
-   "address": "0x034206deCb7400247aEC152233dC8A961CCB7b56",
-   "block": 12141086
-  },
-  "groupModule": {
-   "address": "0x6dd0C7F08D2bA30AD29665063525935f6d3D9060",
-   "block": 12141086
-  },
-  "witnessModule": {
-   "address": "0x671E69362F9d72027eE3F952865D31cdE94001f7",
-   "block": 12141087
-  },
-  "credentials": {
-   "address": "0x9aafA3EE0695438C58F0DC35141a3C6ae978C91e",
-   "block": 12141088
-  },
-  "reputation": {
-   "address": "0x4b842d1f0A842C69FA6A4477845565030Fa054A5",
-   "block": 12141088
-  },
-  "receipt": {
-   "address": "0x97a035941356Aa32E494df21c5c80E17FDC23F93",
-   "block": 12141088
-  },
-  "arbitration": {
-   "address": "0x7BC3012dEbcBEC295468DA44247d7357daF28742",
-   "block": 12141088
-  },
-  "votingWeight": {
-   "address": "0x2C734AfeAEeD040EB648fcaCC6856d2aE89F2064",
-   "block": 12141088
-  },
-  "timelock": {
-   "address": "0x1D14561046E1EB2CDadbDc39bfD3DD7dF785553E",
-   "block": 12141088
-  },
-  "governor": {
-   "address": "0xE71fbCf4CfF2F0fC298736BbB9999f0b46dB63d2",
-   "block": 12141088
+  "abiDirectory": "deployments/abi",
+  "abiNotes": "Escrow.json une el router y los seis modulos (misma direccion, una sola interfaz).",
+  "demoAccounts": {
+    "solicitante": "0x6419B1743FCd4b36a25dd14cacAB1c1d78d22fBa",
+    "prestador": "0x99e5486D3BeC0c971a4104dF5D564bd99d762ee0",
+    "jurors": [
+      "0x1B56dB16685BACcB58c5fC9e9E5Eab89DD65Cc05",
+      "0xB4f8eccEf4975B0AD7f06e6Bb46D713BcDB024d8",
+      "0x98fbFd1516d9164CaB979C284ac15DA30feAc33F",
+      "0x9017620e283a3A6006A15b213613A466299F37EE",
+      "0xfEB47472fe647c437576F72213CaB65dff50a6a8"
+    ],
+    "contributors": [
+      "0x32c3be9194e1Ab9C2780805a4d6a05D962089053",
+      "0x34711Aa19d8437E7d9905770B5391e807eC018DA",
+      "0xD45c525621d51FD6ff5689067Ff1658c8a15F231"
+    ]
   }
- },
- "abiDirectory": "deployments/abi",
- "abiNotes": "Escrow.json une el router y los siete modulos (misma direccion, una sola interfaz).",
- "demoAccounts": {
-  "solicitante": "0x6419B1743FCd4b36a25dd14cacAB1c1d78d22fBa",
-  "prestador": "0x99e5486D3BeC0c971a4104dF5D564bd99d762ee0",
-  "jurors": [
-   "0x1B56dB16685BACcB58c5fC9e9E5Eab89DD65Cc05",
-   "0xB4f8eccEf4975B0AD7f06e6Bb46D713BcDB024d8",
-   "0x98fbFd1516d9164CaB979C284ac15DA30feAc33F",
-   "0x9017620e283a3A6006A15b213613A466299F37EE",
-   "0xfEB47472fe647c437576F72213CaB65dff50a6a8"
-  ],
-  "contributors": [
-   "0x32c3be9194e1Ab9C2780805a4d6a05D962089053",
-   "0x34711Aa19d8437E7d9905770B5391e807eC018DA",
-   "0xD45c525621d51FD6ff5689067Ff1658c8a15F231"
-  ],
-  "witness": "0xe811699865567fab481e98637A21AA7e028fe31A"
- }
 }

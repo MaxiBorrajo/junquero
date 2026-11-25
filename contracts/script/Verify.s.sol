@@ -90,7 +90,6 @@ contract Verify is Script {
         _check(arbitration.treasury() == address(treasury), "arbitration.treasury");
         _check(reputation.hasRole(reputation.RECORDER_ROLE(), address(escrow)), "recorder escrow");
         _check(reputation.hasRole(reputation.RECORDER_ROLE(), address(arbitration)), "recorder arbitration");
-        _check(treasury.hasRole(treasury.SPENDER_ROLE(), address(escrow)), "spender escrow");
     }
 
     function _token() private {
@@ -98,7 +97,6 @@ contract Verify is Script {
         _check(config.allowed, "token allowed");
         _check(config.method == DepositMethod.Permit, "token method");
         _check(config.smallMax == 20e6 && config.mediumMax == 300e6, "token size thresholds");
-        _check(config.witnessAmount == 300e6, "token witness");
         _check(config.jurorFee == 1e6, "token juror fee");
         _check(escrow.minOrderAmount(token) == 5e6, "minimum amount");
         _check(escrow.minCancelFee(token) == 5e5, "minimum cancel fee");

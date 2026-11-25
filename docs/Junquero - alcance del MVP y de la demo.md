@@ -105,7 +105,7 @@ Los requisitos que listaste al empezar y cómo los cubre el diseño. Las funcion
 | --- | --- | --- | --- |
 | Trazabilidad | Cada paso de una changa es un evento público en la cadena y el indexador arma su línea de tiempo | 4, 5, 32, 37 | Cubierto |
 | Gobernanza | Votación en la cadena con Timelock y peso de voto por actividad; multisig al inicio | 25, 26 | Cubierto |
-| Varios actores | Solicitante, prestador, testigo, jurado, verificador y administrador | 10, 20, 24, 34 | Cubierto |
+| Varios actores | Solicitante, prestador, jurado, verificador y administrador | 10, 20, 24, 34 | Cubierto |
 | Tokens fungibles | Stablecoins para pagar, como USDC y USDT | 1, 7 | Cubierto |
 | Tokens no fungibles | Comprobante intransferible y credenciales de nivel | 6, 17, 18 | Cubierto |
 | Reglas de intercambio de tokens | Lista blanca de monedas, una por changa, con comisión y cargo de red; no hay cambio entre monedas | 7, 8, 9 | A confirmar con el profesor: no es claro si la consigna pide un cambio entre tokens |

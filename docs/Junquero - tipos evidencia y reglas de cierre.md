@@ -55,7 +55,6 @@ Todo se prueba con foto, video o documento. El tiempo y la presencia no necesita
 - **Metadatos firmados:** la app firma hora y ubicación junto con el archivo con la clave del usuario.
 - **Hash on-chain:** en el contrato queda el hash de cada prueba y el archivo va cifrado a R2 y el hash garantiza que no se pueda alterar sin que se note; se conserva sin plazo de borrado (ver el doc de stack).
 - **Duración y presencia derivadas:** la diferencia entre la foto de ida y la de vuelta da la duración de una sesión; la ubicación firmada, la presencia.
-- **Testigo en montos altos:** sobre cierto monto, una tercera persona verifica el resultado o revisa las pruebas y firma un atestado (el umbral lo fija la DAO).
 - **Documentos:** comprobantes y remitos se suben como foto tomada desde la app, no como archivo.
 
 Limitación conocida: una foto firmada demuestra que se tomó en ese lugar y momento, no que el trabajo esté bien hecho. Por eso los criterios de aceptación se acuerdan antes, y el jurado juzga contra lo acordado.

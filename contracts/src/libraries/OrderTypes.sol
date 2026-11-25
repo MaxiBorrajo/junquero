@@ -150,25 +150,6 @@ struct GroupInfo {
     uint8 objectionCount;
 }
 
-struct WitnessAssignment {
-    uint256 orderId;
-    address witness;
-    uint40 expiry;
-}
-
-struct Attestation {
-    uint256 orderId;
-    uint8 index;
-    bytes32 evidenceHash;
-    bool approved;
-    uint40 expiry;
-}
-
-struct AttestationRecord {
-    bytes32 evidenceHash;
-    bool approved;
-}
-
 struct DepositAuth {
     DepositMethod method;
     uint256 nonce;
@@ -207,14 +188,12 @@ struct TokenConfig {
     DepositMethod method;
     uint128 smallMax;
     uint128 mediumMax;
-    uint128 witnessAmount;
     uint128 reputationMin;
     uint128 feeFloor;
     uint128 feeCap;
     uint128 cashFeeFloor;
     uint128 reservationCap;
     uint128 jurorFee;
-    uint128 witnessFee;
 }
 
 struct Dispute {

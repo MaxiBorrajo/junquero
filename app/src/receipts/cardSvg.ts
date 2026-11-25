@@ -2,7 +2,11 @@
 // las billeteras), así los dos dibujan lo mismo. No incluye fotos del trabajo: la evidencia está cifrada entre las partes y no puede ser pública.
 
 // Minimal claro (fondo crema) u oscuro (fondo del tono oscuro del rubro, con letras crema y arena).
+import { REEDS } from "./reeds";
+
 export type CardStyle = "minimal" | "oscuro";
+// El estilo que usan la app y el servidor.
+export const DEFAULT_STYLE: CardStyle = "oscuro";
 export const CARD_STYLES: readonly CardStyle[] = ["minimal", "oscuro"];
 
 export interface CardData {
@@ -89,7 +93,7 @@ function lines(values: string[], x: number, y: number, step: number, size: numbe
   return values.map((line, i) => text(line, x, y + i * step, size, fill, font, "700", `text-anchor="${anchor}"`)).join("");
 }
 
-function minimalCard(d: CardData, fonts: CardFonts, background: string | null, dark: boolean): string {
+function minimalCard(d: CardData, fonts: CardFonts, dark: boolean): string {
   const c = paletteOf(d.category);
   const title = wrap(d.title || "Changa", 17, 3);
   // En el oscuro el fondo es el tono profundo del rubro; los juncos negros quedan tono sobre tono.
@@ -100,9 +104,7 @@ function minimalCard(d: CardData, fonts: CardFonts, background: string | null, d
   const reeds = dark ? 0.5 : REEDS_OPACITY;
   return [
     `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paper}"/>`,
-    background
-      ? `<image href="${background}" x="0" y="${CARD_HEIGHT - REEDS_HEIGHT}" width="${CARD_WIDTH}" height="${REEDS_HEIGHT}" preserveAspectRatio="xMidYMax slice" opacity="${reeds}"/>`
-      : "",
+    reedsGroup(reeds, dark ? "#000000" : INK),
     `<rect width="18" height="${CARD_HEIGHT}" fill="${dark ? SAND : c.base}"/>`,
     lines(title, 64, 170, 64, 54, ink, fonts.bold),
     text(`${d.rating}`, 60, 560, 220, accent, fonts.bold, "700"),
@@ -114,13 +116,20 @@ function minimalCard(d: CardData, fonts: CardFonts, background: string | null, d
   ].join("");
 }
 
-// Los juncos de fondo ocupan la parte baja de la tarjeta, semitransparentes, detrás del texto.
-const REEDS_HEIGHT = 470;
+// Los juncos van abajo, detrás del texto, escalados para cubrir el ancho (se recortan un poco los costados) y semitransparentes.
+const REEDS_SCALE = 2.3;
 const REEDS_OPACITY = 0.2;
 
-// `background` es la imagen de los juncos ya codificada como `data:image/png;base64,...` (opcional).
-export function receiptCardSvg(data: CardData, style: CardStyle = "minimal", fonts: CardFonts = WEB_FONTS, background: string | null = null): string {
+function reedsGroup(opacity: number, fill: string): string {
+  const width = REEDS.width * REEDS_SCALE;
+  const height = REEDS.height * REEDS_SCALE;
+  const x = (CARD_WIDTH - width) / 2;
+  const y = CARD_HEIGHT - height;
+  return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${REEDS_SCALE})" opacity="${opacity}"><path d="${REEDS.path}" fill="${fill}"/></g>`;
+}
+
+export function receiptCardSvg(data: CardData, style: CardStyle = DEFAULT_STYLE, fonts: CardFonts = WEB_FONTS): string {
   const rating = Math.min(5, Math.max(0, Math.round(data.rating)));
-  const body = minimalCard({ ...data, rating }, fonts, background, style === "oscuro");
+  const body = minimalCard({ ...data, rating }, fonts, style === "oscuro");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" height="${CARD_HEIGHT}">${body}</svg>`;
 }

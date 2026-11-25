@@ -40,6 +40,9 @@ Salieron de las pruebas 8.2.2 y siguientes. El detalle está en `Junquero - plan
 - 🛠 **Cambio futuro (comprobante):** cerrar en el contrato `Receipt` que un trabajo con reclamo chico no pueda reclamarlo (hoy solo lo oculta la app) y evaluar un comprobante de "gané la disputa" solo para las de jurado.
 - 🛠 **Cambio futuro:** hoy, pasado el tope, no se puede reclamar y no hay jurado. Evaluar que los reclamos siguientes del mes pasen a jurado pagando el costo (3 USDC), o un árbitro de emergencia. Además, el 50/50 deja un incentivo a rechazar para pagar la mitad (ya señalado en confianza y economía); el tope en 1 lo acota pero no lo elimina.
 
+**8.5 Acuerdo amistoso**
+- No disponible: el contrato no tiene resolución por acuerdo entre las partes. Está en el plan a futuro (sección 7). Pasó acá desde el plan de pruebas el 25/11/2026.
+
 ---
 
 ## 9. 🛠 Implementación futura: changa grupal (escenario E)

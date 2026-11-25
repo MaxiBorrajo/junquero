@@ -52,6 +52,7 @@ import { listChatEvents, recordAgreementEvent, recordApplicationEvent, recordOrd
 import { createAgreementChain } from "./agreementChain";
 import { relay, type RelayPolicy } from "./relay";
 import { createRelayChain, relayTargets } from "./relayChain";
+import { readRelayerHealth } from "./relayerHealth";
 import { validateSpec } from "./spec";
 import { TtlCache } from "./ttlCache";
 
@@ -322,6 +323,8 @@ app.post("/admin/selfies/:address", async (c) => {
 });
 
 app.get("/admin/summary", async (c) => c.json(await cachedRead(c.req.url, () => adminSummary(c.env.DB, nowSeconds()))));
+
+app.get("/admin/relayer", async (c) => c.json(await readRelayerHealth(c.env.RPC_URL, c.env.RELAYER_KEY)));
 
 app.get("/admin/changas", async (c) => {
   const query = c.req.query();

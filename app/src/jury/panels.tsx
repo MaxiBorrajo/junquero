@@ -323,8 +323,12 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
     act(async () => {
       // La clave de cifrado tiene que estar publicada antes del sorteo: con ella las partes le comparten sus pruebas si resulta elegido.
       await ensure();
-      const secret = randomHex32((n) => crypto.getRandomValues(new Uint8Array(n)));
-      await saveSeed(secureSecretStorage, juror, item.caseId, snapshot.round, secret);
+      // Si ya hay un secreto guardado para este reclamo y ronda, se reutiliza: un segundo intento (o un anotado fallido) no puede pisar el que quedó en la cadena.
+      let secret = await loadSeed(secureSecretStorage, juror, item.caseId, snapshot.round);
+      if (!secret) {
+        secret = randomHex32((n) => crypto.getRandomValues(new Uint8Array(n)));
+        await saveSeed(secureSecretStorage, juror, item.caseId, snapshot.round, secret);
+      }
       return sendViaRelay(relayDepsFor(api, juror), encodeCommitSeed(BigInt(item.caseId), seedCommitment(BigInt(item.caseId), juror, secret)), 1_500_000n, deployment.arbitration);
     }, t.jury.joinedDone);
 

@@ -2,7 +2,7 @@
 
 Pruebas del plan de flujos que ya pasaron y tienen todas sus casillas en `[ x ]`. Se movieron el 20/11/2026 desde `Junquero - plan de pruebas.md`, donde quedan solo las pendientes y las que fallaron. El texto de cada prueba, su numeración y sus marcas se conservaron tal cual estaban; si una prueba vuelve a fallar o cambia, se devuelve al plan.
 
-**Resumen:** 105 pruebas hechas (de un total de 122 con casillas: 16 pendientes y 1 con falla, la 1.3, que sigue en el plan).
+**Resumen:** 116 pruebas hechas (de un total de 122 con casillas: 5 pendientes y 1 con falla, la 1.3, que siguen en el plan). El 25/11/2026 se sumaron 8.3.5 a 8.3.13, 8.3.15 y 8.4.
 
 | Bloque | Hechas |
 | --- | --- |
@@ -13,7 +13,7 @@ Pruebas del plan de flujos que ya pasaron y tienen todas sus casillas en `[ x ]`
 | 5. Hacer la changa y cobrar | 9 (5.1 a 5.9) |
 | 6. Hitos | 6 |
 | 7. Cancelaciones | 8 (7.1 a 7.8) |
-| 8. Reclamo y jurado | 8 (8.1.1, 8.2.1, 8.2.2, 8.3.1 a 8.3.4 y 8.3.14) |
+| 8. Reclamo y jurado | 19 (todas: 8.1.1, 8.2.1, 8.2.2, 8.3.1 a 8.3.15 y 8.4) |
 | 10. Perfil y ajustes | 5 |
 | 11. Panel | 5 (11.1 a 11.4 y 11.6) |
 | 15. Transversales | 21 (todas menos la 15.5) |
@@ -347,10 +347,55 @@ Cada fila es una prueba distinta; usar changas nuevas y anotar el costo real.
 - [ x ] Pasos: cuando cierra la anotación llega el aviso "Revelá tu número del sorteo" (y otro 10 minutos antes del cierre). Reclamos → "Revelar", dentro de otros 15 min.
 - Esperado: la tarjeta pasa a "Revelado" y dice a qué hora se hace el sorteo. No se puede revelar antes de que cierre la anotación. El número es un secreto al azar de la app: no mueve plata ni garantía. Si se borran los datos de la app antes de revelar, la tarjeta avisa que se perdió el secreto y esa cuenta queda fuera de esa ronda. Quien revela deja de recibir el recordatorio.
 
+**8.3.5 Sorteo de jurados** · Rol: sistema, J1 a J3
+- [ x ] Esperado: pasado el plazo de revelar, el backend sortea solo (revisa cada minuto), entre quienes revelaron, tantos jurados como pide el reclamo (3 en uno mediano), al azar y parejo. La garantía de 10 USDC de cada elegido queda "en uso". Cada elegido recibe "Te sortearon como jurado", el caso aparece en Mis casos con "Te toca votar" y la pestaña muestra un número. Quien reveló y no salió elegido recibe "No te tocó en este reclamo" y su garantía queda libre. (Nota: el sorteo no excluye a quienes tuvieron changas con las partes; solo excluye a las partes y a las cuentas recusadas.)
+- [ x ] Variante: menos jurados que revelaron de los que hacen falta → se abre otra ronda con plazos nuevos (hasta 3 más). Ver 8.3.14.
+- Observaciones: _
+
+**8.3.6 Avance del sorteo visible a las partes** · Rol: Ana, Beto
+- [ x ] Pasos: abrir el reclamo mientras se busca jurados.
+- Esperado: se ve "Sorteo de jurados · ronda N de hasta 4", los plazos, cuántos se anotaron y cuántos revelaron sobre los necesarios, y qué pasa si no alcanzan. Se actualiza solo. Nunca se ve quiénes son los jurados. Una vez sorteados, a las partes les llega "Ya hay jurados" y, al abrir el reclamo, la app comparte sus pruebas cifradas con cada jurado sin tocar nada (si algún jurado todavía no tiene su clave publicada, reintenta cada 30 segundos mientras la pantalla está abierta; no hay botón manual para compartir).
+
+**8.3.7 Revisar el caso** · Rol: J1 a J3
+- [ x ] Pasos: Mis casos → abrir el caso.
+- Esperado: se ven las pruebas separadas en "Evidencias del trabajo", "Parte A (publicó): su versión y sus pruebas" y "Parte B (hizo el trabajo): su versión y sus pruebas", sin identidades. El relato se lee en una tarjeta; los archivos son miniaturas que se abren al tocarlas; con más de 6 archivos por bloque hay "Ver los N archivos". Si una parte todavía no compartió, su bloque lo dice. Se ve el plazo con el tiempo que queda. (Hoy el jurado no ve el acuerdo completo ni el chat, solo lo que las partes comparten.)
+- Observaciones: _
+
+**8.3.8 Votar (guardar el voto)** · Rol: J1 a J3
+- [ x ] Pasos: elegir Parte A o Parte B → "Guardar mi voto en secreto" → firmar en la billetera, dentro del plazo de votar (15 min).
+- Esperado: queda guardado en secreto (solo su huella en la cadena); la tarjeta pasa a "Voto guardado" y no se ve el voto de los demás. Si se pasa el plazo sin votar, la pantalla muestra "Se te pasó el plazo…" y la tarjeta "Plazo perdido", sin botones.
+- Observaciones: _
+
+**8.3.9 Mostrar el voto** · Rol: J1 a J3
+- [ x ] Pasos: cuando cierra el plazo de votar, "Mostrar mi voto" dentro de los otros 15 min.
+- Esperado: no se puede mostrar antes de que cierre el plazo de votar. Cuando los tres lo mostraron, el caso se cuenta sin esperar al final del plazo; si no, se cuenta al terminar. Gana la mayoría de los votos mostrados.
+
+**8.3.10 Veredicto y reparto** · Rol: Ana, Beto, J1 a J3
+- [ x ] Esperado: el veredicto es todo o nada: el pago va entero a quien ganó (a quien hizo el trabajo, o se devuelve a quien pagó); no hay reparto parcial. Hay un plazo de apelación (15 min) y después se ejecuta solo. Si gana quien reclamó, recupera el costo del reclamo (sale de la parte del perdedor); si pierde, el costo queda para los jurados de la mayoría. Los jurados de la mayoría se reparten el costo del reclamo como recompensa (en "Recompensas para retirar", 1 USDC cada uno con 3 jurados) y recuperan su garantía; el que votó en minoría pierde el 25% de la garantía de ese caso (2,5 USDC). Las partes reciben "Se resolvió un reclamo" y el trabajo dice "Ganaste el reclamo…" o "Perdiste el reclamo…". Las identidades de las partes no se revelan a los jurados en ningún momento.
+- Observaciones: _
+
+**8.3.11 Jurado que no vota o no muestra su voto** · Rol: J3
+- [ x ] Pasos: J3 no guarda su voto o lo guarda y no lo muestra a tiempo.
+- Esperado: pierde toda la garantía del caso (10 USDC, que va al tesoro) y no cobra. Las otras dos votaciones siguen y deciden el caso. Se aplica igual si no vota, sea por plazo o por no revelar.
+
+**8.3.12 Empate o nadie muestra su voto** · Rol: Admin
+- [ x ] Esperado: si los votos mostrados empatan (por ejemplo 1 a 1 porque el tercero no mostró) o no hay ninguno, el caso pasa a resolución de emergencia y lo resuelve el administrador (8.3.14). Quienes mostraron voto no pierden ni cobran; quienes no votaron pierden su garantía. Se devuelve el costo del reclamo a quien reclamó.
+
+**8.3.13 Apelación** · Rol: la parte perdedora
+- [ x ] Pasos: dentro del plazo de apelación, "Apelar" → paga el costo adicional (el valor de un jurado por cada uno de los 2N+1, 7 USDC si eran 3).
+- Esperado: solo puede apelar quien perdió, una sola vez. Se sortea un jurado ampliado de 2N+1 (7 si eran 3) con nueva anotación, revelado y votación; los jurados anteriores no pueden repetir. Hacen falta al menos 7 jurados habilitados además de los 3 anteriores: con las cuentas de demo no alcanza, así que esta prueba termina en emergencia (8.3.14) salvo que se sumen cuentas. Si gana la apelación, se le devuelve el costo de la parte del que pierde ahora. El resultado es definitivo.
+
 **8.3.14 Sin jurados suficientes** · Rol: Admin
 - [ x ] Pasos: en una ronda se anotan o revelan menos jurados de los necesarios.
 - Esperado: se abre otra ronda con plazos nuevos (hasta 3 reemplazos, 4 rondas en total; las partes ven "ronda N de hasta 4"). Si ninguna alcanza, el caso queda "Lo resuelve el administrador" y aparece en el panel (sección Reclamos sin jurado, con un número). El administrador firma con motivo eligiendo a favor de Parte A o Parte B: el pago va entero a quien decide, se devuelve el costo del reclamo a quien reclamó (y el de la apelación a quien apeló) y queda en el registro. No hay plazo para que el administrador resuelva ni aviso: hasta que firme el pago queda congelado (anotado en el plan a futuro, sección 8).
 - Observaciones: _
+
+**8.3.15 Quien debía responder no responde** · Rol: Beto, Ana
+- [ x ] Pasos: Beto no responde dentro del plazo de respuesta (15 min en Sepolia).
+- Esperado: el backend resuelve solo a favor de quien reclamó: el pago va a su favor y se le devuelve el costo del reclamo. El trabajo dice a Ana "Ganaste el reclamo… La otra parte no respondió a tiempo" y a Beto "Perdiste el reclamo… No respondiste a tiempo". Un relato subido fuera de plazo no se acepta.
+
+### 8.4 Changa alta (más de 300 USDC, 5 jurados)
+- [ x ] Repetir 8.3 con 5 jurados. Hacen falta al menos 5 jurados habilitados que no sean parte; el costo del reclamo es de 5 USDC y una apelación necesitaría 11 jurados más, lo que con las cuentas de demo no alcanza.
 
 ## 10. Perfil, actividad y ajustes
 

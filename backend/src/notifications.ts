@@ -23,6 +23,7 @@ export const TEMPLATES: Record<string, Template> = {
   agreed: { title: "Trabajo acordado", body: "Quedó acordado y el pago está en garantía. Abrí el trabajo para ver fecha, lugar y chat.", priority: "high" },
   chat: { title: "Mensaje nuevo", body: "Te escribieron por un trabajo. Entrá a leer y responder.", priority: "default" },
   delivered: { title: "Trabajo terminado", body: "Marcaron el trabajo como terminado. Revisalo y aprobalo: si no respondés a tiempo, se aprueba solo.", priority: "high" },
+  changes_requested: { title: "Te pidieron cambios", body: "Quien publicó el trabajo pidió cambios. Abrilo, mirá qué hay que cambiar y volvé a entregar.", priority: "high" },
   cancelled: { title: "Trabajo cancelado", body: "Cancelaron un trabajo tuyo. Abrilo para ver cómo queda el pago.", priority: "high" },
   abandoned: { title: "Dejaron tu trabajo", body: "Quien hacía tu trabajo lo dejó. Volvió a publicarse con lo que quedó en garantía: elegí a otra persona.", priority: "high" },
   terminated: { title: "Terminaron tu trabajo", body: "Terminaron el trabajo antes de tiempo. Abrilo para ver cuánto cobraste y cómo quedó el pago.", priority: "high" },
@@ -116,6 +117,8 @@ export const notificationsHandler: EventHandler = (db: D1Database, events: Strea
       statements.push(insertFromChanga(db, "checked_in", event.order_id, "owner"));
     } else if (event.name === "OrderDelivered" && event.order_id !== null) {
       statements.push(insertFromChanga(db, "delivered", event.order_id, "owner"));
+    } else if (event.name === "ChangesRequested" && event.order_id !== null) {
+      statements.push(insertFromChanga(db, "changes_requested", event.order_id, "chosen"));
     } else if (event.name === "OrderCancelled" && event.order_id !== null) {
       const by = (parse<{ by?: string }>(event.args)?.by ?? "").toLowerCase();
       statements.push(insertFromChanga(db, "cancelled", event.order_id, "owner", "0", by), insertFromChanga(db, "cancelled", event.order_id, "chosen", "0", by));

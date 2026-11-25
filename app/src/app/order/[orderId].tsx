@@ -35,6 +35,7 @@ import { useClosing } from "../../data/useClosing";
 import { useOrder } from "../../data/useOrder";
 import { disputeOutcomeText } from "../../lib/disputeOutcome";
 import { OrderStatus } from "../../chain/orderAbi";
+import { ChangeRequest } from "../../evidence/ChangeRequest";
 import { EvidenceThumbnails, EvidenceUploader, RequirementList, useCoveredRequirements, useEvidence } from "../../evidence/EvidenceSection";
 import { evidenceBundleHash } from "../../evidence/crypto";
 import { t } from "../../i18n";
@@ -70,6 +71,7 @@ export default function OrderScreen() {
   });
   const groupInfo = useGroup(id, Boolean(order.data?.isGroup));
   const [objection, setObjection] = useState("");
+  const maxChanges = useQuery({ queryKey: ["param", "REQUEST_CHANGES_MAX"], staleTime: 5 * 60_000, queryFn: () => readParam("REQUEST_CHANGES_MAX") });
   const remote = useQuery({
     queryKey: ["release", id, address],
     enabled: Boolean(address && order.data && !order.data.hasMilestones && order.data.status === 4),
@@ -125,6 +127,10 @@ export default function OrderScreen() {
   const contributor = extendedRole(role, state.isGroup, contribution.data ?? 0n) === "contributor";
   const account = address as `0x${string}`;
   const relayDeps = { api, deployment, account, now: () => Math.floor(Date.now() / 1000), readForwarderNonce: () => readForwarderNonce(account), signTypedData: signTyped };
+
+  // Pedir cambios: solo en changas a distancia con pago en garantía, hasta el máximo que fija el contrato.
+  const changesLeft = Math.max(0, Number(maxChanges.data ?? 0n) - state.changeRequests);
+  const canAskChanges = state.modality !== 0 && !state.cash && changesLeft > 0;
 
   const refresh = [["order", id]] as const;
   const run = (action: () => Promise<string | void>, failure: string, success: string, icon: string) =>
@@ -185,7 +191,10 @@ export default function OrderScreen() {
   const payeeList: JourneyStep[] = payeeSteps(state.modality === 0).map((key) => ({ key, ...labelOf[key] }));
   const payerList: JourneyStep[] = payerSteps().map((key) => ({ key, ...j.payer[key] }));
   const settled = view === "settled";
-  const ready = requirements.length > 0 ? covered.size >= requirements.length : items.length > 0;
+  // Tras un pedido de cambios no se puede volver a terminar hasta subir algo nuevo: debe haber una prueba de quien trabaja posterior a lo último que subió quien publicó.
+  const lastAsk = state.changeRequests > 0 ? Math.max(0, ...items.filter((item) => item.uploader.toLowerCase() === state.payer.toLowerCase()).map((item) => item.createdAt)) : 0;
+  const hasNewWork = state.changeRequests === 0 || items.some((item) => item.uploader.toLowerCase() === state.payee.toLowerCase() && item.createdAt > lastAsk);
+  const ready = (requirements.length > 0 ? covered.size >= requirements.length : items.length > 0) && hasNewWork;
   const arrivedOrRemote = state.modality !== 0 || state.checkedInAt > 0;
   const chip: { label: string; warn?: boolean } | null =
     view === "worker-working" || view === "payer-waiting-work" ? { label: t.order.statusAgreed }
@@ -258,6 +267,7 @@ export default function OrderScreen() {
 
       {!state.hasMilestones && view === "worker-working" ? (
         <>
+          {role === "payee" && state.changeRequests > 0 ? <ChangeRequest orderId={id} items={items} payer={state.payer} /> : null}
           {arrivedOrRemote && requirements.length > 0 ? (
             <>
               <Text style={text.subtitle}>{t.order.requirementsTitle}</Text>
@@ -310,6 +320,7 @@ export default function OrderScreen() {
               <DetailActions
                 actions={[
                   { key: "approve", label: t.order.approveRemote, icon: "check", hint: t.order.approveRemoteNote, onPress: () => void approve() },
+                  ...(canAskChanges ? [{ key: "changes", label: t.order.requestChanges, icon: "refresh" as const, hint: t.order.requestChangesLeft.replace("{n}", String(changesLeft)), onPress: () => router.push({ pathname: "/changes/[orderId]", params: { orderId: String(id) } }) }] : []),
                   { key: "problem", label: t.order.problem, icon: "flag", danger: true, onPress: () => router.push({ pathname: "/dispute/[orderId]", params: { orderId: String(id) } }) },
                 ]}
               />

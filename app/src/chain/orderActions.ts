@@ -39,6 +39,7 @@ export const encodeDeliver = (orderId: bigint, evidenceHash: Hex): Hex => encode
 export const encodeCheckIn = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "checkIn", args: [orderId] });
 export const encodeConfirmArrival = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "confirmArrival", args: [orderId] });
 export const encodeCancel = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "cancel", args: [orderId] });
+export const encodeRequestChanges = (orderId: bigint, reasonHash: Hex): Hex => encodeFunctionData({ abi: orderAbi, functionName: "requestChanges", args: [orderId, reasonHash] });
 export const encodeExtendReview = (orderId: bigint): Hex => encodeFunctionData({ abi: orderAbi, functionName: "extendReview", args: [orderId] });
 export const NO_AUTH = { method: 0, nonce: 0n, deadline: 0n, signature: "0x" as Hex };
 

@@ -27,6 +27,7 @@ export function orderFromServer(raw: Raw): OrderState {
     hasMilestones: Boolean(raw.hasMilestones),
     isGroup: Boolean(raw.isGroup),
     modality: Number(raw.modality),
+    changeRequests: Number(raw.changeRequests ?? 0),
     sizeClass: Number(raw.sizeClass),
     specHash: raw.specHash as `0x${string}`,
   };

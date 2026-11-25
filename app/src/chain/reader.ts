@@ -46,6 +46,7 @@ export interface OrderState {
   hasMilestones: boolean;
   isGroup: boolean;
   modality: number;
+  changeRequests: number;
   sizeClass: number;
   specHash: `0x${string}`;
 }

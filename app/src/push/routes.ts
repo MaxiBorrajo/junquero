@@ -16,6 +16,7 @@ export function routeForNotification(kind: string, ref: string): AppRoute {
     case "agreed":
     case "delivered":
     case "evidence_uploaded":
+    case "changes_requested":
     case "checked_in":
     case "settled":
     case "cancelled":

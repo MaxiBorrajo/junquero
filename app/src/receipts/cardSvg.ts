@@ -97,7 +97,7 @@ function minimalCard(d: CardData, fonts: CardFonts, background: string | null, d
   const ink = dark ? BACKGROUND : INK;
   const accent = dark ? SAND : c.base;
   const quiet = dark ? LINE : MUTED;
-  const reeds = dark ? 0.4 : REEDS_OPACITY;
+  const reeds = dark ? 0.5 : REEDS_OPACITY;
   return [
     `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paper}"/>`,
     background
@@ -115,7 +115,7 @@ function minimalCard(d: CardData, fonts: CardFonts, background: string | null, d
 }
 
 // Los juncos de fondo ocupan la parte baja de la tarjeta, semitransparentes, detrás del texto.
-const REEDS_HEIGHT = 320;
+const REEDS_HEIGHT = 470;
 const REEDS_OPACITY = 0.2;
 
 // `background` es la imagen de los juncos ya codificada como `data:image/png;base64,...` (opcional).

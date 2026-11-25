@@ -5,7 +5,7 @@ import { formatDate } from "../lib/format";
 import type { Eip1193 } from "../lib/login";
 import { useSession } from "../session";
 
-const ARBITRATION = "0x398Ac7b188e6dcFF7Ac1918068D8896E051Cb990";
+const ARBITRATION = "0xAa5BeBefd20a045B208229BbceF4A8C62Fa6fA02";
 
 interface Row {
   caseId: number;

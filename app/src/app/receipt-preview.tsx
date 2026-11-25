@@ -18,11 +18,12 @@ export default function ReceiptPreview() {
   const [remote, setRemote] = useState(true);
   const [title, setTitle] = useState("Instalar un portón corredizo");
   const [named, setNamed] = useState(true);
+  const [dark, setDark] = useState(true);
   const categories = t.publish.categories as readonly string[];
   const cardWidth = Math.min(width - spacing.md * 2, 420);
   const svg = receiptCardSvg(
     { orderId: 3, title, category, categoryName: categories[category] ?? "", remote, rating, month: 202611, payerName: named ? "Ana M." : null },
-    "minimal",
+    dark ? "oscuro" : "minimal",
     { regular: fonts.regular, bold: fonts.bold },
     REEDS_IMAGE,
   );
@@ -36,6 +37,12 @@ export default function ReceiptPreview() {
         <SvgXml xml={svg} width={cardWidth} height={(cardWidth * CARD_HEIGHT) / CARD_WIDTH} style={styles.card} />
       </View>
 
+      <Labeled label="Fondo">
+        <View style={styles.chips}>
+          <Chip label="Oscuro (tono del rubro)" selected={dark} onPress={() => setDark(true)} />
+          <Chip label="Claro (crema)" selected={!dark} onPress={() => setDark(false)} />
+        </View>
+      </Labeled>
       <Labeled label="Rubro">
         <View style={styles.chips}>
           {categories.map((name, index) => (

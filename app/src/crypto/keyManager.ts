@@ -27,12 +27,25 @@ export async function loadChatKey(deps: KeyDeps): Promise<ChatKeyPair> {
     await deps.storage.setSecret(address, secretKeyHex(pair));
   }
   const publicKey = publicKeyHex(pair);
-  if (!(await deps.storage.isRegistered(address, publicKey))) {
+  // El teléfono recuerda que ya registró la clave, pero el servidor puede haberla perdido (por ejemplo, si se vació la base): se verifica una
+  // sola vez por sesión (esta función se llama una vez por sesión) y, si falta o es otra, se vuelve a registrar.
+  const known = (await deps.storage.isRegistered(address, publicKey)) && (await registeredOnServer(deps.api, address, publicKey));
+  if (!known) {
     const signature = await deps.signMessage(buildChatKeyMessage(address, publicKey));
     await deps.api.send("PUT", "/me/chat-key", { publicKey, signature });
     await deps.storage.markRegistered(address, publicKey);
   }
   return pair;
+}
+
+async function registeredOnServer(api: Api, address: string, publicKey: string): Promise<boolean> {
+  try {
+    const { publicKey: stored } = await api.get<{ publicKey: string }>(`/me/chat-keys/${address}`);
+    return stored?.toLowerCase() === publicKey.toLowerCase();
+  } catch (error) {
+    // Un 404 es "no la tengo": hay que registrarla. Cualquier otro error (red, servidor) no justifica pedir otra firma.
+    return (error as { status?: number }).status !== 404;
+  }
 }
 
 // La clave pública de chat de una persona no cambia (sale de una firma fija), así que se pide una sola vez por sesión.

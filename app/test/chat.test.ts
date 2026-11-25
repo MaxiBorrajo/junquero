@@ -67,13 +67,25 @@ function memoryStorage(): KeyStorage & { secrets: Map<string, string>; registere
 
 describe("gestor de claves", () => {
   const address = "0xAbC0000000000000000000000000000000000001";
+  // Un servidor de mentira que guarda la clave que se le registra y la devuelve (o 404 si no la tiene).
   const make = () => {
-    const calls: { path: string; body: unknown }[] = [];
+    const calls: { path: string; method: string; body: unknown }[] = [];
+    const server = { key: null as string | null };
     const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
-      calls.push({ path: url.replace("https://x", ""), body: init?.body ? JSON.parse(init.body as string) : undefined });
+      const path = url.replace("https://x", "");
+      const method = init?.method ?? "GET";
+      const body = init?.body ? JSON.parse(init.body as string) : undefined;
+      calls.push({ path, method, body });
+      if (method === "PUT" && path === "/me/chat-key") {
+        server.key = (body as { publicKey: string }).publicKey;
+        return new Response("{}", { status: 200 });
+      }
+      if (method === "GET" && path.startsWith("/me/chat-keys/")) {
+        return server.key ? new Response(JSON.stringify({ publicKey: server.key }), { status: 200 }) : new Response("{}", { status: 404 });
+      }
       return new Response("{}", { status: 200 });
     });
-    return { calls, api: createApi({ baseUrl: "https://x", fetcher, getToken: () => "t" }) };
+    return { calls, server, api: createApi({ baseUrl: "https://x", fetcher, getToken: () => "t" }) };
   };
   const sign = vi.fn(async (m: string) => ("0x" + (m.length % 2 ? "ab" : "cd").repeat(65)) as `0x${string}`);
 
@@ -96,7 +108,33 @@ describe("gestor de claves", () => {
     const second = await loadChatKey({ api, storage, address, signMessage: sign });
     expect(sign).not.toHaveBeenCalled();
     expect(publicKeyHex(second)).toBe(publicKeyHex(first));
-    expect(calls).toHaveLength(1);
+    // Solo verifica con el servidor: no registra de nuevo.
+    expect(calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+  });
+
+  it("si el servidor perdió la clave (por ejemplo, se vació la base), la vuelve a registrar con una firma", async () => {
+    const { api, calls, server } = make();
+    const storage = memoryStorage();
+    const first = await loadChatKey({ api, storage, address, signMessage: sign });
+    server.key = null;
+    sign.mockClear();
+    const second = await loadChatKey({ api, storage, address, signMessage: sign });
+    expect(publicKeyHex(second)).toBe(publicKeyHex(first));
+    expect(sign).toHaveBeenCalledTimes(1);
+    expect(calls.filter((c) => c.method === "PUT")).toHaveLength(2);
+    expect(server.key).toBe(publicKeyHex(first));
+  });
+
+  it("un error de red al verificar no pide otra firma", async () => {
+    const { calls } = make();
+    const storage = memoryStorage();
+    const ok = make();
+    await loadChatKey({ api: ok.api, storage, address, signMessage: sign });
+    const failing = createApi({ baseUrl: "https://x", fetcher: async () => new Response("{}", { status: 500 }), getToken: () => "t" });
+    sign.mockClear();
+    await loadChatKey({ api: failing, storage, address, signMessage: sign });
+    expect(sign).not.toHaveBeenCalled();
+    void calls;
   });
 
   it("si cambia la clave guardada, se vuelve a registrar", async () => {
@@ -105,7 +143,7 @@ describe("gestor de claves", () => {
     await loadChatKey({ api, storage, address, signMessage: sign });
     storage.secrets.set(address.toLowerCase(), secretKeyHex(keyPairFromSeed(new Uint8Array(32).fill(9))));
     await loadChatKey({ api, storage, address, signMessage: sign });
-    expect(calls).toHaveLength(2);
+    expect(calls.filter((c) => c.method === "PUT")).toHaveLength(2);
   });
 
   it("lee la clave pública del otro y devuelve null si no tiene", async () => {

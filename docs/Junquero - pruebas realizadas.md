@@ -2,21 +2,21 @@
 
 Pruebas del plan de flujos que ya pasaron y tienen todas sus casillas en `[ x ]`. Se movieron el 20/11/2026 desde `Junquero - plan de pruebas.md`, donde quedan solo las pendientes y las que fallaron. El texto de cada prueba, su numeración y sus marcas se conservaron tal cual estaban; si una prueba vuelve a fallar o cambia, se devuelve al plan.
 
-**Resumen:** 116 pruebas hechas (de un total de 122 con casillas: 5 pendientes y 1 con falla, la 1.3, que siguen en el plan). El 25/11/2026 se sumaron 8.3.5 a 8.3.13, 8.3.15 y 8.4.
+**Resumen:** 122 pruebas hechas (todas las que tienen casillas; no queda ninguna pendiente ni con falla). El 25/11/2026 se sumaron 8.3.5 a 8.3.13, 8.3.15 y 8.4 y, después, 1.3, 5.10, 11.5, 11.7, 11.8 y 15.5.
 
 | Bloque | Hechas |
 | --- | --- |
-| 1. Registro y perfil | 5 (1.1, 1.2, 1.4, 1.5 y 1.6) |
+| 1. Registro y perfil | 6 (todas) |
 | 2. Publicar y explorar | 11 |
 | 3. Postulación y acuerdo | 13 |
 | 4. Chat y notificaciones | 14 |
-| 5. Hacer la changa y cobrar | 9 (5.1 a 5.9) |
+| 5. Hacer la changa y cobrar | 10 (5.1 a 5.10) |
 | 6. Hitos | 6 |
 | 7. Cancelaciones | 8 (7.1 a 7.8) |
 | 8. Reclamo y jurado | 19 (todas: 8.1.1, 8.2.1, 8.2.2, 8.3.1 a 8.3.15 y 8.4) |
 | 10. Perfil y ajustes | 5 |
-| 11. Panel | 5 (11.1 a 11.4 y 11.6) |
-| 15. Transversales | 21 (todas menos la 15.5) |
+| 11. Panel | 8 (todas) |
+| 15. Transversales | 22 (todas) |
 
 ---
 
@@ -31,6 +31,12 @@ Pruebas del plan de flujos que ya pasaron y tienen todas sus casillas en `[ x ]`
 - [ x ] Pasos: cargar nombre, rubros y zona de trabajo → sacar la selfie.
 - Esperado: el perfil muestra "Junquero en revisión", con el ícono del junco en ámbar, hasta que se apruebe.
 - Observaciones: _
+
+
+**1.3 Aprobar la selfie desde el panel** · Rol: Admin
+- [ x ] Pasos: panel → Selfies → aprobar la de Ana y la de Beto.
+- Esperado: en la app pasa a "Junquero verificado" (etiqueta verde con el pájaro del logo). La imagen se borra del servidor y queda solo el estado.
+- Variante: [ x ] rechazar una selfie → en la app aparece "Verificación rechazada" y se puede sacar otra.
 
 **1.4 Sin selfie verificada no se puede postular** · Rol: Beto
 - [ x ] Pasos: con la cuenta aún sin verificar, intentar postularse a una changa.
@@ -270,6 +276,14 @@ Con la changa individual presencial ya acordada (prueba 3.4).
 - [ x ] Pasos: Beto termina, Ana no responde.
 - Esperado: pasado el plazo (24 h en changa corta), el pago se libera solo a Beto. Verificar con el e2e o con plazos cortos de DEMO.
 
+**5.10 Changa a distancia con pedido de cambios** · Rol: Ana y Beto
+- [ x ] Pasos: Beto entrega → Ana pide cambios (hasta 2 rondas) → Beto vuelve a entregar → Ana aprueba.
+- Esperado: no hay QR; se libera con "Está todo bien". Una tercera ronda de cambios no se permite.
+- Observaciones: la pantalla "Pedir cambios" (texto y adjuntos) se agregó el 25/11/2026; también pasó en la tanda automática (`app/e2e/changeRequests.e2e.ts`).
+
+---
+
+
 ## 6. Changas por hitos
 
 Con la changa por hitos acordada (2.5 y 3.4).
@@ -437,8 +451,20 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 - [ x ] Pasos: ver la cola de reportes de las pruebas 10.2 y 10.3.
 - Esperado: se ve el reporte con vista previa y se puede resolver.
 
+**11.5 Usuarios** · Rol: Admin
+- [ x ] Esperado: se ve la lista con reputación y verificación.
+
 **11.6 Selfies** · Rol: Admin
 - [ x ] Es la 1.3.
+
+**11.7 Reclamos de emergencia** · Rol: Admin
+- [ x ] Pasos: con un reclamo sin jurados suficientes (8.3.14), resolver firmando como árbitro.
+- Esperado: el contrato aplica el reparto. Queda en el registro con motivo.
+
+**11.8 Registro de acciones** · Rol: Admin
+- [ x ] Esperado: cada acción de moderación aparece con billetera, fecha y motivo.
+
+---
 
 ## 15. Casos transversales
 
@@ -449,6 +475,8 @@ Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin
 **15.3 Saldo insuficiente** · [ x ] Postularse o aportar sin saldo. Esperado: indica cuánto falta.
 
 **15.4 Doble toque / reintento** · [ x ] Tocar dos veces "Confirmar" o reenviar la misma firma. Esperado: no se duplica el movimiento de plata.
+
+**15.5 Relayer sin gas** · [ x ] Vaciar el saldo de ETH del relayer. Esperado: la app muestra un error de servicio sin mover plata; el panel marca el problema en la salud (saldo y aviso del relayer en Resumen, agregado el 25/11/2026). Volver a cargar y comprobar que se recupera. También pasó en la tanda automática (`app/e2e/relayerNoGas.e2e.ts`).
 
 **15.6 Indexador atrasado** · [ x ] Apagar el cron un rato y volver a prenderlo. Esperado: las pantallas se ponen al día sin perder eventos.
 

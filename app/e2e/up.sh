@@ -25,6 +25,8 @@ if [ ! -d "$ROOT" ]; then
 fi
 rm -rf "$ROOT/backend/.wrangler"
 cp -r "$REPO/backend/src" "$ROOT/backend/" && cp -r "$REPO/backend/migrations" "$ROOT/backend/"
+# Los contratos tambien se copian: la copia de trabajo queda en el commit con que se creo y sin esto desplegaria un contrato viejo.
+cp -r "$REPO/contracts/src" "$REPO/contracts/script" "$ROOT/contracts/"
 cp -r "$REPO/app/src" "$ROOT/app/" && cp -r "$REPO/app/e2e" "$ROOT/app/" && cp "$REPO/app/vitest.e2e.config.ts" "$ROOT/app/"
 
 # La cadena arranca 10 dias en el pasado para poder avanzar el reloj sin pasarse de la hora real (la tanda completa avanza mas de 4 dias en total).

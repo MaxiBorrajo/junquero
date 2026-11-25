@@ -4,7 +4,7 @@ Para probar a mano, con la app, el servidor y el panel, antes de la entrega del 
 
 **Cómo marcar:** `[ ]` pendiente · `[x]` anda como se espera · `[!]` falla (anotar en "Observaciones" qué pasó, en qué pantalla y la hora, para buscarlo en el log del servidor).
 
-**Actualizado el 25/11/2026:** las pruebas con todas sus casillas en `[ x ]` (8.3.5 a 8.3.13, 8.3.15 y 8.4) pasaron a `Junquero - pruebas realizadas.md` y lo que es de implementación futura (sección 9, 4.4, 7.9 a 7.11, 8.5 y 11.9, y la parte de suspender usuarios de 11.5) pasó a `Junquero - pruebas de implementacion futura.md`. Acá quedan solo las **pendientes** y las que **fallaron**; la numeración no cambió.
+**Actualizado el 25/11/2026 (2):** pasaron a realizadas también 1.3, 5.10, 11.5, 11.7, 11.8 y 15.5; el plan quedó sin pendientes. **Actualizado el 25/11/2026:** las pruebas con todas sus casillas en `[ x ]` (8.3.5 a 8.3.13, 8.3.15 y 8.4) pasaron a `Junquero - pruebas realizadas.md` y lo que es de implementación futura (sección 9, 4.4, 7.9 a 7.11, 8.5 y 11.9, y la parte de suspender usuarios de 11.5) pasó a `Junquero - pruebas de implementacion futura.md`. Acá quedan solo las **pendientes** y las que **fallaron**; la numeración no cambió.
 
 ## Alcance
 
@@ -67,56 +67,15 @@ El despliegue de Sepolia está en modo DEMO. Valores vigentes (según `Deploy.s.
 
 ---
 
-## 1. Registro y perfil
+## Pendientes
 
-**1.3 Aprobar la selfie desde el panel** · Rol: Admin
-- [ x ] Pasos: panel → Selfies → aprobar la de Ana y la de Beto.
-- Esperado: en la app pasa a "Junquero verificado" (etiqueta verde con el pájaro del logo). La imagen se borra del servidor y queda solo el estado.
-- Variante: [ ! ] rechazar una selfie → en la app aparece "Verificación rechazada" y se puede sacar otra.
+No queda ninguna prueba pendiente ni con falla: las 122 con casillas pasaron y están en `Junquero - pruebas realizadas.md`. Si una vuelve a fallar o aparece una nueva, se anota acá con su número.
 
 ---
 
-## 5. Hacer la changa y cobrar (escenario A)
+## Resumen de estado
 
-Con la changa individual presencial ya acordada.
-
-**5.10 Changa a distancia con pedido de cambios** · Rol: Ana y Beto
-- [ x ] Pasos: Beto entrega → Ana pide cambios (hasta 2 rondas) → Beto vuelve a entregar → Ana aprueba.
-- Esperado: no hay QR; se libera con "Está todo bien". Una tercera ronda de cambios no se permite.
-
----
-
-## 11. Panel de administración (escenario H)
-
-Servidor local o de dev, panel contra ese servidor, entrando con la cuenta Admin.
-
-**11.5 Usuarios** · Rol: Admin
-- [ x ] Esperado: se ve la lista con reputación y verificación.
-
-**11.7 Reclamos de emergencia** · Rol: Admin
-- [ x ] Pasos: con un reclamo sin jurados suficientes (8.3.14), resolver firmando como árbitro.
-- Esperado: el contrato aplica el reparto. Queda en el registro con motivo.
-
-**11.8 Registro de acciones** · Rol: Admin
-- [ x ] Esperado: cada acción de moderación aparece con billetera, fecha y motivo.
-
-
-## 15. Casos transversales
-
-**15.5 Relayer sin gas** · [ ] Vaciar el saldo de ETH del relayer. Esperado: la app muestra un error de servicio sin mover plata; el panel marca el problema en la salud. Volver a cargar y comprobar que se recupera.
-
----
-
-## 16. Resumen de estado
-
-Completar al terminar cada sesión de pruebas. Las que ya pasaron están en `Junquero - pruebas realizadas.md` (116).
-
-| Bloque | Pruebas | Fallan | Pendientes |
-| --- | --- | --- | --- |
-| 1. Registro y perfil | 1.3 (variante de rechazar selfie) | 1 | 0 |
-| 5. Hacer la changa y cobrar | 5.10 | 0 | 1 |
-| 11. Panel | 11.5, 11.7 y 11.8 | 0 | 3 |
-| 15. Transversales | 15.5 | 0 | 1 |
+Todas las pruebas del plan pasaron (122, ver `Junquero - pruebas realizadas.md`).
 
 **Fallas encontradas** (anotar acá y arreglar después):
 

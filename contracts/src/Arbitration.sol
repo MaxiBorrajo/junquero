@@ -473,13 +473,31 @@ contract Arbitration is IArbitration, IArbitrationEvents, ERC2771Context, Access
     }
 
     function _nextRound(uint256 caseId, Case storage c) private {
+        uint8 previous = c.round;
         c.round += 1;
         if (c.round - c.roundBase > registry.get(ParameterKeys.JUROR_REPLACEMENT_ROUNDS)) {
             c.phase = Phase.NeedsEmergency;
             emit NeedsEmergencyResolution(caseId, 1);
             return;
         }
+        _carryOver(caseId, previous, c.round);
         _startSeedRound(caseId, c);
+    }
+
+    // Quien ya reveló en la ronda anterior pasa a la siguiente sin volver a anotarse: queda como anotado y revelado, así que entra al pozo
+    // del sorteo. Su secreto NO se suma a la semilla: ya es público, y si contara se podría calcular el sorteo de antemano. La semilla sale
+    // solo de los secretos que se revelen en la ronda nueva y del blockhash. Quien se anotó y no reveló no pasa.
+    function _carryOver(uint256 caseId, uint8 previous, uint8 next) private {
+        address[] storage revealed = _revealers[caseId][previous];
+        uint256 count = revealed.length;
+        for (uint256 i = 0; i < count; i++) {
+            address juror = revealed[i];
+            _seedCommits[caseId][next][juror] = _seedCommits[caseId][previous][juror];
+            _seedRevealed[caseId][next][juror] = true;
+            _committers[caseId][next].push(juror);
+            _revealers[caseId][next].push(juror);
+        }
+        if (count > 0) emit SeedCarriedOver(caseId, next, count);
     }
 
     function _eligibleRevealers(uint256 caseId, Case storage c) private view returns (address[] memory pool) {

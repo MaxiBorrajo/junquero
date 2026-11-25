@@ -6,7 +6,7 @@ export function seedNeedsAction(state: SeedState | null | undefined, nowSeconds:
   if (!state) return false;
   const view = phaseView(state.snapshot, nowSeconds);
   if (state.eligible && !state.committed && view === "seed-commit") return true;
-  return state.committed && !state.revealed && view === "seed-reveal" && state.hasSecret;
+  return state.committed && !state.revealed && view === "seed-reveal";
 }
 
 export type SeedFilter = "all" | "toJoin" | "toReveal" | "joined" | "notJoined";

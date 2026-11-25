@@ -6,7 +6,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { PERMIT_VALIDITY_SECONDS, permitTypedData, splitSignature } from "../chain/createOrder";
 import { deployment } from "../chain/deployment";
 import { CasePhase } from "../chain/arbitrationAbi";
-import { encodeCommitSeed, encodeRevealSeed, encodeStakeWithPermit, encodeUnstake, encodeWithdrawReward, phaseView, randomHex32, seedCommitment, stakeNeeded, type CaseView } from "../chain/jury";
+import { encodeCommitSeed, encodeRevealSeed, encodeStakeWithPermit, encodeUnstake, encodeWithdrawReward, phaseView, seedCommitment, stakeNeeded, type CaseView } from "../chain/jury";
 import { sendViaRelay } from "../chain/orderActions";
 import { fetchCase } from "../chain/serverReads";
 import { readCommitters, readIsEligible, readJurorAccount, readJurorCase, readParam, readReward, readRevealers, readTokenBalance, readTokenNonce } from "../chain/reader";
@@ -28,9 +28,9 @@ import { useRunAction } from "../lib/useRunAction";
 import { useChatKey } from "../chat/ChatKeyProvider";
 import { useSession } from "../session/SessionProvider";
 import { colors, spacing, text } from "../theme";
-import { signTyped } from "../wallet/sign";
+import { signText, signTyped } from "../wallet/sign";
 import { CaseAmount, CaseSummary } from "./CaseSummary";
-import { loadSeed, saveSeed } from "./secrets";
+import { resolveSeed } from "./secrets";
 import { jurorStage, seedGroups, type SeedFilter } from "./seedAction";
 import { seedQueryOptions } from "./seedState";
 import { secureSecretStorage } from "./secureStorage";
@@ -312,7 +312,7 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
   const state = useQuery({ ...seedQueryOptions(api, juror, item.caseId), refetchInterval: useFocusedInterval(60_000) });
 
   if (!state.data) return null;
-  const { snapshot, eligible, committed, revealed, hasSecret } = state.data;
+  const { snapshot, eligible, committed, revealed } = state.data;
   const view = phaseView(snapshot, Math.floor(Date.now() / 1000));
 
   const refresh = [["seed", item.caseId], ["juror", juror], ["cases", juror]] as const;
@@ -323,19 +323,15 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
     act(async () => {
       // La clave de cifrado tiene que estar publicada antes del sorteo: con ella las partes le comparten sus pruebas si resulta elegido.
       await ensure();
-      // Si ya hay un secreto guardado para este reclamo y ronda, se reutiliza: un segundo intento (o un anotado fallido) no puede pisar el que quedó en la cadena.
-      let secret = await loadSeed(secureSecretStorage, juror, item.caseId, snapshot.round);
-      if (!secret) {
-        secret = randomHex32((n) => crypto.getRandomValues(new Uint8Array(n)));
-        await saveSeed(secureSecretStorage, juror, item.caseId, snapshot.round, secret);
-      }
+      // El secreto sale de una firma de la billetera: es siempre el mismo para este reclamo y ronda, así un segundo intento o un cambio de teléfono no lo pisan ni lo pierden.
+      const secret = await resolveSeed(secureSecretStorage, signText, juror, item.caseId, snapshot.round);
       return sendViaRelay(relayDepsFor(api, juror), encodeCommitSeed(BigInt(item.caseId), seedCommitment(BigInt(item.caseId), juror, secret)), 1_500_000n, deployment.arbitration);
     }, t.jury.joinedDone);
 
   const reveal = () =>
     act(async () => {
-      const secret = await loadSeed(secureSecretStorage, juror, item.caseId, snapshot.round);
-      if (!secret) throw new Error("secret");
+      // Si el teléfono no tiene el secreto guardado (otro dispositivo, datos borrados), se vuelve a calcular con la firma.
+      const secret = await resolveSeed(secureSecretStorage, signText, juror, item.caseId, snapshot.round);
       return sendViaRelay(relayDepsFor(api, juror), encodeRevealSeed(BigInt(item.caseId), secret), 1_500_000n, deployment.arbitration);
     }, t.jury.revealedDone);
 
@@ -343,7 +339,7 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
   const end = formatDate(snapshot.revealEnd);
   const status =
     revealed ? t.jury.statusRevealed.replace("{end}", end)
-    : committed && view === "seed-reveal" ? (hasSecret ? t.jury.statusRevealNow.replace("{end}", end) : t.jury.lostSecret)
+    : committed && view === "seed-reveal" ? t.jury.statusRevealNow.replace("{end}", end)
     : committed ? t.jury.statusJoined.replace("{date}", formatDate(snapshot.commitEnd)).replace("{end}", end)
     : !eligible ? t.jury.notEligible
     : view === "seed-commit" ? t.jury.statusCanJoin.replace("{date}", formatDate(snapshot.commitEnd))
@@ -351,7 +347,7 @@ function SeedCard({ item, juror }: { item: CaseRef; juror: `0x${string}` }) {
 
   // La misma forma que las tarjetas de Mis trabajos: título y monto, y el estado en pastillas.
   const canJoin = eligible && !committed && view === "seed-commit";
-  const mustReveal = committed && !revealed && view === "seed-reveal" && hasSecret;
+  const mustReveal = committed && !revealed && view === "seed-reveal";
   const tag = revealed ? t.jury.tag.revealed : committed ? (mustReveal ? t.jury.tag.toReveal : t.jury.tag.joined) : !eligible ? t.jury.tag.notEligible : canJoin ? t.jury.tag.toJoin : t.jury.tag.closed;
 
   return (

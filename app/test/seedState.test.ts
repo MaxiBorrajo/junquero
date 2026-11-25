@@ -4,7 +4,7 @@ import { seedNeedsAction } from "../src/jury/seedAction";
 import type { SeedState } from "../src/jury/seedState";
 
 const base = (patch: Partial<SeedState>, commitEnd = 1000, revealEnd = 2000): SeedState =>
-  ({ snapshot: { phase: CasePhase.Seed, commitEnd, revealEnd } as SeedState["snapshot"], eligible: true, committed: false, revealed: false, hasSecret: true, ...patch });
+  ({ snapshot: { phase: CasePhase.Seed, commitEnd, revealEnd } as SeedState["snapshot"], eligible: true, committed: false, revealed: false, ...patch });
 
 describe("reclamos con algo para hacer", () => {
   it("cuenta el que se puede anotar mientras el plazo sigue abierto", () => {
@@ -17,9 +17,8 @@ describe("reclamos con algo para hacer", () => {
     expect(seedNeedsAction(null, 500)).toBe(false);
   });
 
-  it("cuenta el aporte por revelar solo si se guardó el secreto", () => {
+  it("cuenta el aporte por revelar aunque el teléfono no tenga el secreto guardado: se recalcula con la firma", () => {
     expect(seedNeedsAction(base({ committed: true }), 1500)).toBe(true);
-    expect(seedNeedsAction(base({ committed: true, hasSecret: false }), 1500)).toBe(false);
     expect(seedNeedsAction(base({ committed: true, revealed: true }), 1500)).toBe(false);
   });
 });

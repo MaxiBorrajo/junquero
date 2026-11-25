@@ -10,6 +10,7 @@ interface IArbitrationEvents {
     event SeedRoundStarted(uint256 indexed caseId, uint8 round, uint40 commitEnd, uint40 revealEnd);
     event SeedCommitted(uint256 indexed caseId, address indexed juror);
     event SeedRevealed(uint256 indexed caseId, address indexed juror);
+    event SeedCarriedOver(uint256 indexed caseId, uint8 round, uint256 count);
     event Recused(uint256 indexed caseId, address indexed by, address indexed juror);
     event JuryDrawn(uint256 indexed caseId, address[] jurors, uint40 commitEnd, uint40 revealEnd);
     event NeedsEmergencyResolution(uint256 indexed caseId, uint8 reason);

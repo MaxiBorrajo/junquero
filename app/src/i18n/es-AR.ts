@@ -1121,7 +1121,6 @@ export const esAR = {
     revealVote: "Mostrar mi voto",
     voteSaved: "Tu voto está guardado. Tenés que mostrarlo cuando abra el plazo.",
     voteRevealed: "Mostraste tu voto. Esperá el resultado.",
-    lostSecret: "No encontramos tu voto guardado en este teléfono, así que no se puede mostrar.",
     windowCommit: "Plazo para guardar el voto",
     windowReveal: "Plazo para mostrar el voto",
     waitReveal: "Esperá a que abra el plazo para mostrarlo.",

@@ -151,7 +151,9 @@ abstract contract ArbitrationBase is EscrowBase {
 
     function _commitSeeds(uint256 caseId, address[] memory who) internal {
         uint8 round = court.getCase(caseId).round;
+        address[] memory already = court.committersOf(caseId, round);
         for (uint256 i = 0; i < who.length; i++) {
+            if (_has(already, who[i])) continue;
             bytes32 commitment = court.seedHash(caseId, who[i], _secretOf(who[i], round));
             vm.prank(who[i]);
             court.commitSeed(caseId, commitment);
@@ -160,10 +162,20 @@ abstract contract ArbitrationBase is EscrowBase {
 
     function _revealSeeds(uint256 caseId, address[] memory who) internal {
         uint8 round = court.getCase(caseId).round;
+        address[] memory already = court.revealersOf(caseId, round);
         for (uint256 i = 0; i < who.length; i++) {
+            if (_has(already, who[i])) continue;
             vm.prank(who[i]);
             court.revealSeed(caseId, _secretOf(who[i], round));
         }
+    }
+
+    // Quien pasó de la ronda anterior ya figura anotado y revelado: los ayudantes no lo vuelven a anotar.
+    function _has(address[] memory list, address who) internal pure returns (bool) {
+        for (uint256 i = 0; i < list.length; i++) {
+            if (list[i] == who) return true;
+        }
+        return false;
     }
 
     function _slice(uint256 count) internal view returns (address[] memory out) {

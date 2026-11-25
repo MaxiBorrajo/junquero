@@ -106,8 +106,11 @@ describe("reclamo con jurado de punta a punta", () => {
       await toArbitration(j, encodeStakeWithPermit(20_000_000n, deadline, v, r, s));
     }
     await until("garantías", async () => (await chain.readContract({ address: arb, abi: arbitrationAbi, functionName: "account", args: [jurors[3]!.address] })).staked === 20_000_000n);
-    const open = await jurors[0]!.api.get<{ openForJury: { caseId: number }[] }>("/me/cases");
-    expect(open.openForJury.map((x) => x.caseId)).toContain(caseId);
+    // El servidor guarda 30 s en caché la lista de reclamos abiertos: se espera a que aparezca en vez de mirarla una sola vez.
+    await until("reclamo abierto para jurados", async () => {
+      const open = await jurors[0]!.api.get<{ openForJury: { caseId: number }[] }>("/me/cases");
+      return open.openForJury.some((x) => x.caseId === caseId) ? true : null;
+    });
     const secrets: Record<string, `0x${string}`> = {};
     for (const j of jurors) {
       expect(await chain.readContract({ address: arb, abi: arbitrationAbi, functionName: "isEligible", args: [j.address, BigInt(caseId)] })).toBe(true);

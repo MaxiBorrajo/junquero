@@ -478,6 +478,81 @@ contract ArbitrationFlowTest is ArbitrationBase {
         assertEq(uint8(court.getCase(caseId).phase), uint8(Arbitration.Phase.Vote));
     }
 
+    function test_replacementRoundCarriesOverWhoAlreadyRevealed() public {
+        (, uint256 caseId) = _openMedium();
+        _respond(caseId);
+        _runSeedRound(caseId, _slice(2));
+
+        assertEq(court.getCase(caseId).round, 1);
+        address[] memory committers = court.committersOf(caseId, 1);
+        address[] memory revealers = court.revealersOf(caseId, 1);
+        assertEq(committers.length, 2);
+        assertEq(revealers.length, 2);
+        assertEq(revealers[0], jurors[0]);
+        assertEq(revealers[1], jurors[1]);
+    }
+
+    function test_aCarriedJurorCannotCommitOrRevealAgain() public {
+        (, uint256 caseId) = _openMedium();
+        _respond(caseId);
+        _runSeedRound(caseId, _slice(2));
+
+        vm.prank(jurors[0]);
+        vm.expectRevert(abi.encodeWithSelector(IArbitrationEvents.AlreadyCommitted.selector, jurors[0]));
+        court.commitSeed(caseId, bytes32(uint256(1)));
+    }
+
+    function test_theCarriedOverPoolIsEnoughToDrawWithoutNewRevealers() public {
+        (, uint256 caseId) = _openMedium();
+        _respond(caseId);
+        _runSeedRound(caseId, _slice(2));
+        // En la ronda nueva se suma uno solo: con los dos que pasaron alcanzan los tres jurados.
+        _runSeedRound(caseId, _slice(3));
+
+        assertEq(court.jurorsOf(caseId).length, 3);
+        assertEq(uint8(court.getCase(caseId).phase), uint8(Arbitration.Phase.Vote));
+    }
+
+    function test_theDrawWorksWithASingleNewSecretOnTopOfTheCarriedOverPool() public {
+        (, uint256 caseId) = _openMedium();
+        _respond(caseId);
+        _runSeedRound(caseId, _slice(2));
+        _commitSeeds(caseId, _slice(3));
+        vm.warp(court.getCase(caseId).commitEnd + 1);
+        _revealSeeds(caseId, _slice(3));
+
+        // Los dos que pasaron no aportan secreto a la semilla (el código no los suma a _secrets); alcanza con los de la ronda nueva y el blockhash.
+        assertEq(court.revealersOf(caseId, 1).length, 3);
+        vm.warp(court.getCase(caseId).revealEnd + 1);
+        court.draw(caseId);
+        assertEq(uint8(court.getCase(caseId).phase), uint8(Arbitration.Phase.Vote));
+    }
+
+    function test_whoCommittedButDidNotRevealIsNotCarriedOver() public {
+        (, uint256 caseId) = _openMedium();
+        _respond(caseId);
+        _commitSeeds(caseId, _slice(3));
+        vm.warp(court.getCase(caseId).commitEnd + 1);
+        _revealSeeds(caseId, _slice(2));
+        vm.warp(court.getCase(caseId).revealEnd + 1);
+        court.draw(caseId);
+
+        assertEq(court.revealersOf(caseId, 1).length, 2);
+        assertEq(court.committersOf(caseId, 1).length, 2);
+    }
+
+    function test_carryingOverEmitsAnEvent() public {
+        (, uint256 caseId) = _openMedium();
+        _respond(caseId);
+        _commitSeeds(caseId, _slice(2));
+        vm.warp(court.getCase(caseId).commitEnd + 1);
+        _revealSeeds(caseId, _slice(2));
+        vm.warp(court.getCase(caseId).revealEnd + 1);
+        vm.expectEmit(true, false, false, true);
+        emit IArbitrationEvents.SeedCarriedOver(caseId, 1, 2);
+        court.draw(caseId);
+    }
+
     function test_exhaustedRoundsNeedAnEmergencyResolution() public {
         (, uint256 caseId) = _openMedium();
         _respond(caseId);

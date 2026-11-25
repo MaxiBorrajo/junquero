@@ -1,13 +1,7 @@
 // La imagen de un comprobante (el NFT) como SVG. Es una función pura: la usan la app (para mostrarlo) y el servidor (para el enlace que ven
 // las billeteras), así los dos dibujan lo mismo. No incluye fotos del trabajo: la evidencia está cifrada entre las partes y no puede ser pública.
 
-// Minimal claro (fondo crema) u oscuro (fondo del tono oscuro del rubro, con letras crema y arena).
 import { REEDS } from "./reeds";
-
-export type CardStyle = "minimal" | "oscuro";
-// El estilo que usan la app y el servidor.
-export const DEFAULT_STYLE: CardStyle = "oscuro";
-export const CARD_STYLES: readonly CardStyle[] = ["minimal", "oscuro"];
 
 export interface CardData {
   orderId: number;
@@ -33,10 +27,8 @@ export const WEB_FONTS: CardFonts = { regular: "Helvetica, Arial, sans-serif", b
 export const CARD_WIDTH = 600;
 export const CARD_HEIGHT = 800;
 
-const INK = "#231815";
 const BACKGROUND = "#F4EEE6";
 const SAND = "#E7C98B";
-const MUTED = "#6B5C57";
 const LINE = "#D9CDBE";
 
 // Un color por rubro (el orden es el de `t.publish.categories`). `base` es el fondo; `deep` el tono más oscuro de los juncos.
@@ -93,19 +85,18 @@ function lines(values: string[], x: number, y: number, step: number, size: numbe
   return values.map((line, i) => text(line, x, y + i * step, size, fill, font, "700", `text-anchor="${anchor}"`)).join("");
 }
 
-function minimalCard(d: CardData, fonts: CardFonts, dark: boolean): string {
+function cardBody(d: CardData, fonts: CardFonts): string {
   const c = paletteOf(d.category);
   const title = wrap(d.title || "Changa", 17, 3);
-  // En el oscuro el fondo es el tono profundo del rubro; los juncos negros quedan tono sobre tono.
-  const paper = dark ? c.deep : BACKGROUND;
-  const ink = dark ? BACKGROUND : INK;
-  const accent = dark ? SAND : c.base;
-  const quiet = dark ? LINE : MUTED;
-  const reeds = dark ? 0.5 : REEDS_OPACITY;
+  // Fondo en el tono profundo del rubro, letras crema y arena; los juncos negros quedan tono sobre tono.
+  const paper = c.deep;
+  const ink = BACKGROUND;
+  const accent = SAND;
+  const quiet = LINE;
   return [
     `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paper}"/>`,
-    reedsGroup(reeds, dark ? "#000000" : INK),
-    `<rect width="18" height="${CARD_HEIGHT}" fill="${dark ? SAND : c.base}"/>`,
+    reedsGroup(REEDS_OPACITY, "#000000"),
+    `<rect width="18" height="${CARD_HEIGHT}" fill="${SAND}"/>`,
     lines(title, 64, 170, 64, 54, ink, fonts.bold),
     text(`${d.rating}`, 60, 560, 220, accent, fonts.bold, "700"),
     text("/ 5", 210, 560, 64, accent, fonts.regular, "400"),
@@ -118,7 +109,7 @@ function minimalCard(d: CardData, fonts: CardFonts, dark: boolean): string {
 
 // Los juncos van abajo, detrás del texto, escalados para cubrir el ancho (se recortan un poco los costados) y semitransparentes.
 const REEDS_SCALE = 2.3;
-const REEDS_OPACITY = 0.2;
+const REEDS_OPACITY = 0.5;
 
 function reedsGroup(opacity: number, fill: string): string {
   const width = REEDS.width * REEDS_SCALE;
@@ -128,8 +119,8 @@ function reedsGroup(opacity: number, fill: string): string {
   return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${REEDS_SCALE})" opacity="${opacity}"><path d="${REEDS.path}" fill="${fill}"/></g>`;
 }
 
-export function receiptCardSvg(data: CardData, style: CardStyle = DEFAULT_STYLE, fonts: CardFonts = WEB_FONTS): string {
+export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS): string {
   const rating = Math.min(5, Math.max(0, Math.round(data.rating)));
-  const body = minimalCard({ ...data, rating }, fonts, style === "oscuro");
+  const body = cardBody({ ...data, rating }, fonts);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" height="${CARD_HEIGHT}">${body}</svg>`;
 }

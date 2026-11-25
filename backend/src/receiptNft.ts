@@ -1,6 +1,6 @@
 import { keccak256, toBytes } from "viem";
 import { detectContact } from "../../app/src/lib/contactGuard";
-import { DEFAULT_STYLE, receiptCardSvg, WEB_FONTS, type CardData } from "../../app/src/receipts/cardSvg";
+import { receiptCardSvg, WEB_FONTS, type CardData } from "../../app/src/receipts/cardSvg";
 
 export const COMMENT_MAX = 280;
 export const RUBROS = ["Hogar", "Jardín", "Mudanzas", "Limpieza", "Oficios", "Tecnología", "Diseño", "Traducción", "Otros"] as const;
@@ -106,7 +106,7 @@ export async function receiptMeta(db: D1Database, orderId: number): Promise<Rece
   };
 }
 
-export const receiptSvg = (meta: ReceiptMeta): string => receiptCardSvg(meta.card, DEFAULT_STYLE, WEB_FONTS);
+export const receiptSvg = (meta: ReceiptMeta): string => receiptCardSvg(meta.card, WEB_FONTS);
 
 // Los datos del comprobante en el formato que leen las billeteras y los mercados de NFT (ERC-721). No lleva el monto.
 export function receiptJson(meta: ReceiptMeta, origin: string) {

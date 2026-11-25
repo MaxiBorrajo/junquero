@@ -3,7 +3,7 @@ import { SvgXml } from "react-native-svg";
 import type { ReceiptItem } from "../api/types";
 import { t } from "../i18n";
 import { fonts, radius } from "../theme";
-import { CARD_HEIGHT, CARD_WIDTH, DEFAULT_STYLE, receiptCardSvg } from "./cardSvg";
+import { CARD_HEIGHT, CARD_WIDTH, receiptCardSvg } from "./cardSvg";
 
 // La imagen del comprobante: la misma que ve quien abra el NFT en una billetera (la dibuja el mismo código que el servidor).
 export function ReceiptCard({ item, width }: { item: ReceiptItem; width: number }) {
@@ -19,7 +19,6 @@ export function ReceiptCard({ item, width }: { item: ReceiptItem; width: number 
       month: item.month,
       payerName: item.payerName,
     },
-    DEFAULT_STYLE,
     { regular: fonts.regular, bold: fonts.bold },
   );
   return <SvgXml xml={xml} width={width} height={(width * CARD_HEIGHT) / CARD_WIDTH} style={styles.card} />;

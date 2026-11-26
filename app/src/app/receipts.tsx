@@ -28,7 +28,7 @@ export default function ReceiptsScreen() {
   const receipts = useQuery({ queryKey: ["receipts", address], queryFn: async () => (await api.get<{ receipts: ReceiptItem[] }>(`/profiles/${address}/receipts`)).receipts });
   const [examples, setExamples] = useState(false);
   const list = [...(receipts.data ?? []), ...(examples ? SAMPLES : [])];
-  const [view, setView] = useState<View_>("carrusel");
+  const [view, setView] = useState<View_>("grilla");
   // Los ejemplos no existen en el servidor: no abren detalle.
   const open = (item: ReceiptItem) => item.orderId >= 9000 ? undefined : router.push({ pathname: "/receipt/[orderId]", params: { orderId: String(item.orderId), address: String(address) } });
 

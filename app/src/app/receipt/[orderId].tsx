@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { ReceiptItem } from "../../api/types";
 import { Card } from "../../components/Card";
-import { Screen, Secondary, Title } from "../../components/ui";
+import { Chip, Screen, Secondary, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { receiptMonthLabel } from "../../lib/closing";
-import { ReceiptCard } from "../../receipts/ReceiptCard";
+import { ReceiptShowcase, SHOWCASE_MODES, type ShowcaseMode } from "../../receipts/Showcase";
 import { useSession } from "../../session/SessionProvider";
 import { colors, spacing, text } from "../../theme";
 
@@ -16,6 +17,7 @@ export default function ReceiptDetail() {
   const { api, address: me } = useSession();
   const owner = (address || me || "").toString();
   const { width } = useWindowDimensions();
+  const [mode, setMode] = useState<ShowcaseMode>("inclinable");
   const receipts = useQuery({
     queryKey: ["receipts", owner],
     enabled: Boolean(owner),
@@ -32,9 +34,16 @@ export default function ReceiptDetail() {
       {item ? (
         <>
           {item.rated ? (
-            <View style={styles.cardWrap}>
-              <ReceiptCard item={item} width={Math.min(width - spacing.md * 2, 420)} />
-            </View>
+            <>
+              <View style={styles.cardWrap}>
+                <ReceiptShowcase item={item} width={Math.min(width - spacing.md * 2, 340)} mode={mode} />
+              </View>
+              <View style={styles.chips}>
+                {SHOWCASE_MODES.map((entry) => (
+                  <Chip key={entry.key} label={entry.label} selected={mode === entry.key} onPress={() => setMode(entry.key)} />
+                ))}
+              </View>
+            </>
           ) : null}
           <Card gap="sm">
             <Fact label={t.receiptDetail.job} value={item.title || t.medals.untitled} />
@@ -67,7 +76,8 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  cardWrap: { alignItems: "center", marginVertical: spacing.md },
+  cardWrap: { alignItems: "center", marginVertical: spacing.lg },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   fact: { flexDirection: "row", justifyContent: "space-between", gap: spacing.md },
   quote: { gap: spacing.xs, borderLeftWidth: 3, borderLeftColor: colors.brick, paddingLeft: spacing.md },
 });

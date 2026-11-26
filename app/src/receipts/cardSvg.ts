@@ -127,7 +127,7 @@ const credit = (d: CardData): string => (d.payerName ? `Calificó ${d.payerName}
 
 // La composición tipográfica: la nota es un número gigante que se sale de la tarjeta; el resto es un texto chico y ordenado.
 // "original" es la de siempre; las demás son variantes de esa misma idea que suman los juncos de distintas maneras.
-type Variante = "original" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
+type Variante = "original" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura" | "combinada" | "combinadaoscura";
 
 // Una sola espiga de junco, dibujada con trazo y relleno, parada al costado del número.
 function unaEspiga(x: number, color: string): string {
@@ -155,7 +155,12 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   if (v === "alpie") detras = reeds(0, 800, 1.45, c.deep, 0.3);
   else if (v === "oscura") delante = reeds(0, 800, 1.45, "#000000", 0.4);
   else if (v === "brotan") delante = reeds(0, 806, 1.45, c.base, 1);
-  else if (v === "esquina") {
+  else if (v === "combinada" || v === "combinadaoscura") {
+    // Al pie por todo el ancho, más cargados en la esquina de la izquierda y desvaneciéndose hacia el número.
+    const tono = v === "combinada" ? c.base : c.deep;
+    defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.5" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><mask id="esquina" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect x="0" y="0" width="480" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
+    detras = `${reeds(0, 800, 1.45, c.deep, 0.22)}<g mask="url(#esquina)">${reeds(-40, 800, 1.45, tono, v === "combinada" ? 0.62 : 0.55)}</g>`;
+  } else if (v === "esquina") {
     // Los juncos nacen en la esquina de abajo a la izquierda y se van desvaneciendo hacia el número.
     defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><mask id="esquina" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect x="0" y="0" width="470" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
     detras = `<g mask="url(#esquina)">${reeds(-30, 800, 1.3, c.base, 0.6)}</g>`;
@@ -183,12 +188,14 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   );
 }
 
-export type CardShape = "original" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
-export const CARD_SHAPES: readonly CardShape[] = ["original", "alpie", "dentro", "brotan", "esquina", "espiga", "oscura"];
+export type CardShape = "original" | "combinada" | "combinadaoscura" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
+export const CARD_SHAPES: readonly CardShape[] = ["original", "combinada", "combinadaoscura", "alpie", "esquina", "dentro", "brotan", "espiga", "oscura"];
 export const DEFAULT_SHAPE: CardShape = "original";
 
 const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = {
   original: (d, f) => tipografica(d, f, "original"),
+  combinada: (d, f) => tipografica(d, f, "combinada"),
+  combinadaoscura: (d, f) => tipografica(d, f, "combinadaoscura"),
   alpie: (d, f) => tipografica(d, f, "alpie"),
   dentro: (d, f) => tipografica(d, f, "dentro"),
   brotan: (d, f) => tipografica(d, f, "brotan"),

@@ -12,7 +12,7 @@ import { ReceiptShowcase } from "../../receipts/Showcase";
 import { useSession } from "../../session/SessionProvider";
 import { colors, spacing, text } from "../../theme";
 
-const SHAPE_LABELS: Record<CardShape, string> = { original: "Original", alpie: "Al pie", dentro: "Dentro", brotan: "Brotan", esquina: "Esquina", espiga: "Espiga", oscura: "Oscura" };
+const SHAPE_LABELS: Record<CardShape, string> = { original: "Original", combinada: "Pie y esquina", combinadaoscura: "Pie y esquina (oscuro)", alpie: "Al pie", esquina: "Esquina", dentro: "Dentro", brotan: "Brotan", espiga: "Espiga", oscura: "Oscura" };
 
 // Un comprobante en grande: la imagen y todos sus datos. Se llega desde la grilla de Comprobantes o desde el aviso de que se emitió.
 export default function ReceiptDetail() {

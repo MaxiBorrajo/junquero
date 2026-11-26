@@ -4,6 +4,8 @@ Escrito el 7 de noviembre de 2026 y actualizado el 8 de noviembre con el desplie
 
 Orden de lectura si hace falta más detalle: `docs/Junquero - CONTEXT.md` (decisiones de producto), `docs/Junquero - especificacion de contratos y pruebas.md` (diseño y avance de los contratos), `contracts/SECURITY.md` (análisis y limitaciones), `docs/Junquero - diseno de pantallas.md` (pantallas) y `docs/Junquero - stack y costos.md` (infraestructura).
 
+> **Nota del 2026-11-26: redespliegue con el comprobante NFT.** Sepolia se redesplegó (startBlock 12211298; direcciones en `contracts/deployments/sepolia.json`) con: el pozo del sorteo que pasa entre rondas (`SeedCarriedOver`), el comprobante NFT que se emite solo al cobrar con calificación (`Receipt.mintRated`, con nota, huella del comentario, ficha y monto; `tokenURI` servido por el servidor en `/receipts/:id`) y la firma de liberación con `commentHash`. La app deriva el secreto del sorteo de una firma, usa notificaciones push reales (Expo y Firebase) y el comprobante tiene su diseño final (`app/src/receipts/cardSvg.ts`). Las direcciones de la tabla de más abajo son las anteriores: la fuente de verdad es `sepolia.json`.
+
 > **Nota del 2026-11-24: testigo eliminado del contrato.** Se quitaron `WitnessModule`, `assignWitness`, `attest`, la tarifa y el umbral de 300 USDC para exigirlo. Las changas altas ya no piden testigo. Hay que redesplegar en Sepolia para que el cambio llegue a las direcciones publicadas; las que figuran acá todavía incluyen el módulo.
 
 ## 1. Proyecto y reglas de trabajo

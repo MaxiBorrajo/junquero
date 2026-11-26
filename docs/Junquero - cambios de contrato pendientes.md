@@ -1,6 +1,6 @@
-# Junquero: cambios de contrato (hechos el 15/11/2026, pendientes de desplegar)
+# Junquero: cambios de contrato (hechos el 15/11/2026; ya desplegados)
 
-Decisiones del 15/11/2026, ya programadas y probadas (780 pruebas del contrato). Falta desplegar. Todo esto sale en un único redespliegue en Sepolia, junto con dejar los módulos reemplazables en modo demo (ver el plan a futuro).
+Decisiones del 15/11/2026, ya programadas y probadas (780 pruebas del contrato). Ya están desplegados en Sepolia (redespliegues del 14/11, 24/11 y 26/11/2026; las direcciones vigentes están en `contracts/deployments/sepolia.json`). Se conserva el texto como registro de lo decidido.
 
 ## 1. Monto mínimo de una changa
 

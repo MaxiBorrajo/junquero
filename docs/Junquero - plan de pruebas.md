@@ -36,7 +36,7 @@ Elegir uno y anotarlo al empezar cada sesión.
 - [ x ] **Local:** `backend` con `npm run dev`, emulador con `EXPO_PUBLIC_API_URL=http://localhost:8787` y panel con `npm run dev`. Ver `README.md`, sección "Levantar todo en local".
 - [ x ] **Dev (nube):** app de desarrollo instalada (o APK release), servidor `junquero-api` desplegado con la última versión (`cd backend && npm run deploy`) y panel con `npm run dev:cloud` (necesita `ADMIN_ORIGINS` cargado en el servidor). El admin desplegado también se ve en la misma dirección del servidor.
 
-**Despliegue vigente (14/11/2026):** Escrow `0x5cF0…E2Bc`, con la misma moneda de prueba (`0x1871…a2dc`). Trae `topUp` (sumar fondos a una changa abierta). Se volvieron a sembrar las cuentas de demo (credenciales y jurados semilla). El webhook de Alchemy tiene que apuntar a las direcciones nuevas y la clave de firma tiene que estar cargada en el servidor. Las direcciones están en `contracts/deployments/sepolia.json`.
+**Despliegue vigente (26/11/2026):** Escrow `0x582D…2420`, Arbitration `0xAa5B…fA02` y Receipt `0x0FE4…5760`, con la misma moneda de prueba (`0x1871…a2dc`) y `startBlock` 12211298. Trae el pozo del sorteo que pasa entre rondas, el comprobante NFT que se emite solo al cobrar con calificación y `topUp`. Se volvieron a sembrar las cuentas de demo. El webhook de Alchemy tiene que apuntar a las direcciones nuevas y la clave de firma tiene que estar cargada en el servidor. Las direcciones están en `contracts/deployments/sepolia.json`.
 
 Antes de empezar:
 - [ x ] `GET /health` del servidor responde `ok` y `lastIndexedBlock` avanza (el cron está indexando).

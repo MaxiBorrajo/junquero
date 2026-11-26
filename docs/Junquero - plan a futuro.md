@@ -77,6 +77,8 @@ Decisión: la billetera dentro de la app es la opción ideal para quien no tiene
 
 ## 4. Comentarios y calificación en los dos sentidos
 
+> **Hecho el 26/11/2026 (en parte):** quien publica puede dejar un comentario público opcional al calificar. Va firmado dentro de la liberación (`commentHash`), el texto se guarda en el servidor y se muestra en el comprobante y en el perfil de quien trabajó. **Sigue pendiente** la nota de quien trabajó hacia quien publica, dentro de `Reputation`.
+
 Hoy solo califica quien publicó (1 a 5, firmada al liberar el pago) y no hay texto. Idea: que la calificación lleve un comentario opcional, que los próximos solicitantes lo vean al elegir a un postulante, y que quien hizo el trabajo también pueda calificar y comentar a quien publicó. Se hace si se termina el resto.
 
 **Versión recomendada: fuera de la cadena, sin tocar los contratos**
@@ -94,6 +96,8 @@ Hoy solo califica quien publicó (1 a 5, firmada al liberar el pago) y no hay te
 
 ## 5. Comprobantes como imágenes
 
+> **Hecho el 26/11/2026:** el comprobante se emite solo al cobrar con calificación y tiene `tokenURI`: el servidor devuelve el JSON y una imagen SVG propia, con el diseño tipográfico (número gigante de la nota, juncos del color del rubro y esquinas redondeadas). Lo que sigue más abajo es el planteo original, que se conserva.
+
 Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simple: un círculo con el nombre del trabajo, el rubro y la fecha de cierre (pantalla "Comprobantes", a la que se llega desde una tarjeta del perfil). Para que sean algo más atractivo y más fáciles de mostrar:
 
 - **Imagen propia de cada comprobante:** una ilustración por rubro (hogar, mudanzas, mascotas, etc.), con variantes por mes o por cantidad de trabajos cerrados, y quizá niveles (bronce, plata, oro) según la trayectoria de la persona.
@@ -104,6 +108,8 @@ Hoy cada comprobante intransferible (NFT) se ve en la app como una medalla simpl
 - **Qué comprobante da una disputa (idea del 18/11/2026, sin decidir):** un trabajo que terminó en reclamo chico (50/50) no da comprobante; hoy lo oculta la app y falta cerrarlo en el contrato (ver "Junquero - cambios de contrato pendientes"). Evaluar un comprobante de "gané la disputa" solo para las que se resolvieron con jurado, es decir, de monto grande. Encaja con el cambio del rating como NFT intransferible.
 
 ## 6. Jurados: acuerdo entre jurados y sorteo sin elegir caso (nota del 18/11/2026)
+
+> **Hecho el 26/11/2026:** el pozo del sorteo pasa entre rondas sin reanotarse (los que ya revelaron entran solos a la ronda siguiente, sin sumar a la semilla) y el secreto del sorteo se deriva de una firma de la billetera, así no se pierde al cambiar de teléfono. **Sigue pendiente** el grupo de jurados disponibles que describe esta sección.
 
 **Hoy.** El jurado se anota a cada reclamo y el contrato sortea entre quienes se anotan y revelan su aporte (`commitSeed` y `revealSeed`). Antes de anotarse ve un resumen corto del caso: rubro, modalidad, monto en disputa y los criterios que las partes acordaron antes del trabajo. No ve el título, los relatos, las pruebas ni quiénes son las partes: eso solo lo ven los sorteados.
 

@@ -3,16 +3,12 @@ import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { ReceiptItem } from "../../api/types";
 import { Card } from "../../components/Card";
-import { Chip, Screen, Secondary, Title } from "../../components/ui";
+import { Screen, Secondary, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { receiptMonthLabel } from "../../lib/closing";
-import { CARD_SHAPES, type CardShape } from "../../receipts/cardSvg";
-import { setReceiptShape, useReceiptShape } from "../../receipts/shapeStore";
 import { ReceiptShowcase } from "../../receipts/Showcase";
 import { useSession } from "../../session/SessionProvider";
 import { colors, spacing, text } from "../../theme";
-
-const SHAPE_LABELS: Record<CardShape, string> = { original: "Original", desvanece: "Al pie, se desvanece", connota: "Con nota", connotacalido: "Con nota, cálido", alpie: "Al pie", esquina: "Esquina", dentro: "Dentro", brotan: "Brotan", espiga: "Espiga", oscura: "Oscura" };
 
 // Un comprobante en grande: la imagen y todos sus datos. Se llega desde la grilla de Comprobantes o desde el aviso de que se emitió.
 export default function ReceiptDetail() {
@@ -20,7 +16,6 @@ export default function ReceiptDetail() {
   const { api, address: me } = useSession();
   const owner = (address || me || "").toString();
   const { width } = useWindowDimensions();
-  const shape = useReceiptShape();
   const receipts = useQuery({
     queryKey: ["receipts", owner],
     enabled: Boolean(owner),
@@ -37,16 +32,9 @@ export default function ReceiptDetail() {
       {item ? (
         <>
           {item.rated ? (
-            <>
-              <View style={styles.cardWrap}>
-                <ReceiptShowcase item={item} width={Math.min(width - spacing.md * 2, 340)} />
-              </View>
-              <View style={styles.chips}>
-                {CARD_SHAPES.map((entry) => (
-                  <Chip key={entry} label={SHAPE_LABELS[entry]} selected={shape === entry} onPress={() => setReceiptShape(entry)} />
-                ))}
-              </View>
-            </>
+            <View style={styles.cardWrap}>
+              <ReceiptShowcase item={item} width={Math.min(width - spacing.md * 2, 340)} />
+            </View>
           ) : null}
           <Card gap="sm">
             <Fact label={t.receiptDetail.job} value={item.title || t.medals.untitled} />
@@ -80,7 +68,6 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   cardWrap: { alignItems: "center", marginVertical: spacing.lg },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   fact: { flexDirection: "row", justifyContent: "space-between", gap: spacing.md },
   quote: { gap: spacing.xs, borderLeftWidth: 3, borderLeftColor: colors.brick, paddingLeft: spacing.md },
 });

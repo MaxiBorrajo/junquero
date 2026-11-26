@@ -117,157 +117,127 @@ interface Composition {
 export const CARD_RADIUS = 44;
 export const cornerRadius = (width: number): number => (width * CARD_RADIUS) / CARD_WIDTH;
 
-// La escena del atardecer y sus variantes: un cielo, un astro con la nota adentro, el agua con su reflejo, los juncos al frente y los datos abajo.
-// Cada variante cambia la hora y el clima (colores, astro, estrellas, pájaros, neblina o rayas retro), no la composición.
-interface Scene {
-  sky: [string, number][];
-  orb: { cx: number; cy: number; r: number; fill: string };
-  numberColor: string;
-  water: string;
-  reflection: string;
-  reeds: { fill: string; opacity: number; scale: number; bottom: number };
-  text: { title: string; meta: string; sub: string };
-  titleLines?: number;
-  // Se dibuja en el cielo, antes del astro (estrellas, pájaros).
-  sky_extras?: string;
-  // Se dibuja encima de los juncos (neblina) y lo que necesita en <defs>.
-  mist?: string;
-  mistDefs?: string;
-  // Rayas que cortan el astro (retro) y el suelo en perspectiva.
-  retro?: boolean;
-}
+// Las esquinas redondeadas van dibujadas en la propia imagen: se recorta todo con este rectángulo.
+const framed = (body: string, defs = ""): Composition => ({
+  defs: `<clipPath id="redondeo"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" rx="${CARD_RADIUS}"/></clipPath>${defs}`,
+  body: `<g clip-path="url(#redondeo)">${body}</g>`,
+});
 
-function scene(d: CardData, f: CardFonts, o: Scene): Composition {
+const credit = (d: CardData): string => (d.payerName ? `Calificó ${d.payerName}` : "");
+
+// Cinco composiciones minimalistas: una sola idea fuerte cada una, mucho aire y el color del rubro como único acento.
+
+// 1. Tipográfica: la nota es un número gigante que se sale de la tarjeta; el resto es un texto chico y ordenado.
+function tipografica(d: CardData, f: CardFonts): Composition {
   const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 18, o.titleLines ?? 3);
-  const { cx, cy, r } = o.orb;
-  const horizon = 590;
-  let reflection = "";
-  if (!o.retro) for (let i = 0; i < 4; i += 1) reflection += `<rect x="${cx - (150 - i * 30)}" y="${612 + i * 24}" width="${300 - i * 60}" height="7" rx="3.5" fill="${o.reflection}" opacity="${(0.6 - i * 0.13).toFixed(2)}"/>`;
-  let slits = "";
-  if (o.retro) for (let k = 0; k < 6; k += 1) slits += `<rect y="${cy + 62 + k * 17}" width="${CARD_WIDTH}" height="${3 + k * 2.6}" fill="#000"/>`;
-  let floor = "";
-  if (o.retro) {
-    for (let i = -6; i <= 6; i += 1) floor += `<line x1="${300 + i * 22}" y1="${horizon}" x2="${300 + i * 150}" y2="${CARD_HEIGHT}" stroke="${o.reflection}" stroke-opacity="0.4" stroke-width="2"/>`;
-    for (const y of [606, 628, 658, 700]) floor += `<line x1="0" y1="${y}" x2="${CARD_WIDTH}" y2="${y}" stroke="${o.reflection}" stroke-opacity="0.4" stroke-width="2"/>`;
-  }
-  const stops = o.sky.map(([color, at]) => `<stop offset="${at}" stop-color="${color}"/>`).join("");
-  const numberY = o.retro ? cy + 44 : cy + 86;
-  const labelY = o.retro ? cy - 110 : cy - 88;
-  return {
-    defs: `<linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient><clipPath id="redondeo"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" rx="${CARD_RADIUS}"/></clipPath>${o.mistDefs ?? ""}${o.retro ? `<mask id="rajas" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fff"/>${slits}</mask>` : ""}`,
-    body: [
-      `<g clip-path="url(#redondeo)">`,
-      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="url(#cielo)"/>`,
-      o.sky_extras ?? "",
-      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${o.orb.fill}"${o.retro ? ' mask="url(#rajas)"' : ""}/>`,
-      `<rect y="${horizon}" width="${CARD_WIDTH}" height="${CARD_HEIGHT - horizon}" fill="${o.water}"/>`,
-      reflection,
-      floor,
-      reeds(0, o.reeds.bottom, o.reeds.scale, o.reeds.fill, o.reeds.opacity),
-      // Si los juncos no cubren todo el ancho, se repiten para que no terminen en un corte seco.
-      o.reeds.scale * REEDS.width < CARD_WIDTH - 1 ? reeds(o.reeds.scale * REEDS.width - 4, o.reeds.bottom, o.reeds.scale, o.reeds.fill, o.reeds.opacity) : "",
-      o.mist ?? "",
-      lines(title, 52, 112, 62, 52, o.text.title, f.bold),
-      text("NOTA DE 5", cx, labelY, 26, o.numberColor, f.bold, "700", 'text-anchor="middle" letter-spacing="8"'),
-      text(`${d.rating}`, cx, numberY, o.retro ? 170 : 200, o.numberColor, f.bold, "700", 'text-anchor="middle"'),
-      text(meta(d), 300, 742, 24, o.text.meta, f.regular, "400", 'text-anchor="middle"'),
-      text(`${d.payerName ? `Calificó ${d.payerName}  ·  ` : ""}#${d.orderId}`, 300, 776, 22, o.text.sub, f.regular, "400", 'text-anchor="middle"'),
-      `</g>`,
+  const title = wrap(d.title || "Changa", 17, 3);
+  return framed(
+    [
+      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
+      text(`${d.rating}`, 676, 846, 660, c.base, f.bold, "700", 'text-anchor="end"'),
+      text(`JUNQUERO · #${d.orderId}`, 56, 84, 20, MUTED, f.bold, "700", 'letter-spacing="6"'),
+      lines(title, 56, 168, 58, 50, INK, f.bold),
+      `<line x1="56" y1="${190 + (title.length - 1) * 58}" x2="136" y2="${190 + (title.length - 1) * 58}" stroke="${c.base}" stroke-width="5"/>`,
+      text(`${d.categoryName} · ${kind(d)}`, 56, 252 + (title.length - 1) * 58, 24, MUTED, f.regular, "400"),
+      text(monthLabel(d.month), 56, 286 + (title.length - 1) * 58, 24, MUTED, f.regular, "400"),
+      credit(d) ? text(credit(d), 56, 320 + (title.length - 1) * 58, 24, INK, f.regular, "400") : "",
     ].join(""),
-  };
+  );
 }
 
-function atardecer(d: CardData, f: CardFonts): Composition {
+// 2. Espiga: una sola espiga de junco, dibujada con línea, y todo el aire del fondo oscuro. La nota son cinco puntos.
+function espiga(d: CardData, f: CardFonts): Composition {
   const c = paletteOf(d.category);
-  return scene(d, f, {
-    sky: [[c.deep, 0], [c.base, 0.5], [SAND, 0.74]],
-    orb: { cx: 300, cy: 450, r: 166, fill: SAND },
-    numberColor: c.deep,
-    water: c.deep,
-    reflection: SAND,
-    reeds: { fill: "#120706", opacity: 0.92, scale: 1.45, bottom: 690 },
-    text: { title: CREAM, meta: CREAM, sub: LINE },
-  });
+  const title = wrap(d.title || "Changa", 14, 3);
+  const top = 400;
+  const metaY = top + (title.length - 1) * 60 + 56;
+  const dotsY = metaY + 50;
+  const dots = Array.from({ length: 5 }, (_, i) => `<circle cx="${68 + i * 40}" cy="${dotsY}" r="11" fill="${i < d.rating ? SAND : "none"}" stroke="${SAND}" stroke-width="3" opacity="${i < d.rating ? 1 : 0.4}"/>`).join("");
+  return framed(
+    [
+      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${c.deep}"/>`,
+      `<path d="M 440 830 C 436 660, 454 500, 440 330" fill="none" stroke="${SAND}" stroke-width="7" stroke-linecap="round"/>`,
+      `<path d="M 440 830 C 396 690, 338 590, 312 440" fill="none" stroke="${SAND}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`,
+      `<path d="M 440 830 C 478 690, 528 600, 552 500" fill="none" stroke="${SAND}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`,
+      `<ellipse cx="440" cy="246" rx="27" ry="88" fill="${SAND}"/>`,
+      `<line x1="440" y1="158" x2="440" y2="104" stroke="${SAND}" stroke-width="4" stroke-linecap="round"/>`,
+      lines(title, 56, top, 60, 52, CREAM, f.bold),
+      text(`${d.categoryName} · ${kind(d)}`, 56, metaY, 24, LINE, f.regular, "400"),
+      dots,
+      text(`${monthLabel(d.month)}${credit(d) ? ` · ${credit(d)}` : ""}`, 56, dotsY + 52, 22, LINE, f.regular, "400"),
+      text(`junquero · #${d.orderId}`, 56, 764, 20, SAND, f.regular, "400"),
+    ].join(""),
+  );
 }
 
-// Amanecer: cielo claro, sol pálido que sale y neblina sobre los juncos.
-function amanecer(d: CardData, f: CardFonts): Composition {
+// 3. Círculo: un círculo del color del rubro con la nota adentro, y el título abajo. Casi sin nada más.
+function circulo(d: CardData, f: CardFonts): Composition {
   const c = paletteOf(d.category);
-  return scene(d, f, {
-    sky: [[c.base, 0], ["#E9B27A", 0.46], ["#FBEBC8", 0.76]],
-    orb: { cx: 300, cy: 470, r: 150, fill: "#FFF6DC" },
-    numberColor: c.base,
-    water: c.base,
-    reflection: "#FFF6DC",
-    reeds: { fill: c.deep, opacity: 0.82, scale: 1.45, bottom: 690 },
-    text: { title: CREAM, meta: CREAM, sub: LINE },
-    mistDefs: `<linearGradient id="neblina" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBEBC8" stop-opacity="0"/><stop offset="0.55" stop-color="#FBEBC8" stop-opacity="0.5"/><stop offset="1" stop-color="#FBEBC8" stop-opacity="0"/></linearGradient>`,
-    mist: `<rect y="520" width="${CARD_WIDTH}" height="190" fill="url(#neblina)"/>`,
-  });
+  const title = wrap(d.title || "Changa", 14, 3);
+  return framed(
+    [
+      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
+      `<circle cx="400" cy="260" r="178" fill="${c.base}"/>`,
+      text(`${d.rating}`, 400, 336, 220, CREAM, f.bold, "700", 'text-anchor="middle"'),
+      text("de 5", 400, 392, 28, SAND, f.regular, "400", 'text-anchor="middle" letter-spacing="4"'),
+      `<line x1="56" y1="500" x2="136" y2="500" stroke="${c.base}" stroke-width="5"/>`,
+      lines(title, 56, 572, 58, 50, INK, f.bold),
+      text(`${d.categoryName} · ${kind(d)} · ${monthLabel(d.month)}`, 56, 742, 22, MUTED, f.regular, "400"),
+      text(`${credit(d) ? `${credit(d)} · ` : ""}junquero #${d.orderId}`, 56, 772, 20, MUTED, f.regular, "400"),
+    ].join(""),
+  );
 }
 
-// Noche: luna llena, estrellas y el reflejo en el agua oscura.
-function noche(d: CardData, f: CardFonts): Composition {
+// 4. Horizonte: dos bloques de color, uno oscuro y uno claro, con los juncos del mismo tono parados sobre la línea que los separa.
+function horizonte(d: CardData, f: CardFonts): Composition {
   const c = paletteOf(d.category);
-  const rand = seeded(d.orderId * 7 + 5);
-  let stars = "";
-  for (let i = 0; i < 46; i += 1) stars += `<circle cx="${(20 + rand() * 560).toFixed(0)}" cy="${(24 + rand() * 330).toFixed(0)}" r="${(1 + rand() * 2.2).toFixed(1)}" fill="${CREAM}" opacity="${(0.35 + rand() * 0.6).toFixed(2)}"/>`;
-  return scene(d, f, {
-    sky: [["#090C18", 0], [c.deep, 0.62], [c.base, 0.8]],
-    orb: { cx: 300, cy: 450, r: 160, fill: CREAM },
-    numberColor: c.deep,
-    water: "#070810",
-    reflection: CREAM,
-    reeds: { fill: "#030409", opacity: 0.95, scale: 1.45, bottom: 690 },
-    text: { title: CREAM, meta: CREAM, sub: LINE },
-    sky_extras: stars,
-  });
+  const title = wrap(d.title || "Changa", 17, 3);
+  return framed(
+    [
+      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
+      `<rect width="${CARD_WIDTH}" height="500" fill="${c.deep}"/>`,
+      reeds(0, 500, 1.45, c.base, 0.7),
+      lines(title, 56, 130, 62, 54, CREAM, f.bold),
+      text(`${d.rating}`, 52, 706, 200, c.base, f.bold, "700"),
+      text("/ 5", 190, 706, 54, MUTED, f.regular, "400"),
+      text(d.categoryName, 544, 600, 26, INK, f.bold, "700", 'text-anchor="end"'),
+      text(kind(d), 544, 636, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
+      text(monthLabel(d.month), 544, 668, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
+      credit(d) ? text(credit(d), 544, 700, 22, MUTED, f.regular, "400", 'text-anchor="end"') : "",
+      text(`junquero · #${d.orderId}`, 544, 764, 20, c.base, f.regular, "400", 'text-anchor="end"'),
+    ].join(""),
+  );
 }
 
-// Retro: el sol cortado por rayas y el suelo en perspectiva, como un póster de los ochenta.
-function retro(d: CardData, f: CardFonts): Composition {
+// 5. Regla: la nota como un punto sobre una escala del 1 al 5. El gráfico es el diseño.
+function regla(d: CardData, f: CardFonts): Composition {
   const c = paletteOf(d.category);
-  return scene(d, f, {
-    sky: [[c.deep, 0], [c.base, 0.7], ["#E27D5F", 0.74]],
-    orb: { cx: 300, cy: 430, r: 172, fill: SAND },
-    numberColor: c.deep,
-    water: c.deep,
-    reflection: SAND,
-    reeds: { fill: "#120706", opacity: 0.85, scale: 1.05, bottom: 640 },
-    text: { title: CREAM, meta: CREAM, sub: LINE },
-    retro: true,
-  });
+  const title = wrap(d.title || "Changa", 16, 3);
+  const x = (n: number) => 76 + (n - 1) * 112;
+  const ticks = [1, 2, 3, 4, 5].map((n) => `<line x1="${x(n)}" y1="500" x2="${x(n)}" y2="${n === d.rating ? 480 : 490}" stroke="${INK}" stroke-width="3"/>${text(`${n}`, x(n), 540, 22, n === d.rating ? c.base : MUTED, f.bold, "700", 'text-anchor="middle"')}`).join("");
+  return framed(
+    [
+      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
+      `<rect x="0" y="0" width="${CARD_WIDTH}" height="18" fill="${c.base}"/>`,
+      text(`JUNQUERO · #${d.orderId}`, 56, 92, 20, MUTED, f.bold, "700", 'letter-spacing="6"'),
+      lines(title, 56, 176, 60, 52, INK, f.bold),
+      `<line x1="${x(1)}" y1="500" x2="${x(5)}" y2="500" stroke="${INK}" stroke-width="3"/>`,
+      ticks,
+      `<circle cx="${x(d.rating)}" cy="500" r="20" fill="${c.base}"/>`,
+      text(`${d.rating}`, 56, 440, 150, c.base, f.bold, "700", "").replace('x="56"', 'x="52"'),
+      text(`${d.categoryName} · ${kind(d)}`, 56, 640, 24, INK, f.regular, "400"),
+      text(`${monthLabel(d.month)}${credit(d) ? ` · ${credit(d)}` : ""}`, 56, 676, 24, MUTED, f.regular, "400"),
+      text("junquero", 56, 764, 30, c.base, f.bold, "700"),
+      text(`#${d.orderId}`, 544, 764, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
+    ].join(""),
+  );
 }
 
-// Bandada: el atardecer, con la nota contada en pájaros: llenos los que cuentan.
-function bandada(d: CardData, f: CardFonts): Composition {
-  const c = paletteOf(d.category);
-  const rise = [0, -22, -34, -22, 0];
-  const birds = Array.from({ length: 5 }, (_, i) => {
-    const x = 110 + i * 95;
-    const y = 262 + rise[i]!;
-    const on = i < d.rating;
-    return `<path d="M ${x - 30} ${y} Q ${x - 15} ${y - 22} ${x} ${y} Q ${x + 15} ${y - 22} ${x + 30} ${y}" fill="none" stroke="${CREAM}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="${on ? 1 : 0.25}"/>`;
-  }).join("");
-  return scene(d, f, {
-    sky: [[c.deep, 0], [c.base, 0.5], [SAND, 0.74]],
-    orb: { cx: 300, cy: 470, r: 160, fill: SAND },
-    numberColor: c.deep,
-    water: c.deep,
-    reflection: SAND,
-    reeds: { fill: "#120706", opacity: 0.92, scale: 1.45, bottom: 690 },
-    text: { title: CREAM, meta: CREAM, sub: LINE },
-    titleLines: 2,
-    sky_extras: birds,
-  });
-}
+export type CardShape = "tipografica" | "espiga" | "circulo" | "horizonte" | "regla";
+export const CARD_SHAPES: readonly CardShape[] = ["tipografica", "espiga", "circulo", "horizonte", "regla"];
+export const DEFAULT_SHAPE: CardShape = "tipografica";
 
-export type CardShape = "atardecer" | "amanecer" | "noche" | "retro" | "bandada";
-export const CARD_SHAPES: readonly CardShape[] = ["atardecer", "amanecer", "noche", "retro", "bandada"];
-export const DEFAULT_SHAPE: CardShape = "atardecer";
-
-const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = { atardecer, amanecer, noche, retro, bandada };
+const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = { tipografica, espiga, circulo, horizonte, regla };
 
 export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, shape: CardShape = DEFAULT_SHAPE): string {
   const rating = Math.min(5, Math.max(0, Math.round(data.rating)));

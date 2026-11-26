@@ -156,9 +156,9 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   else if (v === "oscura") delante = reeds(0, 800, 1.45, "#000000", 0.4);
   else if (v === "brotan") delante = reeds(0, 806, 1.45, c.base, 1);
   else if (v === "desvanece") {
-    // Los mismos juncos de "al pie" (tamaño, color y opacidad), que se van desvaneciendo a medida que se acercan al número.
+    // Los juncos de "al pie" (mismo color y opacidad) pero más grandes, que se van desvaneciendo a medida que se acercan al número.
     defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#fff"/><stop offset="0.78" stop-color="#000"/></linearGradient><mask id="hastaelnumero" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
-    detras = `<g mask="url(#hastaelnumero)">${reeds(0, 800, 1.45, c.deep, 0.3)}</g>`;
+    detras = `<g mask="url(#hastaelnumero)">${reeds(-30, 800, 2.2, c.deep, 0.3)}</g>`;
   } else if (v === "esquina") {
     // Los juncos nacen en la esquina de abajo a la izquierda y se van desvaneciendo hacia el número.
     defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><mask id="esquina" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect x="0" y="0" width="470" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;

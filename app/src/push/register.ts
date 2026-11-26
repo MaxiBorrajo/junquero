@@ -13,7 +13,7 @@ export async function registerForPush(api: Api): Promise<PushOutcome> {
   if (!projectId) return "no-project";
 
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", { name: "Avisos", importance: Notifications.AndroidImportance.HIGH });
+    await Notifications.setNotificationChannelAsync("default", { name: "Avisos", importance: Notifications.AndroidImportance.HIGH, lightColor: "#8F2F22" });
   }
   const existing = await Notifications.getPermissionsAsync();
   const granted = existing.granted || (await Notifications.requestPermissionsAsync()).granted;

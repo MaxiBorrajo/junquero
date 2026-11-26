@@ -127,7 +127,7 @@ const credit = (d: CardData): string => (d.payerName ? `Calificó ${d.payerName}
 
 // La composición tipográfica: la nota es un número gigante que se sale de la tarjeta; el resto es un texto chico y ordenado.
 // "original" es la de siempre; las demás son variantes de esa misma idea que suman los juncos de distintas maneras.
-type Variante = "original" | "alpie" | "desvanece" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
+type Variante = "original" | "alpie" | "desvanece" | "connota" | "connotacalido" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
 
 // Una sola espiga de junco, dibujada con trazo y relleno, parada al costado del número.
 function unaEspiga(x: number, color: string): string {
@@ -155,10 +155,12 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   if (v === "alpie") detras = reeds(0, 800, 1.45, c.deep, 0.3);
   else if (v === "oscura") delante = reeds(0, 800, 1.45, "#000000", 0.4);
   else if (v === "brotan") delante = reeds(0, 806, 1.45, c.base, 1);
-  else if (v === "desvanece") {
+  else if (v === "desvanece" || v === "connota" || v === "connotacalido") {
     // Los juncos de "al pie" (mismo color y opacidad) pero más grandes, que se van desvaneciendo a medida que se acercan al número.
     defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#fff"/><stop offset="0.78" stop-color="#000"/></linearGradient><mask id="hastaelnumero" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
-    detras = `<g mask="url(#hastaelnumero)">${reeds(-25, 800, 1.85, c.deep, 0.3)}</g>`;
+    // "connotacalido" tiñe los juncos con el color del rubro (el del número) en vez del tono oscuro: quedan más cálidos.
+    const calido = v === "connotacalido";
+    detras = `<g mask="url(#hastaelnumero)">${reeds(-25, 800, 1.85, calido ? c.base : c.deep, calido ? 0.24 : 0.3)}</g>`;
   } else if (v === "esquina") {
     // Los juncos nacen en la esquina de abajo a la izquierda y se van desvaneciendo hacia el número.
     defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><mask id="esquina" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect x="0" y="0" width="470" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
@@ -176,7 +178,10 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
       detras,
       numeral(dark ? SAND : c.base),
       delante,
-      text(`JUNQUERO · #${d.orderId}`, 56, 84, 20, quiet, f.bold, "700", 'letter-spacing="6"'),
+      v === "connota" || v === "connotacalido"
+        ? // La nota dicha con todas las letras, en el color del rubro (la imagen se ve suelta en una billetera). Va arriba para no apretar los datos.
+          `<text x="56" y="84" font-size="20" font-family="${f.bold}" font-weight="700" letter-spacing="5"><tspan fill="${accent}">NOTA ${d.rating} DE 5</tspan><tspan fill="${quiet}"> · JUNQUERO · #${d.orderId}</tspan></text>`
+        : text(`JUNQUERO · #${d.orderId}`, 56, 84, 20, quiet, f.bold, "700", 'letter-spacing="6"'),
       lines(title, 56, 168, 58, 50, ink, f.bold),
       `<line x1="56" y1="${190 + drop}" x2="136" y2="${190 + drop}" stroke="${accent}" stroke-width="5"/>`,
       text(`${d.categoryName} · ${kind(d)}`, 56, 252 + drop, 24, quiet, f.regular, "400"),
@@ -187,13 +192,15 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   );
 }
 
-export type CardShape = "original" | "desvanece" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
-export const CARD_SHAPES: readonly CardShape[] = ["original", "desvanece", "alpie", "esquina", "dentro", "brotan", "espiga", "oscura"];
+export type CardShape = "original" | "desvanece" | "connota" | "connotacalido" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
+export const CARD_SHAPES: readonly CardShape[] = ["original", "desvanece", "connota", "connotacalido", "alpie", "esquina", "dentro", "brotan", "espiga", "oscura"];
 export const DEFAULT_SHAPE: CardShape = "original";
 
 const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = {
   original: (d, f) => tipografica(d, f, "original"),
   desvanece: (d, f) => tipografica(d, f, "desvanece"),
+  connota: (d, f) => tipografica(d, f, "connota"),
+  connotacalido: (d, f) => tipografica(d, f, "connotacalido"),
   alpie: (d, f) => tipografica(d, f, "alpie"),
   dentro: (d, f) => tipografica(d, f, "dentro"),
   brotan: (d, f) => tipografica(d, f, "brotan"),

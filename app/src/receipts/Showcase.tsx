@@ -35,19 +35,19 @@ export function ReceiptShowcase({ item, width, mode }: { item: ReceiptItem; widt
 }
 
 // Un destello diagonal que se desliza sobre la tarjeta. `position` va de -1 (afuera a la izquierda) a 1 (afuera a la derecha).
-function Shine({ width, height, position }: { width: number; height: number; position: Animated.AnimatedInterpolation<number> | Animated.Value }) {
+function Shine({ width, height, position, opacity = 1 }: { width: number; height: number; position: Animated.AnimatedInterpolation<number> | Animated.Value; opacity?: Animated.AnimatedInterpolation<number> | number }) {
   const band = width * 0.7;
   return (
     <Animated.View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFill, { overflow: "hidden", borderRadius: radius.lg }]}
+      style={[StyleSheet.absoluteFill, { overflow: "hidden", borderRadius: radius.lg, opacity }]}
     >
       <Animated.View style={{ position: "absolute", top: -height * 0.2, width: band, height: height * 1.4, transform: [{ translateX: Animated.multiply(position, width * 0.9) }, { rotate: "18deg" }] }}>
         <Svg width={band} height={height * 1.4}>
           <Defs>
             <LinearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
               <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0" />
-              <Stop offset="0.5" stopColor="#FFFFFF" stopOpacity="0.34" />
+              <Stop offset="0.5" stopColor="#FFFFFF" stopOpacity="0.26" />
               <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
             </LinearGradient>
           </Defs>
@@ -78,13 +78,15 @@ function Tilt({ item, width, height }: { item: ReceiptItem; width: number; heigh
       }),
     [x, y, width, height],
   );
+  // El brillo solo aparece al inclinar: en reposo la tarjeta se lee limpia.
+  const glow = Animated.add(x.interpolate({ inputRange: [-1, 0, 1], outputRange: [1, 0, 1] }), y.interpolate({ inputRange: [-1, 0, 1], outputRange: [1, 0, 1] })).interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 0.85, 1], extrapolate: "clamp" });
   const rotateY = x.interpolate({ inputRange: [-1, 1], outputRange: [`-${MAX_TILT}deg`, `${MAX_TILT}deg`] });
   const rotateX = y.interpolate({ inputRange: [-1, 1], outputRange: [`${MAX_TILT}deg`, `-${MAX_TILT}deg`] });
   return (
     <View {...pan.panHandlers} style={{ width, height }}>
       <Animated.View style={[styles.shadow, { width, height, transform: [{ perspective: 900 }, { rotateX }, { rotateY }] }]}>
         <ReceiptCard item={item} width={width} />
-        <Shine width={width} height={height} position={x} />
+        <Shine width={width} height={height} position={x} opacity={glow} />
       </Animated.View>
     </View>
   );

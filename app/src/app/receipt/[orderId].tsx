@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { ReceiptItem } from "../../api/types";
@@ -7,9 +6,13 @@ import { Card } from "../../components/Card";
 import { Chip, Screen, Secondary, Title } from "../../components/ui";
 import { t } from "../../i18n";
 import { receiptMonthLabel } from "../../lib/closing";
-import { ReceiptShowcase, SHOWCASE_MODES, type ShowcaseMode } from "../../receipts/Showcase";
+import { CARD_SHAPES, type CardShape } from "../../receipts/cardSvg";
+import { setReceiptShape, useReceiptShape } from "../../receipts/shapeStore";
+import { ReceiptShowcase } from "../../receipts/Showcase";
 import { useSession } from "../../session/SessionProvider";
 import { colors, spacing, text } from "../../theme";
+
+const SHAPE_LABELS: Record<CardShape, string> = { rectangulo: "Rectángulo", arco: "Arco", ticket: "Ticket", sello: "Sello", chapa: "Chapa" };
 
 // Un comprobante en grande: la imagen y todos sus datos. Se llega desde la grilla de Comprobantes o desde el aviso de que se emitió.
 export default function ReceiptDetail() {
@@ -17,7 +20,7 @@ export default function ReceiptDetail() {
   const { api, address: me } = useSession();
   const owner = (address || me || "").toString();
   const { width } = useWindowDimensions();
-  const [mode, setMode] = useState<ShowcaseMode>("inclinable");
+  const shape = useReceiptShape();
   const receipts = useQuery({
     queryKey: ["receipts", owner],
     enabled: Boolean(owner),
@@ -36,11 +39,11 @@ export default function ReceiptDetail() {
           {item.rated ? (
             <>
               <View style={styles.cardWrap}>
-                <ReceiptShowcase item={item} width={Math.min(width - spacing.md * 2, 340)} mode={mode} />
+                <ReceiptShowcase item={item} width={Math.min(width - spacing.md * 2, 340)} />
               </View>
               <View style={styles.chips}>
-                {SHOWCASE_MODES.map((entry) => (
-                  <Chip key={entry.key} label={entry.label} selected={mode === entry.key} onPress={() => setMode(entry.key)} />
+                {CARD_SHAPES.map((entry) => (
+                  <Chip key={entry} label={SHAPE_LABELS[entry]} selected={shape === entry} onPress={() => setReceiptShape(entry)} />
                 ))}
               </View>
             </>

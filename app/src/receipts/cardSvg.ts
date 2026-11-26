@@ -86,19 +86,19 @@ function lines(values: string[], x: number, y: number, step: number, size: numbe
 }
 
 // La versión compacta es para verla chica (la grilla): solo el título y la nota, grandes. El resto se ve al entrar.
-function compactBody(d: CardData, fonts: CardFonts): string {
+function compactBody(d: CardData, fonts: CardFonts, shift: number): string {
   const title = wrap(d.title || "Changa", 13, 4);
   return [
     `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paletteOf(d.category).deep}"/>`,
     reedsGroup(REEDS_OPACITY, "#000000"),
     `<rect width="26" height="${CARD_HEIGHT}" fill="${SAND}"/>`,
-    lines(title, 76, 170, 84, 72, BACKGROUND, fonts.bold),
+    lines(title, 76, 170 + shift, 84, 72, BACKGROUND, fonts.bold),
     text(`${d.rating}`, 70, 740, 300, SAND, fonts.bold, "700"),
     text("/ 5", 270, 740, 100, SAND, fonts.regular, "400"),
   ].join("");
 }
 
-function cardBody(d: CardData, fonts: CardFonts): string {
+function cardBody(d: CardData, fonts: CardFonts, shift: number): string {
   const c = paletteOf(d.category);
   const title = wrap(d.title || "Changa", 17, 3);
   // Fondo en el tono profundo del rubro, letras crema y arena; los juncos negros quedan tono sobre tono.
@@ -110,7 +110,7 @@ function cardBody(d: CardData, fonts: CardFonts): string {
     `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paper}"/>`,
     reedsGroup(REEDS_OPACITY, "#000000"),
     `<rect width="18" height="${CARD_HEIGHT}" fill="${SAND}"/>`,
-    lines(title, 64, 170, 64, 54, ink, fonts.bold),
+    lines(title, 64, 170 + shift, 64, 54, ink, fonts.bold),
     text(`${d.rating}`, 60, 560, 220, accent, fonts.bold, "700"),
     text("/ 5", 210, 560, 64, accent, fonts.regular, "400"),
     text(`${d.categoryName} · ${d.remote ? "a distancia" : "presencial"} · ${monthLabel(d.month)}`, 64, 626, 26, quiet, fonts.regular, "400"),
@@ -132,8 +132,60 @@ function reedsGroup(opacity: number, fill: string): string {
   return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${REEDS_SCALE})" opacity="${opacity}"><path d="${REEDS.path}" fill="${fill}"/></g>`;
 }
 
-export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, compact = false): string {
+// La silueta de la tarjeta. Todas parten del mismo rectángulo de 600 por 800 y le quitan o le agregan algo.
+export type CardShape = "rectangulo" | "arco" | "ticket" | "sello" | "chapa";
+export const CARD_SHAPES: readonly CardShape[] = ["rectangulo", "arco", "ticket", "sello", "chapa"];
+export const DEFAULT_SHAPE: CardShape = "ticket";
+
+interface ShapeParts {
+  // Lo que va dentro de <defs> (el recorte o la máscara) y cómo se aplica al contenido.
+  defs: string;
+  apply: string;
+  // Lo que se dibuja encima del contenido (la perforación del ticket, el aro de la chapa).
+  decor: string;
+  // Cuánto se baja el título para que no lo corte la silueta.
+  shift: number;
+}
+
+const sharedCuts = (): string => {
+  let circles = "";
+  for (let i = 0; i < 15; i += 1) circles += `<circle cx="${20 + i * 40}" cy="0" r="12" fill="#000"/><circle cx="${20 + i * 40}" cy="${CARD_HEIGHT}" r="12" fill="#000"/>`;
+  for (let j = 0; j < 20; j += 1) circles += `<circle cx="0" cy="${20 + j * 40}" r="12" fill="#000"/><circle cx="${CARD_WIDTH}" cy="${20 + j * 40}" r="12" fill="#000"/>`;
+  return circles;
+};
+
+function shapeParts(shape: CardShape): ShapeParts {
+  switch (shape) {
+    case "arco":
+      // Una ventana con la parte de arriba redonda.
+      return { defs: `<clipPath id="forma"><path d="M0 800 L0 300 A300 300 0 0 1 600 300 L600 800 Z"/></clipPath>`, apply: 'clip-path="url(#forma)"', decor: "", shift: 70 };
+    case "ticket":
+      // Una entrada: muescas a los costados y una línea de puntos para cortar.
+      return {
+        defs: `<clipPath id="forma"><path d="M0 0 H600 V554 A36 36 0 0 0 600 626 V800 H0 V626 A36 36 0 0 0 0 554 Z"/></clipPath>`,
+        apply: 'clip-path="url(#forma)"',
+        decor: `<line x1="56" y1="590" x2="544" y2="590" stroke="${SAND}" stroke-opacity="0.55" stroke-width="3" stroke-dasharray="14 12"/>`,
+        shift: 0,
+      };
+    case "sello":
+      // Un sello postal: el borde perforado.
+      return { defs: `<mask id="forma" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fff"/>${sharedCuts()}</mask>`, apply: 'mask="url(#forma)"', decor: "", shift: 14 };
+    case "chapa":
+      // Una chapa para colgar: esquinas redondas y un agujero arriba.
+      return {
+        defs: `<clipPath id="forma"><path clip-rule="evenodd" d="M64 0 H536 A64 64 0 0 1 600 64 V736 A64 64 0 0 1 536 800 H64 A64 64 0 0 1 0 736 V64 A64 64 0 0 1 64 0 Z M272 64 A28 28 0 1 0 328 64 A28 28 0 1 0 272 64 Z"/></clipPath>`,
+        apply: 'clip-path="url(#forma)"',
+        decor: `<circle cx="300" cy="64" r="34" fill="none" stroke="${SAND}" stroke-width="6"/>`,
+        shift: 74,
+      };
+    default:
+      return { defs: "", apply: "", decor: "", shift: 0 };
+  }
+}
+
+export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, compact = false, shape: CardShape = DEFAULT_SHAPE): string {
   const rating = Math.min(5, Math.max(0, Math.round(data.rating)));
-  const body = compact ? compactBody({ ...data, rating }, fonts) : cardBody({ ...data, rating }, fonts);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" height="${CARD_HEIGHT}">${body}</svg>`;
+  const parts = shapeParts(shape);
+  const body = compact ? compactBody({ ...data, rating }, fonts, parts.shift) : cardBody({ ...data, rating }, fonts, parts.shift);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" width="${CARD_WIDTH}" height="${CARD_HEIGHT}">${parts.defs ? `<defs>${parts.defs}</defs>` : ""}<g ${parts.apply}>${body}${parts.decor}</g></svg>`;
 }

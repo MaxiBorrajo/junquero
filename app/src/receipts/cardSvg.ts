@@ -111,11 +111,12 @@ const credit = (d: CardData): string => (d.payerName ? `Calificó ${d.payerName}
 
 // El diseño del comprobante: tipográfico. La nota es un número gigante que se sale de la tarjeta por la esquina de abajo; arriba va un texto
 // chico y ordenado, y abajo unos juncos del color del rubro que se desvanecen a medida que se acercan al número.
-export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS): string {
+// `compact` es para verla chica (la grilla): el mismo número y los mismos juncos, y de todo lo demás solo el título, más grande.
+export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, compact = false): string {
   const d = { ...data, rating: Math.min(5, Math.max(0, Math.round(data.rating))) };
   const f = fonts;
   const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 17, 3);
+  const title = compact ? wrap(d.title || "Changa", 13, 3) : wrap(d.title || "Changa", 17, 3);
   const drop = (title.length - 1) * 58;
   const defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#fff"/><stop offset="0.78" stop-color="#000"/></linearGradient><mask id="hastaelnumero" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
   const { defs: all, body } = framed(
@@ -123,13 +124,17 @@ export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS): st
       `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
       `<g mask="url(#hastaelnumero)">${reeds(-25, 800, 1.85, c.base, 0.24)}</g>`,
       text(`${d.rating}`, 676, 846, 660, c.base, f.bold, "700", 'text-anchor="end"'),
-      // La nota dicha con todas las letras: la imagen se ve suelta en una billetera, sin la app alrededor.
-      `<text x="56" y="84" font-size="20" font-family="${f.bold}" font-weight="700" letter-spacing="5"><tspan fill="${c.base}">NOTA ${d.rating} DE 5</tspan><tspan fill="${MUTED}"> · JUNQUERO · #${d.orderId}</tspan></text>`,
-      lines(title, 56, 168, 58, 50, INK, f.bold),
-      `<line x1="56" y1="${190 + drop}" x2="136" y2="${190 + drop}" stroke="${c.base}" stroke-width="5"/>`,
-      text(`${d.categoryName} · ${kind(d)}`, 56, 252 + drop, 24, MUTED, f.regular, "400"),
-      text(monthLabel(d.month), 56, 286 + drop, 24, MUTED, f.regular, "400"),
-      credit(d) ? text(credit(d), 56, 320 + drop, 24, INK, f.regular, "400") : "",
+      ...(compact
+        ? [lines(title, 56, 150, 86, 78, INK, f.bold)]
+        : [
+            // La nota dicha con todas las letras: la imagen se ve suelta en una billetera, sin la app alrededor.
+            `<text x="56" y="84" font-size="20" font-family="${f.bold}" font-weight="700" letter-spacing="5"><tspan fill="${c.base}">NOTA ${d.rating} DE 5</tspan><tspan fill="${MUTED}"> · JUNQUERO · #${d.orderId}</tspan></text>`,
+            lines(title, 56, 168, 58, 50, INK, f.bold),
+            `<line x1="56" y1="${190 + drop}" x2="136" y2="${190 + drop}" stroke="${c.base}" stroke-width="5"/>`,
+            text(`${d.categoryName} · ${kind(d)}`, 56, 252 + drop, 24, MUTED, f.regular, "400"),
+            text(monthLabel(d.month), 56, 286 + drop, 24, MUTED, f.regular, "400"),
+            credit(d) ? text(credit(d), 56, 320 + drop, 24, INK, f.regular, "400") : "",
+          ]),
     ].join(""),
     defs,
   );

@@ -36,7 +36,7 @@ export default function ReceiptsScreen() {
             onPress={() => router.push({ pathname: "/receipt/[orderId]", params: { orderId: String(item.orderId), address: String(address) } })}
             style={{ width: item.rated ? cardWidth : "47%" }}
           >
-            {item.rated ? <ReceiptCard item={item} width={cardWidth} /> : <Medal item={item} />}
+            {item.rated ? <ReceiptCard item={item} width={cardWidth} compact /> : <Medal item={item} />}
           </Pressable>
         ))}
       </View>

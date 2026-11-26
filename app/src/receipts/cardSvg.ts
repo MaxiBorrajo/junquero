@@ -125,119 +125,76 @@ const framed = (body: string, defs = ""): Composition => ({
 
 const credit = (d: CardData): string => (d.payerName ? `Calificó ${d.payerName}` : "");
 
-// Cinco composiciones minimalistas: una sola idea fuerte cada una, mucho aire y el color del rubro como único acento.
+// La composición tipográfica: la nota es un número gigante que se sale de la tarjeta; el resto es un texto chico y ordenado.
+// "original" es la de siempre; las demás son variantes de esa misma idea (color, trazo, posición, juncos).
+type Variante = "original" | "oscura" | "contorno" | "dostonos" | "juncos";
 
-// 1. Tipográfica: la nota es un número gigante que se sale de la tarjeta; el resto es un texto chico y ordenado.
-function tipografica(d: CardData, f: CardFonts): Composition {
+function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
+  const c = paletteOf(d.category);
+  const dark = v === "oscura";
+  const paper = dark ? c.deep : PAPER;
+  const ink = dark ? CREAM : INK;
+  const quiet = dark ? LINE : MUTED;
+  const accent = dark ? SAND : c.base;
+  const title = wrap(d.title || "Changa", 17, 3);
+  const drop = (title.length - 1) * 58;
+  const numeral = (fill: string, extra = "") => text(`${d.rating}`, 676, 846, 660, fill, f.bold, "700", `text-anchor="end" ${extra}`);
+  let big: string;
+  let defs = "";
+  if (v === "contorno") big = numeral("none", `stroke="${c.base}" stroke-width="6" stroke-linejoin="round"`);
+  else if (v === "dostonos") {
+    defs = `<clipPath id="arriba"><rect width="${CARD_WIDTH}" height="570"/></clipPath><clipPath id="abajo"><rect y="570" width="${CARD_WIDTH}" height="${CARD_HEIGHT - 570}"/></clipPath>`;
+    big = `<g clip-path="url(#arriba)">${numeral(c.base)}</g><g clip-path="url(#abajo)">${numeral(c.deep)}</g>`;
+  } else big = numeral(dark ? SAND : c.base);
+  return framed(
+    [
+      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paper}"/>`,
+      big,
+      v === "juncos" ? reeds(0, 800, 1.45, c.deep, 0.3) : "",
+      text(`JUNQUERO · #${d.orderId}`, 56, 84, 20, quiet, f.bold, "700", 'letter-spacing="6"'),
+      lines(title, 56, 168, 58, 50, ink, f.bold),
+      `<line x1="56" y1="${190 + drop}" x2="136" y2="${190 + drop}" stroke="${accent}" stroke-width="5"/>`,
+      text(`${d.categoryName} · ${kind(d)}`, 56, 252 + drop, 24, quiet, f.regular, "400"),
+      text(monthLabel(d.month), 56, 286 + drop, 24, quiet, f.regular, "400"),
+      credit(d) ? text(credit(d), 56, 320 + drop, 24, ink, f.regular, "400") : "",
+    ].join(""),
+    defs,
+  );
+}
+
+// Arriba: la misma idea dada vuelta. El número gigante se sale por arriba a la izquierda, los datos van a la derecha y el título abajo.
+function arriba(d: CardData, f: CardFonts): Composition {
   const c = paletteOf(d.category);
   const title = wrap(d.title || "Changa", 17, 3);
+  const top = title.length === 3 ? 596 : title.length === 2 ? 640 : 690;
   return framed(
     [
       `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
-      text(`${d.rating}`, 676, 846, 660, c.base, f.bold, "700", 'text-anchor="end"'),
-      text(`JUNQUERO · #${d.orderId}`, 56, 84, 20, MUTED, f.bold, "700", 'letter-spacing="6"'),
-      lines(title, 56, 168, 58, 50, INK, f.bold),
-      `<line x1="56" y1="${190 + (title.length - 1) * 58}" x2="136" y2="${190 + (title.length - 1) * 58}" stroke="${c.base}" stroke-width="5"/>`,
-      text(`${d.categoryName} · ${kind(d)}`, 56, 252 + (title.length - 1) * 58, 24, MUTED, f.regular, "400"),
-      text(monthLabel(d.month), 56, 286 + (title.length - 1) * 58, 24, MUTED, f.regular, "400"),
-      credit(d) ? text(credit(d), 56, 320 + (title.length - 1) * 58, 24, INK, f.regular, "400") : "",
+      text(`${d.rating}`, -34, 540, 640, c.base, f.bold, "700"),
+      text(`JUNQUERO`, 544, 84, 20, MUTED, f.bold, "700", 'text-anchor="end" letter-spacing="6"'),
+      text(d.categoryName, 544, 142, 26, INK, f.bold, "700", 'text-anchor="end"'),
+      text(kind(d), 544, 178, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
+      text(monthLabel(d.month), 544, 210, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
+      credit(d) ? text(credit(d), 544, 242, 22, INK, f.regular, "400", 'text-anchor="end"') : "",
+      `<line x1="56" y1="${top - 62}" x2="136" y2="${top - 62}" stroke="${c.base}" stroke-width="5"/>`,
+      lines(title, 56, top, 58, 50, INK, f.bold),
+      text(`#${d.orderId}`, 544, 772, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
     ].join(""),
   );
 }
 
-// 2. Espiga: una sola espiga de junco, dibujada con línea, y todo el aire del fondo oscuro. La nota son cinco puntos.
-function espiga(d: CardData, f: CardFonts): Composition {
-  const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 14, 3);
-  const top = 400;
-  const metaY = top + (title.length - 1) * 60 + 56;
-  const dotsY = metaY + 50;
-  const dots = Array.from({ length: 5 }, (_, i) => `<circle cx="${68 + i * 40}" cy="${dotsY}" r="11" fill="${i < d.rating ? SAND : "none"}" stroke="${SAND}" stroke-width="3" opacity="${i < d.rating ? 1 : 0.4}"/>`).join("");
-  return framed(
-    [
-      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${c.deep}"/>`,
-      `<path d="M 440 830 C 436 660, 454 500, 440 330" fill="none" stroke="${SAND}" stroke-width="7" stroke-linecap="round"/>`,
-      `<path d="M 440 830 C 396 690, 338 590, 312 440" fill="none" stroke="${SAND}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`,
-      `<path d="M 440 830 C 478 690, 528 600, 552 500" fill="none" stroke="${SAND}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`,
-      `<ellipse cx="440" cy="246" rx="27" ry="88" fill="${SAND}"/>`,
-      `<line x1="440" y1="158" x2="440" y2="104" stroke="${SAND}" stroke-width="4" stroke-linecap="round"/>`,
-      lines(title, 56, top, 60, 52, CREAM, f.bold),
-      text(`${d.categoryName} · ${kind(d)}`, 56, metaY, 24, LINE, f.regular, "400"),
-      dots,
-      text(`${monthLabel(d.month)}${credit(d) ? ` · ${credit(d)}` : ""}`, 56, dotsY + 52, 22, LINE, f.regular, "400"),
-      text(`junquero · #${d.orderId}`, 56, 764, 20, SAND, f.regular, "400"),
-    ].join(""),
-  );
-}
+export type CardShape = "original" | "oscura" | "contorno" | "arriba" | "dostonos" | "juncos";
+export const CARD_SHAPES: readonly CardShape[] = ["original", "oscura", "contorno", "arriba", "dostonos", "juncos"];
+export const DEFAULT_SHAPE: CardShape = "original";
 
-// 3. Círculo: un círculo del color del rubro con la nota adentro, y el título abajo. Casi sin nada más.
-function circulo(d: CardData, f: CardFonts): Composition {
-  const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 14, 3);
-  return framed(
-    [
-      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
-      `<circle cx="400" cy="260" r="178" fill="${c.base}"/>`,
-      text(`${d.rating}`, 400, 336, 220, CREAM, f.bold, "700", 'text-anchor="middle"'),
-      text("de 5", 400, 392, 28, SAND, f.regular, "400", 'text-anchor="middle" letter-spacing="4"'),
-      `<line x1="56" y1="500" x2="136" y2="500" stroke="${c.base}" stroke-width="5"/>`,
-      lines(title, 56, 572, 58, 50, INK, f.bold),
-      text(`${d.categoryName} · ${kind(d)} · ${monthLabel(d.month)}`, 56, 742, 22, MUTED, f.regular, "400"),
-      text(`${credit(d) ? `${credit(d)} · ` : ""}junquero #${d.orderId}`, 56, 772, 20, MUTED, f.regular, "400"),
-    ].join(""),
-  );
-}
-
-// 4. Horizonte: dos bloques de color, uno oscuro y uno claro, con los juncos del mismo tono parados sobre la línea que los separa.
-function horizonte(d: CardData, f: CardFonts): Composition {
-  const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 17, 3);
-  return framed(
-    [
-      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
-      `<rect width="${CARD_WIDTH}" height="500" fill="${c.deep}"/>`,
-      reeds(0, 500, 1.45, c.base, 0.7),
-      lines(title, 56, 130, 62, 54, CREAM, f.bold),
-      text(`${d.rating}`, 52, 706, 200, c.base, f.bold, "700"),
-      text("/ 5", 190, 706, 54, MUTED, f.regular, "400"),
-      text(d.categoryName, 544, 600, 26, INK, f.bold, "700", 'text-anchor="end"'),
-      text(kind(d), 544, 636, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
-      text(monthLabel(d.month), 544, 668, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
-      credit(d) ? text(credit(d), 544, 700, 22, MUTED, f.regular, "400", 'text-anchor="end"') : "",
-      text(`junquero · #${d.orderId}`, 544, 764, 20, c.base, f.regular, "400", 'text-anchor="end"'),
-    ].join(""),
-  );
-}
-
-// 5. Regla: la nota como un punto sobre una escala del 1 al 5. El gráfico es el diseño.
-function regla(d: CardData, f: CardFonts): Composition {
-  const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 16, 3);
-  const x = (n: number) => 76 + (n - 1) * 112;
-  const ticks = [1, 2, 3, 4, 5].map((n) => `<line x1="${x(n)}" y1="500" x2="${x(n)}" y2="${n === d.rating ? 480 : 490}" stroke="${INK}" stroke-width="3"/>${text(`${n}`, x(n), 540, 22, n === d.rating ? c.base : MUTED, f.bold, "700", 'text-anchor="middle"')}`).join("");
-  return framed(
-    [
-      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
-      `<rect x="0" y="0" width="${CARD_WIDTH}" height="18" fill="${c.base}"/>`,
-      text(`JUNQUERO · #${d.orderId}`, 56, 92, 20, MUTED, f.bold, "700", 'letter-spacing="6"'),
-      lines(title, 56, 176, 60, 52, INK, f.bold),
-      `<line x1="${x(1)}" y1="500" x2="${x(5)}" y2="500" stroke="${INK}" stroke-width="3"/>`,
-      ticks,
-      `<circle cx="${x(d.rating)}" cy="500" r="20" fill="${c.base}"/>`,
-      text(`${d.rating}`, 56, 440, 150, c.base, f.bold, "700", "").replace('x="56"', 'x="52"'),
-      text(`${d.categoryName} · ${kind(d)}`, 56, 640, 24, INK, f.regular, "400"),
-      text(`${monthLabel(d.month)}${credit(d) ? ` · ${credit(d)}` : ""}`, 56, 676, 24, MUTED, f.regular, "400"),
-      text("junquero", 56, 764, 30, c.base, f.bold, "700"),
-      text(`#${d.orderId}`, 544, 764, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
-    ].join(""),
-  );
-}
-
-export type CardShape = "tipografica" | "espiga" | "circulo" | "horizonte" | "regla";
-export const CARD_SHAPES: readonly CardShape[] = ["tipografica", "espiga", "circulo", "horizonte", "regla"];
-export const DEFAULT_SHAPE: CardShape = "tipografica";
-
-const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = { tipografica, espiga, circulo, horizonte, regla };
+const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = {
+  original: (d, f) => tipografica(d, f, "original"),
+  oscura: (d, f) => tipografica(d, f, "oscura"),
+  contorno: (d, f) => tipografica(d, f, "contorno"),
+  arriba,
+  dostonos: (d, f) => tipografica(d, f, "dostonos"),
+  juncos: (d, f) => tipografica(d, f, "juncos"),
+};
 
 export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, shape: CardShape = DEFAULT_SHAPE): string {
   const rating = Math.min(5, Math.max(0, Math.round(data.rating)));

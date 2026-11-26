@@ -21,7 +21,7 @@ type PushState = "on" | "off" | "blocked" | "unavailable";
 const projectId = () => (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
 
 async function readPushState(): Promise<PushState> {
-  if (!Device.isDevice || !projectId()) return "unavailable";
+  if ((!Device.isDevice && !__DEV__) || !projectId()) return "unavailable";
   const { granted, canAskAgain } = await Notifications.getPermissionsAsync();
   if (!granted) return canAskAgain ? "off" : "blocked";
   return (await pushEnabledByUser()) ? "on" : "off";

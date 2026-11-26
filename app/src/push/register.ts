@@ -7,7 +7,8 @@ import type { Api } from "../api/client";
 export type PushOutcome = "registered" | "denied" | "unsupported" | "no-project";
 
 export async function registerForPush(api: Api): Promise<PushOutcome> {
-  if (!Device.isDevice) return "unsupported";
+  // En el emulador solo se permite en modo desarrollo (con Google Play Services anda): así se pueden probar las push sin un teléfono real.
+  if (!Device.isDevice && !__DEV__) return "unsupported";
   const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
   if (!projectId) return "no-project";
 

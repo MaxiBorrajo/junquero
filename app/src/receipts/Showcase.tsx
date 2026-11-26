@@ -58,7 +58,8 @@ export function ReceiptShowcase({ item, width }: { item: ReceiptItem; width: num
   const translateY = breath.interpolate({ inputRange: [0, 1], outputRange: [-6, 8] });
   const rotateY = breath.interpolate({ inputRange: [0, 1], outputRange: ["-7deg", "7deg"] });
   const rotateX = breath.interpolate({ inputRange: [0, 1], outputRange: ["3deg", "-3deg"] });
-  const rect = shape === "rectangulo";
+  // La carta de colección tiene las esquinas transparentes: ahí no van ni la sombra ni el destello rectangulares.
+  const rect = shape !== "coleccion";
   return (
     <View style={{ width, height: height + 24, justifyContent: "center" }}>
       <Animated.View style={[rect ? styles.shadow : undefined, { width, height, transform: [{ perspective: 900 }, { translateY }, { rotateX }, { rotateY }] }]}>

@@ -74,7 +74,7 @@ function Grid({ list, open }: Views) {
     <View style={styles.grid}>
       {list.map((item) => (
         <Pressable key={item.orderId} accessibilityRole="button" accessibilityLabel={label(item)} onPress={() => open(item)} style={{ width: item.rated ? cardWidth : "47%" }}>
-          {item.rated ? <ReceiptCard item={item} width={cardWidth} compact /> : <Medal item={item} />}
+          {item.rated ? <ReceiptCard item={item} width={cardWidth} /> : <Medal item={item} />}
         </Pressable>
       ))}
     </View>

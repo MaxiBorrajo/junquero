@@ -184,6 +184,26 @@ cd app/android
 
 El APK queda en `app/android/app/build/outputs/apk/release/`. Para pasarlo al celular: cable con `adb install`, o un túnel (`cloudflared tunnel --url http://localhost:8000` sirviendo la carpeta con `python3 -m http.server 8000`). El celular necesita permitir instalar apps de orígenes desconocidos. Hay perfiles de EAS en `app/eas.json`, pero no hay cuenta de Expo en uso.
 
+## Notificaciones push
+
+Las push salen del servidor (`backend/src/push.ts`) hacia el servicio de Expo, que las reparte por Firebase (FCM V1). En el repositorio ya están:
+- `app/app.json`: el `projectId` de Expo (`extra.eas.projectId`), el dueño del proyecto y `android.googleServicesFile`.
+- `app/google-services.json`: la configuración de cliente de Firebase para `app.junquero` (proyecto `junquero-288e1`). Solo trae claves de cliente; **la clave de cuenta de servicio no va nunca en el repositorio**.
+
+Lo que **no** está en el repositorio y vive en tu cuenta de Expo: la clave de cuenta de servicio de Firebase, asignada a `app.junquero`. Se carga una sola vez, en la terminal, desde `app/`:
+
+```bash
+npx eas-cli login
+npx eas-cli credentials --platform android
+# build profile: development
+# Google Service Account > Manage your Google Service Account Key for Push Notifications (FCM V1)
+# > Set up a Google Service Account Key for Push Notifications (FCM V1) > ruta del JSON de la cuenta de servicio
+```
+
+Para que la app las reciba hay que recompilarla con el archivo de Firebase adentro (`npx expo prebuild --platform android` y de nuevo `gradlew`; el `prebuild` regenera `app/android/`, así que hay que volver a poner la línea de `org.gradle.jvmargs` de más arriba). Después, en Ajustes, activar «Avisos en el teléfono». En el emulador anda en modo desarrollo; hace falta una imagen con Google Play Services (las de este proyecto la traen).
+
+Si un envío falla con `InvalidCredentials`, la clave de cuenta de servicio no está cargada para `app.junquero` en ese proyecto de Expo. Si el emulador se queda sin espacio al instalar (`INSUFFICIENT_STORAGE`), hay que desinstalar la app antes de reinstalarla: Android exige un margen libre de cerca del 10 % del disco.
+
 ## Pruebas
 
 ```bash

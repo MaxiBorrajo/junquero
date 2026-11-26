@@ -21,7 +21,8 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS"
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
@@ -61,6 +62,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cae614ff-c295-4f39-85b1-3f4f9e4f414e"
+      }
+    },
+    "owner": "maximiliano_borrajo"
   }
 }

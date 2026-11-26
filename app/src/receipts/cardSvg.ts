@@ -126,8 +126,18 @@ const framed = (body: string, defs = ""): Composition => ({
 const credit = (d: CardData): string => (d.payerName ? `Calificó ${d.payerName}` : "");
 
 // La composición tipográfica: la nota es un número gigante que se sale de la tarjeta; el resto es un texto chico y ordenado.
-// "original" es la de siempre; las demás son variantes de esa misma idea (color, trazo, posición, juncos).
-type Variante = "original" | "oscura" | "contorno" | "dostonos" | "juncos";
+// "original" es la de siempre; las demás son variantes de esa misma idea que suman los juncos de distintas maneras.
+type Variante = "original" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
+
+// Una sola espiga de junco, dibujada con trazo y relleno, parada al costado del número.
+function unaEspiga(x: number, color: string): string {
+  return [
+    `<path d="M ${x} 840 C ${x - 4} 760, ${x + 10} 690, ${x} 610" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`,
+    `<path d="M ${x} 840 C ${x - 44} 770, ${x - 96} 700, ${x - 112} 620" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" opacity="0.55"/>`,
+    `<ellipse cx="${x}" cy="540" rx="24" ry="74" fill="${color}"/>`,
+    `<line x1="${x}" y1="466" x2="${x}" y2="418" stroke="${color}" stroke-width="4" stroke-linecap="round"/>`,
+  ].join("");
+}
 
 function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   const c = paletteOf(d.category);
@@ -139,18 +149,29 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   const title = wrap(d.title || "Changa", 17, 3);
   const drop = (title.length - 1) * 58;
   const numeral = (fill: string, extra = "") => text(`${d.rating}`, 676, 846, 660, fill, f.bold, "700", `text-anchor="end" ${extra}`);
-  let big: string;
   let defs = "";
-  if (v === "contorno") big = numeral("none", `stroke="${c.base}" stroke-width="6" stroke-linejoin="round"`);
-  else if (v === "dostonos") {
-    defs = `<clipPath id="arriba"><rect width="${CARD_WIDTH}" height="570"/></clipPath><clipPath id="abajo"><rect y="570" width="${CARD_WIDTH}" height="${CARD_HEIGHT - 570}"/></clipPath>`;
-    big = `<g clip-path="url(#arriba)">${numeral(c.base)}</g><g clip-path="url(#abajo)">${numeral(c.deep)}</g>`;
-  } else big = numeral(dark ? SAND : c.base);
+  let detras = "";
+  let delante = "";
+  if (v === "alpie") detras = reeds(0, 800, 1.45, c.deep, 0.3);
+  else if (v === "oscura") delante = reeds(0, 800, 1.45, "#000000", 0.4);
+  else if (v === "brotan") delante = reeds(0, 806, 1.45, c.base, 1);
+  else if (v === "esquina") {
+    // Los juncos nacen en la esquina de abajo a la izquierda y se van desvaneciendo hacia el número.
+    defs = `<linearGradient id="desvanece" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><mask id="esquina" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}"><rect x="0" y="0" width="470" height="${CARD_HEIGHT}" fill="url(#desvanece)"/></mask>`;
+    detras = `<g mask="url(#esquina)">${reeds(-30, 800, 1.3, c.base, 0.6)}</g>`;
+  }
+  else if (v === "espiga") delante = unaEspiga(150, c.base);
+  else if (v === "dentro") {
+    // Los juncos oscuros solo se ven adentro del número: la máscara es el propio número.
+    defs = `<mask id="adentro" maskUnits="userSpaceOnUse" x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}">${numeral("#fff")}</mask>`;
+    delante = `<g mask="url(#adentro)">${reeds(-150, 846, 3.1, c.deep, 1)}</g>`;
+  }
   return framed(
     [
       `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${paper}"/>`,
-      big,
-      v === "juncos" ? reeds(0, 800, 1.45, c.deep, 0.3) : "",
+      detras,
+      numeral(dark ? SAND : c.base),
+      delante,
       text(`JUNQUERO · #${d.orderId}`, 56, 84, 20, quiet, f.bold, "700", 'letter-spacing="6"'),
       lines(title, 56, 168, 58, 50, ink, f.bold),
       `<line x1="56" y1="${190 + drop}" x2="136" y2="${190 + drop}" stroke="${accent}" stroke-width="5"/>`,
@@ -162,38 +183,18 @@ function tipografica(d: CardData, f: CardFonts, v: Variante): Composition {
   );
 }
 
-// Arriba: la misma idea dada vuelta. El número gigante se sale por arriba a la izquierda, los datos van a la derecha y el título abajo.
-function arriba(d: CardData, f: CardFonts): Composition {
-  const c = paletteOf(d.category);
-  const title = wrap(d.title || "Changa", 17, 3);
-  const top = title.length === 3 ? 596 : title.length === 2 ? 640 : 690;
-  return framed(
-    [
-      `<rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="${PAPER}"/>`,
-      text(`${d.rating}`, -34, 540, 640, c.base, f.bold, "700"),
-      text(`JUNQUERO`, 544, 84, 20, MUTED, f.bold, "700", 'text-anchor="end" letter-spacing="6"'),
-      text(d.categoryName, 544, 142, 26, INK, f.bold, "700", 'text-anchor="end"'),
-      text(kind(d), 544, 178, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
-      text(monthLabel(d.month), 544, 210, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
-      credit(d) ? text(credit(d), 544, 242, 22, INK, f.regular, "400", 'text-anchor="end"') : "",
-      `<line x1="56" y1="${top - 62}" x2="136" y2="${top - 62}" stroke="${c.base}" stroke-width="5"/>`,
-      lines(title, 56, top, 58, 50, INK, f.bold),
-      text(`#${d.orderId}`, 544, 772, 22, MUTED, f.regular, "400", 'text-anchor="end"'),
-    ].join(""),
-  );
-}
-
-export type CardShape = "original" | "oscura" | "contorno" | "arriba" | "dostonos" | "juncos";
-export const CARD_SHAPES: readonly CardShape[] = ["original", "oscura", "contorno", "arriba", "dostonos", "juncos"];
+export type CardShape = "original" | "alpie" | "dentro" | "brotan" | "esquina" | "espiga" | "oscura";
+export const CARD_SHAPES: readonly CardShape[] = ["original", "alpie", "dentro", "brotan", "esquina", "espiga", "oscura"];
 export const DEFAULT_SHAPE: CardShape = "original";
 
 const COMPOSITIONS: Record<CardShape, (d: CardData, f: CardFonts) => Composition> = {
   original: (d, f) => tipografica(d, f, "original"),
+  alpie: (d, f) => tipografica(d, f, "alpie"),
+  dentro: (d, f) => tipografica(d, f, "dentro"),
+  brotan: (d, f) => tipografica(d, f, "brotan"),
+  esquina: (d, f) => tipografica(d, f, "esquina"),
+  espiga: (d, f) => tipografica(d, f, "espiga"),
   oscura: (d, f) => tipografica(d, f, "oscura"),
-  contorno: (d, f) => tipografica(d, f, "contorno"),
-  arriba,
-  dostonos: (d, f) => tipografica(d, f, "dostonos"),
-  juncos: (d, f) => tipografica(d, f, "juncos"),
 };
 
 export function receiptCardSvg(data: CardData, fonts: CardFonts = WEB_FONTS, shape: CardShape = DEFAULT_SHAPE): string {
